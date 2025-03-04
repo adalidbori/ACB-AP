@@ -3,7 +3,7 @@ const tableBody = document.querySelector('tbody');
 
 async function loadInvoices() {
   try {
-    const response = await fetch("http://localhost:3000/invoices/status/2");
+    const response = await fetch("http://192.168.1.158:3000/invoices/status/2");
     const invoices = await response.json(); // Suponemos que invoices es un arreglo de objetos
     tableBody.innerHTML = ""; // Limpiar contenido previo
 

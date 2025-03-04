@@ -3,21 +3,14 @@ const tableBody = document.querySelector('tbody');
 
 // Función para convertir un string en formato internacional a número
 function parseInternationalCurrency(amountStr) {
-  if (typeof amountStr === 'string') {
-    amountStr = amountStr.trim();
-    if (amountStr.charAt(0) === '$') {
-      amountStr = amountStr.substring(1);
-    }
-    // Eliminar separadores de miles y reemplazar la coma decimal por un punto
-    amountStr = amountStr.replace(/\./g, '').replace(',', '.');
-  }
   return parseFloat(amountStr) || 0;
 }
 
 async function loadInvoices() {
   try {
-    const response = await fetch("http://localhost:3000/invoices/status/4");
+    const response = await fetch("http://192.168.1.158:3000/invoices/status/4");
     const invoices = await response.json();
+    console.log(invoices);
     tableBody.innerHTML = ""; // Limpiar contenido previo
 
     // Agrupar facturas por vendor y sumar los totales usando el formato internacional
@@ -40,7 +33,7 @@ async function loadInvoices() {
       headerRow.dataset.vendor = vendor;
       headerRow.innerHTML = `
         <td colspan="9" style="background:#f0f0f0; cursor: pointer;">
-          <strong>${vendor}</strong> - Total: $${groupedInvoices[vendor].total.toLocaleString('de-DE', {
+          <strong>${vendor}</strong> - Total: $${groupedInvoices[vendor].total.toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
           })}
@@ -67,7 +60,7 @@ async function loadInvoices() {
         tr.dataset.id = invoice.ID;
         tr.innerHTML = `
           <td>
-            <input type="checkbox" class="row-checkbox">
+            <input type="checkbox" class="row-checkbox" data-fileurl="${invoice.fileURL}" data-filetype="${invoice.fileType}">
           </td>
           <td>
             <a class="dragout" href='${invoice.fileURL}' 
@@ -114,6 +107,16 @@ async function loadInvoices() {
             });
             console.log(`Datos de la fila con ID ${currentRow.dataset.id}:`, rowData);
             updateElement(currentRow.dataset.id, rowData);
+          }
+        });
+
+        // Añadir evento change al checkbox para verificar si está seleccionado
+        const checkbox = tr.querySelector('.row-checkbox');
+        checkbox.addEventListener('change', function () {
+          const isChecked = this.checked;
+          if (isChecked) {
+            // Llamar a showDocument cuando el checkbox esté seleccionado
+            showDocument(this.dataset.fileurl, this.dataset.filetype);
           }
         });
         tableBody.appendChild(tr);

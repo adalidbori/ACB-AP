@@ -14,7 +14,7 @@ async function updateElement(invoiceId, rowData) {
     if (allowedFields.includes(field)) {
       const value = rowData[field];
       try {
-        const response = await fetch(`http://localhost:3000/invoices/${invoiceId}`, {
+        const response = await fetch(`http://192.168.1.158:3000/invoices/${invoiceId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ field, value })
@@ -66,7 +66,7 @@ async function deleteSelectedRows() {
 
   try {
     // Enviar petición DELETE al servidor con los IDs a eliminar
-    const response = await fetch("http://localhost:3000/invoices", {
+    const response = await fetch("http://192.168.1.158:3000/invoices", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: idsToDelete })
@@ -109,7 +109,7 @@ async function updateStatus(invoiceStatus) {
 
   try {
     // Enviar petición Update al servidor con los IDs a actualizar
-    const response = await fetch(`http://localhost:3000/invoices/update/${invoiceStatus}`, {
+    const response = await fetch(`http://192.168.1.158:3000/invoices/update/${invoiceStatus}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: idsToChange })

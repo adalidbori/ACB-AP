@@ -15,6 +15,7 @@ const PASSWORD = process.env.PASSWORD;
 const SERVER = process.env.SERVER;
 const DATABASE = process.env.DATABASE;
 const PORT = parseInt(process.env.PORT, 10); // Convertir el puerto a número
+const INSTANCENAME = process.env.INSTANCENAME;
 
 const connection = {
   user: USER,
@@ -23,7 +24,7 @@ const connection = {
   database: DATABASE,
   port: PORT,
   options: {
-    encrypt: false,
+    encrypt: false
   }
 };
 
@@ -162,7 +163,7 @@ app.post("/chatgpt", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: "You are an assistant that extracts invoice information. Based on the following text, generate a JSON containing the following fields:\n\n- `vendor_name`\n- `invoice_date` (formatted as MM/DD/YYYY)\n- `vendor_address` \n- `invoice_number`\n- `invoice_due_date`(formatted as MM/DD/YYYY)\n- `invoice_total` (formatted in the international currency format used in countries like Germany or Brazil, e.g., $3.096,33)\n\nIf any of the fields cannot be filled, leave them as an empty string.\n\nImportant: The buyer (client) is always 'A Customs Brokerage' so this information should not be included in the JSON. And "
+            content: "You are an assistant that extracts invoice information. Based on the following text, generate a JSON containing the following fields:\n\n- `vendor_name`\n- `invoice_date` (formatted as MM/DD/YYYY)\n- `vendor_address` \n- `invoice_number`\n- `invoice_due_date`(formatted as MM/DD/YYYY)\n- `invoice_total` (Formatted as a decimal number with the (.) as the decimal separator. Remove any other character except the (.) in the decimals, e.g., 3096,33)\n\nIf any of the fields cannot be filled, leave them as an empty string.\n\nImportant: The buyer (client) is always 'A Customs Brokerage' so this information should not be included in the JSON. And "
           },
           {
             role: "user",
@@ -326,6 +327,6 @@ app.use((req, res, next) => {
 });
 
 // Iniciar el servidor
-app.listen(port, () => {
-  console.log(`Servidor corriendo en http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Servidor corriendo en http://192.168.1.158:${port}`);
 });

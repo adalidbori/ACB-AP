@@ -7,6 +7,7 @@ GO
 CREATE TABLE Invoices (
     ID INT IDENTITY(1,1) PRIMARY KEY,       -- ID autoincremental
     docName NVARCHAR(255),                     -- name tipo texto
+	timestampName NVARCHAR(255),                     -- name tipo texto
     vendor NVARCHAR(255),                   -- vendor tipo texto
     invoiceNumber NVARCHAR(100),            -- Invoice Number tipo texto
     invoiceStatus INT,                             -- status tipo número
@@ -27,4 +28,7 @@ delete from Invoices
 go
 
 truncate table Invoices
+go
+
+DROP TABLE Invoices;
 go
