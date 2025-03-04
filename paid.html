@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Payable</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/Styles/style.css">
+</head>
+
+<body>
+    <div class="container-fluid p-4">
+
+        <!-- Top Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <a href="/" class="text-decoration-none">
+                    <div class="card dashboard-card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <div class="card-icon">📊</div>
+                            <h5 class="card-title">Pending to Review</h5>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3 mb-3">
+                <a href="/waiting-approval" class="text-decoration-none">
+                    <div class="card dashboard-card bg-success text-white">
+                        <div class="card-body text-center">
+                            <div class="card-icon">📝</div>
+                            <h5 class="card-title">Waiting Approval</h5>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3 mb-3">
+                <a href="/ready-to-pay" class="text-decoration-none">
+                    <div class="card dashboard-card bg-info text-white">
+                        <div class="card-body text-center">
+                            <div class="card-icon">💰</div>
+                            <h5 class="card-title">Ready to pay</h5>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3 mb-3">
+                <a href="/paid" class="text-decoration-none">
+                    <div class="card dashboard-card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <div class="card-icon">⏱️</div>
+                            <h5 class="card-title">Paid</h5>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <!-- Main Content -->
+        <div class="row">
+            <!-- Left Side: Editable List -->
+            <div class="col-md-7 mb-4">
+                <div class="content-section p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Paid</h4>
+                        <div class="d-flex gap-2">
+                            <div class="d-flex align-items-center">Send to:</div>
+                            <button type="button" onclick="updateStatus(1)" class="btn bg-primary text-white">Pending to
+                                Review</button>
+                            <button type="button" onclick="updateStatus(2)" class="btn bg-success text-white">Waiting
+                                Approval</button>
+                            <button type="button" onclick="updateStatus(3)" class="btn bg-info text-white">Ready to
+                                Pay</button>
+                            <button type="button" onclick="deleteSelectedRows()"
+                                class="btn btn-outline-danger">Delete</button>
+
+                        </div>
+                    </div>
+
+                    <div class="table-responsive" style="max-height: 600px; overflow-y: scroll;">
+                        <table class="editable-table" id="editable-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th></th>
+                                    <th>File name</th>
+                                    <th>Invoice #</th>
+                                    <th>Vendor</th>
+                                    <th>Total</th>
+                                    <th>Date</th>
+                                    <th>Due Date</th>
+                                    <th>File</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Document Viewer -->
+            <div class="col-md-5 mb-4">
+                <div class="content-section">
+                    <div class="document-viewer">
+                        <div class="viewer-toolbar d-flex justify-content-between align-items-center">
+                            <h4 class="mb-0">Document Viewer</h4>
+                            <div class="btn-group">
+                                <button class="btn btn-outline-secondary btn-sm" id="zoom-in-btn">Zoom In</button>
+                                <button class="btn btn-outline-secondary btn-sm" id="zoom-out-btn">Zoom Out</button>
+                            </div>
+                        </div>
+                        <div class="viewer-content" id="viewer-content">
+                            <div class="text-center text-muted">
+                                <h5>Select a document to view</h5>
+                                <p>Click on "Show Documents" to see available files</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/Js/index.js"></script>
+    <script src="/Js/paid.js"></script>
+    <script src="/Js/dropdown.js"></script>
+    <script src="/Js/editing.js"></script>
+</body>
+
+</html>

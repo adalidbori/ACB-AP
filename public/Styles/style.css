@@ -1,0 +1,160 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .dashboard-card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+  }
+  
+  .dashboard-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .card-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+  }
+  
+  .content-section {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    height: calc(100vh - 220px);
+    overflow: hidden;
+  }
+  
+  /* Airtable-like styling */
+  .editable-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .editable-table th {
+    background-color: #f1f3f5;
+    padding: 12px;
+    font-weight: 600;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+  }
+  
+  .editable-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  .editable-table tr:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .editable-cell {
+    min-height: 24px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+  }
+  
+  .editable-cell:hover {
+    background-color: #e9ecef;
+  }
+  
+  .editable-cell.editing {
+    background-color: #e7f5ff;
+    outline: 2px solid #4dabf7;
+  }
+  
+  .dropdown-cell {
+    position: relative;
+  }
+  
+  .dropdown-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    display: none;
+    min-width: 10rem;
+    padding: 0.5rem 0;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 0.25rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.175);
+  }
+  
+  .dropdown-option {
+    display: block;
+    width: 100%;
+    padding: 0.25rem 1.5rem;
+    clear: both;
+    text-align: inherit;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+  
+  .dropdown-option:hover {
+    background-color: #f8f9fa;
+  }
+  
+  /* Document viewer */
+  .document-viewer {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .viewer-toolbar {
+    padding: 10px;
+    background-color: #f1f3f5;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  .viewer-content {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .viewer-content iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  
+  .viewer-content img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  
+  .document-list {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  
+  .document-item {
+    cursor: pointer;
+    padding: 8px 12px;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  .document-item:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .document-item.active {
+    background-color: #e7f5ff;
+  }
+  #drop-area {
+    border: 2px dashed #ccc;
+    padding: 20px;
+    text-align: center;
+    margin: 20px;
+    background-color: #f9f9f9;
+  }

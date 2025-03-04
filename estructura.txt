@@ -1,0 +1,11 @@
+name
+vendor name
+invoice number
+status
+total
+vendor address
+invoice date
+due date
+file url
+file type
+timestamp
