@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', loadInvoices);
 const tableBody = document.querySelector('tbody');
-
 // Función para convertir un string en formato internacional a número
 function parseInternationalCurrency(amountStr) {
   return parseFloat(amountStr) || 0;
@@ -8,7 +7,7 @@ function parseInternationalCurrency(amountStr) {
 
 async function loadInvoices() {
   try {
-    const response = await fetch("http://192.168.1.158:3000/invoices/status/4");
+    const response = await fetch(`http://${window.miVariable}:3000/invoices/status/4`);
     const invoices = await response.json();
     console.log(invoices);
     tableBody.innerHTML = ""; // Limpiar contenido previo

@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', loadInvoices);
 
 
@@ -51,7 +52,7 @@ async function callChatGPT(texto) {
 
 async function insertRecord(docName, timestampName, fileType, fileURL, chatGPTData) {
   try {
-    const response = await fetch("http://192.168.1.158:3000/insert", {
+    const response = await fetch(`http://${window.miVariable}:3000/insert`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -88,7 +89,7 @@ async function uploadFile(file) {
   formData.append("file", file);
 
   try {
-    const uploadResponse = await fetch("http://192.168.1.158:3000/upload", {
+    const uploadResponse = await fetch(`http://${window.miVariable}:3000/upload`, {
       method: "POST",
       body: formData,
     });
@@ -119,7 +120,7 @@ async function uploadFile(file) {
 async function extractText(url) {
   const filePath = url;
   try {
-    const response = await fetch('http://192.168.1.158:3000/extract-text', {
+    const response = await fetch(`http://${window.miVariable}:3000/extract-text`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -206,7 +207,7 @@ function addFileToList(name, url, filetype, data, id) {
 //Cargar elementos pending to review de la base de datos
 async function loadInvoices() {
     try {
-      const response = await fetch("http://192.168.1.158:3000/invoices/status/1");
+      const response = await fetch(`http://${window.miVariable}:3000/invoices/status/1`);
       const invoices = await response.json(); // Suponemos que invoices es un arreglo de objetos
       tableBody.innerHTML = ""; // Limpiar contenido previo
   
