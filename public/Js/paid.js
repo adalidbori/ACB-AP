@@ -5,34 +5,20 @@ function parseInternationalCurrency(amountStr) {
   return parseFloat(amountStr) || 0;
 }
 
-function showNotesModal(invoiceId, invoiceNumber) {
+async function showNotesModal(invoiceId, invoiceNumber) {
   currentInvoiceId = invoiceId;
   const modalEl = document.getElementById('exampleModal');
   modalEl.querySelector('.modal-title').textContent = `Notes: ${invoiceNumber}`;
 
-  // Petición para obtener la nota existente asociada al invoiceId
-  fetch(`http://${window.miVariable}:3000/invoices/notes/${invoiceId}`)
-    .then(response => response.json())
-    .then(data => {
-      // Suponiendo que 'data' es un arreglo de notas
-      if (data.length > 0) {
-        // Si existe alguna nota, la mostramos en el textarea
-        modalEl.querySelector('#notes-text').value = data[0].content;
-      } else {
-        // Si no existe, dejamos el textarea vacío
-        modalEl.querySelector('#notes-text').value = '';
-      }
-    })
-    .catch(error => {
-      console.error("Error al obtener las notas:", error);
-      modalEl.querySelector('#notes-text').value = '';
-    });
+  // Obtener las notas de forma asincrónica y asignarlas al textarea
+  const notesContent = await getNotes(invoiceId);
+  modalEl.querySelector('#notes-text').value = notesContent;
 
   // Asigna el listener para guardar (usando onclick para evitar acumulación de listeners)
   const saveButton = modalEl.querySelector('.modal-save-button');
-  saveButton.onclick = () => {
+  saveButton.onclick = async () => {
     const notesContent = modalEl.querySelector('#notes-text').value;
-    insertUpdateNotes(invoiceId, notesContent);
+    await insertUpdateNotes(invoiceId, notesContent);
     // Cierra el modal
     const modal = bootstrap.Modal.getInstance(modalEl);
     modal.hide();
@@ -44,6 +30,24 @@ function showNotesModal(invoiceId, invoiceNumber) {
 }
 
 
+
+async function getNotes(invoiceId) {
+  try {
+    const response = await fetch(`http://${window.miVariable}:3000/invoices/notes/${invoiceId}`);
+    const data = await response.json();
+    // Suponiendo que 'data' es un arreglo de notas
+    if (data.length > 0) {
+      // Si existe alguna nota, la retornamos
+      return data[0].content;
+    } else {
+      // Si no existe, retornamos una cadena vacía
+      return '';
+    }
+  } catch (error) {
+    console.error("Error al obtener las notas:", error);
+    return '';
+  }
+}
 
 
 async function insertUpdateNotes(invoiceID, content) {
@@ -114,13 +118,13 @@ async function loadInvoices() {
       tableBody.appendChild(headerRow);
 
       // Agregar cada factura asociada al vendor
-      groupedInvoices[vendor].invoices.forEach(invoice => {
+      groupedInvoices[vendor].invoices.forEach(invoice =>  {
         const tr = document.createElement("tr");
+        
         tr.classList.add("invoice-row");
         // Asignar el vendor para relacionarlas con la cabecera
         tr.dataset.vendor = invoice.vendor;
         tr.dataset.id = invoice.ID;
-        const aux = typeof invoice.invoiceNumber === 'string' ? invoice.invoiceNumber : String(invoice.invoiceNumber);
 
         tr.innerHTML = `
           <td>
@@ -148,11 +152,17 @@ async function loadInvoices() {
           <td><div class="editable-cell" data-field="invoiceDate" contenteditable="true">${invoice.invoiceDate}</div></td>
           <td><div class="editable-cell" data-field="dueDate" contenteditable="true">${invoice.dueDate}</div></td>
           <td>
-            <div data-field="notes">
-              <a href="#" data-toggle="modal" onclick='showNotesModal("${invoice.ID}", "${aux}")' data-target="#exampleModal" data-whatever="${invoice.ID}">Show</a>
-            </div>
-          </td>
-
+      <div style="text-align: center;">
+        <div class="contenedor-icono" style="color: red;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="currentColor" 
+              class="bi bi-box-arrow-up-right" viewBox="0 0 16 16" style="cursor: pointer;"
+              onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'>
+            <path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5"/>
+            <path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0z"/>
+          </svg>
+        </div>
+      </div>
+    </td>
         `;
         
         let shouldFireChange = false;
@@ -174,6 +184,18 @@ async function loadInvoices() {
             updateElement(currentRow.dataset.id, rowData);
           }
         });
+
+        // Después de agregar la fila a la tabla:
+        tr.querySelectorAll('.editable-cell').forEach(cell => {
+          cell.style.fontSize = '12px';
+          cell.style.whiteSpace = 'nowrap';
+          cell.style.overflow = 'hidden';
+          cell.style.textOverflow = 'ellipsis';
+        });
+
+        // Si quieres aplicar estilos a toda la fila:
+        tr.style.height = '15px';
+
 
         // Añadir evento change al checkbox para verificar si está seleccionado
         const checkbox = tr.querySelector('.row-checkbox');
