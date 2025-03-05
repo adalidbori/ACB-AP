@@ -21,14 +21,40 @@ CREATE TABLE Invoices (
 );
 GO
 
+CREATE TABLE Notes (
+    ID INT IDENTITY(1,1) PRIMARY KEY,       -- ID autoincremental
+	invoiceID INT,
+	content NVARCHAR(MAX),
+	userID INT,
+    [Timestamp] DATETIME DEFAULT GETDATE()  -- timestamp (fecha de creación, se asigna automáticamente)
+);
+GO
+
 select * from Invoices
 go
 
+select * from Notes
+go
+
+
 delete from Invoices
+go
+
+delete from Notes
 go
 
 truncate table Invoices
 go
 
-DROP TABLE Invoices;
+DROP TABLE Notes;
 go
+
+MERGE INTO Notes AS target
+USING (SELECT 1 AS invoiceID, 'test' AS content, 3 AS userID) AS source
+ON target.invoiceID = source.invoiceID
+WHEN MATCHED THEN
+    UPDATE SET content = source.content
+WHEN NOT MATCHED THEN
+    INSERT (invoiceID, content, userID)
+    VALUES (source.invoiceID, source.content, source.userID);
+

@@ -218,6 +218,54 @@ app.post("/insert", async (req, res) => {
   }
 });
 
+// Insert Update Notes Request
+app.post("/notes-upsert", async (req, res) => {
+  try {
+    const pool = await testConnection();
+    const { invoiceID, content, userID } = req.body;
+    const query = `
+      MERGE INTO Notes AS target
+      USING (SELECT @invoiceID AS invoiceID) AS source
+      ON target.invoiceID = source.invoiceID
+      WHEN MATCHED THEN
+        UPDATE SET content = @content
+      WHEN NOT MATCHED THEN
+        INSERT (invoiceID, content, userID)
+        VALUES (@invoiceID, @content, @userID);
+    `;
+    
+    const result = await pool.request()
+      .input('invoiceID', sql.Int, invoiceID)
+      .input('content', sql.NVarChar(sql.MAX), content)
+      .input('userID', sql.Int, userID)
+      .query(query);
+
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error al insertar o actualizar la nota:", error);
+    res.status(500).json({ error: "Error al insertar o actualizar la nota" });
+  }
+});
+
+
+//Get Notes Request
+app.get('/invoices/notes/:ID', async (req, res) => {
+  try {
+    const { ID } = req.params;
+    const pool = await testConnection();
+    const result = await pool.request()
+      .input('ID', sql.Int, ID)
+      .query("SELECT * FROM Notes WHERE invoiceID = @ID"); // Usar invoiceID para la relación
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error al obtener las notas:", error);
+    res.status(500).json({ error: "Error al obtener las notas" });
+  }
+});
+
+
+
+
 // Get Invoices SQL Request
 app.get('/invoices/status/:invoiceStatus', async (req, res) => {
   try {

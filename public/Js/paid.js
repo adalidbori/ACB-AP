@@ -5,11 +5,74 @@ function parseInternationalCurrency(amountStr) {
   return parseFloat(amountStr) || 0;
 }
 
+function showNotesModal(invoiceId, invoiceNumber) {
+  currentInvoiceId = invoiceId;
+  const modalEl = document.getElementById('exampleModal');
+  modalEl.querySelector('.modal-title').textContent = `Notes: ${invoiceNumber}`;
+
+  // Petición para obtener la nota existente asociada al invoiceId
+  fetch(`http://${window.miVariable}:3000/invoices/notes/${invoiceId}`)
+    .then(response => response.json())
+    .then(data => {
+      // Suponiendo que 'data' es un arreglo de notas
+      if (data.length > 0) {
+        // Si existe alguna nota, la mostramos en el textarea
+        modalEl.querySelector('#notes-text').value = data[0].content;
+      } else {
+        // Si no existe, dejamos el textarea vacío
+        modalEl.querySelector('#notes-text').value = '';
+      }
+    })
+    .catch(error => {
+      console.error("Error al obtener las notas:", error);
+      modalEl.querySelector('#notes-text').value = '';
+    });
+
+  // Asigna el listener para guardar (usando onclick para evitar acumulación de listeners)
+  const saveButton = modalEl.querySelector('.modal-save-button');
+  saveButton.onclick = () => {
+    const notesContent = modalEl.querySelector('#notes-text').value;
+    insertUpdateNotes(invoiceId, notesContent);
+    // Cierra el modal
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    modal.hide();
+  };
+
+  // Mostrar el modal
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
+}
+
+
+
+
+async function insertUpdateNotes(invoiceID, content) {
+  const formattedContent = content.replace(/\r?\n/g, '\r\n');
+  try {
+    const response = await fetch(`http://${window.miVariable}:3000/notes-upsert`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        invoiceID: invoiceID,
+        content: formattedContent,
+        userID: 1 //temporal value
+      })
+    });
+    const serverResponse = await response.json();
+    console.log("Respuesta del servidor:", serverResponse.text);
+    return serverResponse.text;
+  } catch (error) {
+    console.error("Error en la inserción:", error);
+    throw error;
+  }
+}
+
 async function loadInvoices() {
   try {
     const response = await fetch(`http://${window.miVariable}:3000/invoices/status/4`);
     const invoices = await response.json();
-    console.log(invoices);
     tableBody.innerHTML = ""; // Limpiar contenido previo
 
     // Agrupar facturas por vendor y sumar los totales usando el formato internacional
@@ -57,6 +120,8 @@ async function loadInvoices() {
         // Asignar el vendor para relacionarlas con la cabecera
         tr.dataset.vendor = invoice.vendor;
         tr.dataset.id = invoice.ID;
+        const aux = typeof invoice.invoiceNumber === 'string' ? invoice.invoiceNumber : String(invoice.invoiceNumber);
+
         tr.innerHTML = `
           <td>
             <input type="checkbox" class="row-checkbox" data-fileurl="${invoice.fileURL}" data-filetype="${invoice.fileType}">
@@ -83,10 +148,11 @@ async function loadInvoices() {
           <td><div class="editable-cell" data-field="invoiceDate" contenteditable="true">${invoice.invoiceDate}</div></td>
           <td><div class="editable-cell" data-field="dueDate" contenteditable="true">${invoice.dueDate}</div></td>
           <td>
-            <div data-field="deadline">
-              <a href="#" onclick="showDocument('${invoice.fileURL}', '${invoice.fileType}'); return false;">Show</a>
+            <div data-field="notes">
+              <a href="#" data-toggle="modal" onclick='showNotesModal("${invoice.ID}", "${aux}")' data-target="#exampleModal" data-whatever="${invoice.ID}">Show</a>
             </div>
           </td>
+
         `;
         
         let shouldFireChange = false;
