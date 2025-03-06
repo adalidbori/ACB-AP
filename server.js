@@ -14,8 +14,7 @@ const USER = process.env.USER;
 const PASSWORD = process.env.PASSWORD;
 const SERVER = process.env.SERVER;
 const DATABASE = process.env.DATABASE;
-const PORT = parseInt(process.env.PORT, 10); // Convertir el puerto a número
-const INSTANCENAME = process.env.INSTANCENAME;
+const PORT = parseInt(process.env.PORT, 10);
 
 const connection = {
   user: USER,
@@ -156,7 +155,7 @@ app.post("/chatgpt", async (req, res) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": OPENAI_KEY
+        "Authorization": process.env.OPENAI_KEY
       },
       body: JSON.stringify({
         model: "gpt-4",
@@ -240,7 +239,9 @@ app.post("/notes-upsert", async (req, res) => {
       .input('userID', sql.Int, userID)
       .query(query);
 
-    res.json(result.recordset);
+    // Después de la consulta:
+      const responseData = result.recordset && result.recordset.length ? result.recordset : { mensaje: "Operación realizada correctamente" };
+      res.json(responseData);
   } catch (error) {
     console.error("Error al insertar o actualizar la nota:", error);
     res.status(500).json({ error: "Error al insertar o actualizar la nota" });

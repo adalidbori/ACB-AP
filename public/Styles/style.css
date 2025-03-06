@@ -161,3 +161,11 @@ body {
   .contenedor-icono.has-notes {
     color: red;
   }
+
+
+  td{
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }

@@ -1,0 +1,25 @@
+.icon{
+    animation:notification 2s infinite;
+    color:red;
+}
+
+@keyframes notification{
+    
+    5%{
+        transform:rotate(10deg);
+    }
+    
+    10%{
+        transform:rotate(-10deg);
+    }
+    
+    15%{
+        transform:rotate(10deg);
+    }
+    
+    20%{
+        transform:rotate(0deg);
+    }
+    
+    
+}

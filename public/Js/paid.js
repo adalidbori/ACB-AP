@@ -99,11 +99,7 @@ async function loadInvoices() {
       headerRow.dataset.vendor = vendor;
       headerRow.innerHTML = `
         <td colspan="9" style="background:#f0f0f0; cursor: pointer;">
-          <strong>${vendor}</strong> - Total: $${groupedInvoices[vendor].total.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          })}
-        </td>`;
+          <strong>${vendor}</strong></td>`;
       
       // Agregar evento de clic para contraer/expandir
       headerRow.addEventListener('click', function() {
@@ -118,9 +114,8 @@ async function loadInvoices() {
       tableBody.appendChild(headerRow);
 
       // Agregar cada factura asociada al vendor
-      groupedInvoices[vendor].invoices.forEach(invoice =>  {
+      for (const invoice of groupedInvoices[vendor].invoices) {
         const tr = document.createElement("tr");
-        
         tr.classList.add("invoice-row");
         // Asignar el vendor para relacionarlas con la cabecera
         tr.dataset.vendor = invoice.vendor;
@@ -152,19 +147,20 @@ async function loadInvoices() {
           <td><div class="editable-cell" data-field="invoiceDate" contenteditable="true">${invoice.invoiceDate}</div></td>
           <td><div class="editable-cell" data-field="dueDate" contenteditable="true">${invoice.dueDate}</div></td>
           <td>
-      <div style="text-align: center;">
-        <div class="contenedor-icono" style="color: red;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="currentColor" 
-              class="bi bi-box-arrow-up-right" viewBox="0 0 16 16" style="cursor: pointer;"
-              onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'>
-            <path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5"/>
-            <path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0z"/>
-          </svg>
-        </div>
-      </div>
-    </td>
+            <div style="text-align: center;">
+              <!-- Se asigna un color por defecto (rojo) y luego se actualizará en función de la existencia de notas -->
+              <div class="contenedor-icono">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;" onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'>
+                  <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
+                </svg>
+
+              </div>
+            </div>
+          </td>
         `;
+
         
+        // Manejo de edición de celdas
         let shouldFireChange = false;
         tr.addEventListener("input", function () {
           shouldFireChange = true;
@@ -185,44 +181,179 @@ async function loadInvoices() {
           }
         });
 
-        // Después de agregar la fila a la tabla:
-        tr.querySelectorAll('.editable-cell').forEach(cell => {
-          cell.style.fontSize = '12px';
-          cell.style.whiteSpace = 'nowrap';
-          cell.style.overflow = 'hidden';
-          cell.style.textOverflow = 'ellipsis';
-        });
 
-        // Si quieres aplicar estilos a toda la fila:
-        tr.style.height = '15px';
-
-
-        // Añadir evento change al checkbox para verificar si está seleccionado
+        // Evento del checkbox para mostrar documento
         const checkbox = tr.querySelector('.row-checkbox');
         checkbox.addEventListener('change', function () {
           const isChecked = this.checked;
           if (isChecked) {
-            // Llamar a showDocument cuando el checkbox esté seleccionado
             showDocument(this.dataset.fileurl, this.dataset.filetype);
           }
+          const currentVendor = this.closest('tr').dataset.vendor;
+          updateVendorHeaderTotal(currentVendor);
         });
+
         tableBody.appendChild(tr);
+        // Consultar si la factura tiene notas y actualizar el color del ícono
+        getNotes(invoice.ID)
+          .then(notesContent => {
+            const iconContainer = tr.querySelector('.contenedor-icono');
+            if (notesContent && notesContent.trim() !== '') {
+              // Si existen notas, se cambia el color (por ejemplo, a verde)
+              iconContainer.classList.add("icon");
+            }
+          })
+          .catch(error => {
+            console.error("Error al obtener notas para la factura", invoice.ID, error);
+          });
+      }
+
+      // Agregar fila con el total
+      const totalRow = document.createElement("tr");
+      totalRow.dataset.totalbyvendor = true;
+      totalRow.classList.add("vendor-total");
+      totalRow.dataset.vendor = vendor;
+      totalRow.innerHTML = `
+        <td colspan="4"></td>
+        <td style="font-weight: bold; text-align: right;">Total:</td>
+        <td style="font-weight: bold; text-align: left;"><div data-field="invoiceTotal">
+          $${groupedInvoices[vendor].total.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          })}
+        </div>
+        </td>
+        <td></td>
+        <td></td>
+        <td></td>
+      `;
+      tableBody.appendChild(totalRow);
+
+      const checkboxes = document.querySelectorAll('.row-checkbox');
+      checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('click', handleCheckboxClick);
       });
+
+      // Función para manejar el evento de clic en los checkboxes
+      function handleCheckboxClick(event) {
+        // Si la tecla Ctrl no está presionada
+        if (!event.ctrlKey) {
+          // Recorre todos los checkboxes y desmárcalos
+          checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+          });
+          // Marca solo el checkbox que fue clicado
+          event.target.checked = true;
+        }
+        // Si la tecla Ctrl está presionada, permite la selección múltiple
+      }
+
+      function updateVendorHeaderTotal(vendor) {
+        let sum = 0;
+        // Seleccionar todas las filas del proveedor especificado
+        const vendorRows = document.querySelectorAll(`tr`);
+        
+        vendorRows.forEach(row => {
+          const checkbox = row.querySelector('.row-checkbox');
+          // Verificar si el checkbox existe y está seleccionado
+          if (checkbox && checkbox.checked) {
+            console.log("Fila seleccionada encontrada");
+            const totalDiv = row.querySelector('div[data-field="invoiceTotal"]');
+            if (totalDiv) {
+              const text = totalDiv.textContent.trim();
+              const cleanedText = text.replace(/[^0-9.-]+/g, ""); // Eliminar caracteres no numéricos
+              const value = parseFloat(cleanedText);
+              if (!isNaN(value)) {
+                sum += value;
+              } else {
+                console.warn(`Valor no numérico encontrado: "${text}"`);
+              }
+            } else {
+              console.warn("Div con data-field='invoiceTotal' no encontrado en la fila");
+            }
+          }
+        });
+      
+        // Seleccionar la fila del total del proveedor
+        const totalRow = document.querySelector(`tr[data-vendor="${vendor}"][data-totalbyvendor="true"]`);
+        if (totalRow) {
+          const totalCell = totalRow.querySelector('div[data-field="invoiceTotal"]');
+          if (totalCell) {
+            // Actualizar el contenido de la celda con el total formateado
+            totalCell.textContent = `$${sum.toFixed(2)}`;
+            console.log(`Total actualizado para ${vendor}: $${sum.toFixed(2)}`);
+          } else {
+            console.warn("Div con data-field='invoiceTotal' no encontrado en la fila de total");
+          }
+        } else {
+          console.warn(`Fila de total para el proveedor "${vendor}" no encontrada`);
+        }
+      }
     }
-
-    // Configurar evento dragstart para los enlaces
-    document.querySelectorAll(".dragout").forEach(a => {
-      a.addEventListener("dragstart", function(evt) {
-        const mimeType = this.getAttribute('data-filetype') || 'application/octet-stream';
-        const fileName = this.getAttribute('data-filename') || 'archivo';
-        const fileUrl = this.href;
-        const timestampName = fileUrl.split('/').pop();
-        let localUrl = window.location.protocol + "//" + window.location.host + "/uploads/" + timestampName;
-        evt.dataTransfer.setData("DownloadURL", `${mimeType}:${fileName}:${localUrl}`);
-      }, false);
-    });
-
   } catch (error) {
     console.error("Error al obtener los invoices:", error);
   }
+
 }
+
+async function downloadSelectedFiles() {
+  const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+  if (checkboxes.length === 0) {
+    alert('Por favor, seleccione al menos un archivo.');
+    return;
+  }
+
+  // Agrupar archivos por proveedor
+  const filesByVendor = {};
+  checkboxes.forEach(checkbox => {
+    const fileURL = checkbox.dataset.fileurl;
+    const fileType = checkbox.dataset.filetype;
+    const row = checkbox.closest('tr');
+    const docName = row.querySelector('[data-field="docName"]').textContent.trim();
+    const vendor = row.querySelector('[data-field="vendor"]').textContent.trim();
+    const extension = obtenerExtension(fileType);
+    const fileName = `${docName}${extension}`;
+
+    if (!filesByVendor[vendor]) {
+      filesByVendor[vendor] = [];
+    }
+    filesByVendor[vendor].push({ fileURL, fileName });
+  });
+
+  // Crear y descargar un ZIP por cada proveedor
+  for (const [vendor, files] of Object.entries(filesByVendor)) {
+    const zip = new JSZip();
+    for (const { fileURL, fileName } of files) {
+      try {
+        const response = await fetch(fileURL, { mode: 'cors' });
+        if (!response.ok) throw new Error(`Error al descargar ${fileName}`);
+        const blob = await response.blob();
+        zip.file(fileName, blob);
+      } catch (error) {
+        console.error(`No se pudo agregar el archivo ${fileName} al ZIP:`, error);
+      }
+    }
+
+    // Generar el contenido del ZIP y descargarlo
+    const zipContent = await zip.generateAsync({ type: 'blob' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(zipContent);
+    link.download = `${vendor}.zip`;
+    link.click();
+  }
+}
+
+function obtenerExtension(fileType) {
+  switch (fileType) {
+    case 'application/pdf':
+      return '.pdf';
+    case 'image/jpeg':
+      return '.jpg';
+    case 'image/png':
+      return '.png';
+    // Agrega más casos según sea necesario
+    default:
+      return '';
+  }
+}
+
