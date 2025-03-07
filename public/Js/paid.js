@@ -65,7 +65,6 @@ async function insertUpdateNotes(invoiceID, content) {
       })
     });
     const serverResponse = await response.json();
-    console.log("Respuesta del servidor:", serverResponse.text);
     return serverResponse.text;
   } catch (error) {
     console.error("Error en la inserción:", error);
@@ -176,7 +175,6 @@ async function loadInvoices() {
               const value = cell.textContent.trim();
               rowData[field] = value;
             });
-            console.log(`Datos de la fila con ID ${currentRow.dataset.id}:`, rowData);
             updateElement(currentRow.dataset.id, rowData);
           }
         });
@@ -191,6 +189,7 @@ async function loadInvoices() {
           }
           const currentVendor = this.closest('tr').dataset.vendor;
           updateVendorHeaderTotal(currentVendor);
+          actualizarTotalSiNoHayCheckboxMarcado();
         });
 
         tableBody.appendChild(tr);
@@ -248,16 +247,35 @@ async function loadInvoices() {
         // Si la tecla Ctrl está presionada, permite la selección múltiple
       }
 
+      function actualizarTotalSiNoHayCheckboxMarcado() {
+        // Selecciona todas las filas de totales por vendedor
+        const totalRows = document.querySelectorAll('tr[data-totalbyvendor="true"]');
+        totalRows.forEach(row => {
+          const vendor = row.dataset.vendor;
+          // Busca si existe al menos un checkbox marcado en las filas de factura de ese vendor
+          const checkboxMarcado = document.querySelector(`tr.invoice-row[data-vendor="${vendor}"] .row-checkbox:checked`);
+          if (!checkboxMarcado) {
+            // Si no hay ninguno marcado, se cambia el valor de la celda invoiceTotal
+            const invoiceTotalDiv = row.querySelector('div[data-field="invoiceTotal"]');
+            if (invoiceTotalDiv) {
+              // Aquí puedes definir el nuevo valor que necesites; en este ejemplo se pone $0.00
+              invoiceTotalDiv.textContent = "$"+groupedInvoices[vendor].total;
+            }
+          }
+        });
+      }
+      
+
       function updateVendorHeaderTotal(vendor) {
         let sum = 0;
         // Seleccionar todas las filas del proveedor especificado
-        const vendorRows = document.querySelectorAll(`tr`);
+        const vendorRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${vendor}"]`);
+
         
         vendorRows.forEach(row => {
           const checkbox = row.querySelector('.row-checkbox');
           // Verificar si el checkbox existe y está seleccionado
           if (checkbox && checkbox.checked) {
-            console.log("Fila seleccionada encontrada");
             const totalDiv = row.querySelector('div[data-field="invoiceTotal"]');
             if (totalDiv) {
               const text = totalDiv.textContent.trim();
@@ -281,7 +299,6 @@ async function loadInvoices() {
           if (totalCell) {
             // Actualizar el contenido de la celda con el total formateado
             totalCell.textContent = `$${sum.toFixed(2)}`;
-            console.log(`Total actualizado para ${vendor}: $${sum.toFixed(2)}`);
           } else {
             console.warn("Div con data-field='invoiceTotal' no encontrado en la fila de total");
           }
