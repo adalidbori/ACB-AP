@@ -39,7 +39,11 @@ async function testConnection() {
   }
 }
 
-const { BlobServiceClient } = require("@azure/storage-blob");
+//const { BlobServiceClient } = require("@azure/storage-blob");
+//const { StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } = require("@azure/storage-blob");
+const { BlobServiceClient, BlobClient, StorageSharedKeyCredential, BlobSASPermissions, generateBlobSASQueryParameters} = require('@azure/storage-blob');
+
+
 
 const app = express();
 const port = 3000;
@@ -68,34 +72,43 @@ const upload = multer({ storage });
 // Configurar Azure Blob Storage
 const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
 const OPENAI_KEY = process.env.OPENAI_KEY;
-const containerName = process.env.AZURE_STORAGE_CONTAINER || "uploads";
+const containerName = process.env.AZURE_STORAGE_CONTAINER;
+const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
+const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
 const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
 
 async function uploadFileToAzure(localFilePath, blobName, contentType) {
   const containerClient = blobServiceClient.getContainerClient(containerName);
-  // Crea el contenedor si no existe
   await containerClient.createIfNotExists({ access: "container" });
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
   await blockBlobClient.uploadFile(localFilePath, {
     blobHTTPHeaders: {
       blobContentType: contentType,
-      blobContentDisposition: "inline"
-    }
+      blobContentDisposition: "inline",
+    },
   });
   return blockBlobClient.url;
 }
 
-// Ruta para subir archivos: se guarda localmente y se sube a Azure
+// Ruta para subir archivos: se guarda localmente, se sube a Azure y se elimina el archivo local
 app.post("/upload", upload.single("file"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No se ha subido ningún archivo." });
   }
+
+  const localFilePath = req.file.path;
+  const blobName = req.file.filename;
+
   try {
-    const localFilePath = req.file.path;
-    const blobName = req.file.filename;
     const azureUrl = await uploadFileToAzure(localFilePath, blobName, req.file.mimetype);
 
-    // No eliminamos el archivo local, para conservarlo en la carpeta "uploads"
+    // Intenta eliminar el archivo local; si falla, se registra el error pero no se interrumpe la respuesta
+    try {
+      await fs.promises.unlink(localFilePath);
+    } catch (unlinkError) {
+      console.error("Error eliminando el archivo local:", unlinkError);
+    }
+
     res.json({ filename: blobName, url: azureUrl });
   } catch (error) {
     console.error("Error subiendo a Azure:", error);
@@ -106,24 +119,24 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 // Ruta para procesar la URL del archivo en Azure y extraer texto sin guardarlo localmente
 app.post("/extract-text", async (req, res) => {
   let { filePath } = req.body;
-
-  if (!filePath) {
+  const sasUrl = generateSasUrlForBlob(filePath);
+  if (!sasUrl) {
     return res.status(400).json({ error: "No se proporcionó la URL del archivo." });
   }
 
   // Validar que filePath sea una URL
-  if (!filePath.startsWith("http")) {
+  if (!sasUrl.startsWith("http")) {
     return res.status(400).json({ error: "El filePath debe ser una URL." });
   }
 
   try {
-    const response = await fetch(filePath);
+    const response = await fetch(sasUrl);
     if (!response.ok) {
       return res.status(500).json({ error: "Error al descargar el archivo desde la URL." });
     }
     const buffer = await response.buffer();
 
-    const ext = path.extname(new URL(filePath).pathname).toLowerCase();
+    const ext = path.extname(new URL(sasUrl).pathname).toLowerCase();
     let extractedText = "";
 
     if (ext === ".pdf") {
@@ -140,6 +153,79 @@ app.post("/extract-text", async (req, res) => {
   } catch (error) {
     console.error("Error al extraer texto del archivo desde la URL:", error);
     return res.status(500).json({ error: "Error al procesar el archivo." });
+  }
+});
+
+// Ruta para manejar la solicitud POST
+app.post('/open-document', (req, res) => {
+  try {
+    const { url } = req.body; // Obtiene la URL del cuerpo de la solicitud
+    
+    if (!url) {
+      return res.status(400).json({ error: "La propiedad 'url' es requerida." });
+    }
+
+    const newUrl = generateSasUrlForBlob(url); // Genera la nueva URL
+    res.json({ newUrl }); // Envía la nueva URL en la respuesta
+  } catch (error) {
+    console.error("Error al procesar la solicitud:", error);
+    res.status(500).json({ error: "Error al procesar la solicitud." });
+  }
+});
+
+function generateSasUrlForBlob(blobUrl) {
+  // Se obtienen las credenciales desde variables de entorno
+  const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
+  const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
+
+  // Parsear la URL para extraer el nombre del contenedor y del blob
+  const urlObj = new URL(blobUrl);
+  const pathParts = urlObj.pathname.split('/').filter(Boolean); // Remueve cadenas vacías
+  const containerName = pathParts[0];
+  const blobName = pathParts.slice(1).join('/');
+
+  // Crear las credenciales compartidas
+  const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
+
+  const now = new Date();
+  const sasOptions = {
+    containerName,
+    blobName,
+    permissions: BlobSASPermissions.parse("rd"), // permiso de lectura
+    startsOn: new Date(now.getTime() - 5 * 60 * 1000), // permite un desfase de 5 minutos
+    expiresOn: new Date(now.getTime() + 60 * 60 * 1000) // válido por 1 hora
+  };
+
+  // Generar el SAS token
+  const sasToken = generateBlobSASQueryParameters(sasOptions, sharedKeyCredential).toString();
+
+  // Retornar la URL del blob con el SAS token concatenado
+  return `${blobUrl}?${sasToken}`;
+}
+
+async function deleteFile(fileUrl){
+  const sasUrl = generateSasUrlForBlob(fileUrl);
+  // Crear un BlobClient utilizando la URL con SAS
+  const blobClient = new BlobClient(sasUrl);
+  // Llamar al método delete para eliminar el blob
+  await blobClient.delete();
+}
+
+// Ruta en Express para eliminar el blob
+app.delete('/eliminar-blob', async (req, res) => {
+  try {
+    const { urls } = req.body;
+    if (!urls) {
+      return res.status(400).json({ error: "No se proporcionó ninguna url." });
+    }
+    const urlArray = Array.isArray(urls) ? urls : [urls];
+    for (const url of urlArray) {
+      await deleteFile(url);
+    }
+    res.status(200).json({ message: 'Blob eliminado correctamente' });
+  } catch (error) {
+    console.error("Error al eliminar el blob:", error);
+    res.status(500).json({ error: 'Error al eliminar el blob' });
   }
 });
 

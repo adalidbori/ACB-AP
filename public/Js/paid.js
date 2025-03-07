@@ -1,76 +1,7 @@
 document.addEventListener('DOMContentLoaded', loadInvoices);
 const tableBody = document.querySelector('tbody');
 // Función para convertir un string en formato internacional a número
-function parseInternationalCurrency(amountStr) {
-  return parseFloat(amountStr) || 0;
-}
 
-async function showNotesModal(invoiceId, invoiceNumber) {
-  currentInvoiceId = invoiceId;
-  const modalEl = document.getElementById('exampleModal');
-  modalEl.querySelector('.modal-title').textContent = `Notes: ${invoiceNumber}`;
-
-  // Obtener las notas de forma asincrónica y asignarlas al textarea
-  const notesContent = await getNotes(invoiceId);
-  modalEl.querySelector('#notes-text').value = notesContent;
-
-  // Asigna el listener para guardar (usando onclick para evitar acumulación de listeners)
-  const saveButton = modalEl.querySelector('.modal-save-button');
-  saveButton.onclick = async () => {
-    const notesContent = modalEl.querySelector('#notes-text').value;
-    await insertUpdateNotes(invoiceId, notesContent);
-    // Cierra el modal
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    modal.hide();
-  };
-
-  // Mostrar el modal
-  const modal = new bootstrap.Modal(modalEl);
-  modal.show();
-}
-
-
-
-async function getNotes(invoiceId) {
-  try {
-    const response = await fetch(`http://${window.miVariable}:3000/invoices/notes/${invoiceId}`);
-    const data = await response.json();
-    // Suponiendo que 'data' es un arreglo de notas
-    if (data.length > 0) {
-      // Si existe alguna nota, la retornamos
-      return data[0].content;
-    } else {
-      // Si no existe, retornamos una cadena vacía
-      return '';
-    }
-  } catch (error) {
-    console.error("Error al obtener las notas:", error);
-    return '';
-  }
-}
-
-
-async function insertUpdateNotes(invoiceID, content) {
-  const formattedContent = content.replace(/\r?\n/g, '\r\n');
-  try {
-    const response = await fetch(`http://${window.miVariable}:3000/notes-upsert`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        invoiceID: invoiceID,
-        content: formattedContent,
-        userID: 1 //temporal value
-      })
-    });
-    const serverResponse = await response.json();
-    return serverResponse.text;
-  } catch (error) {
-    console.error("Error en la inserción:", error);
-    throw error;
-  }
-}
 
 async function loadInvoices() {
   try {
@@ -125,9 +56,8 @@ async function loadInvoices() {
             <input type="checkbox" class="row-checkbox" data-fileurl="${invoice.fileURL}" data-filetype="${invoice.fileType}">
           </td>
           <td>
-            <a class="dragout" href='${invoice.fileURL}' 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a class="dragout" href='#'
+              onclick="openDocument('${invoice.fileURL}')" 
               draggable="true"
               data-filename="${invoice.docName}" 
               data-filetype="${invoice.fileType}">
@@ -147,7 +77,6 @@ async function loadInvoices() {
           <td><div class="editable-cell" data-field="dueDate" contenteditable="true">${invoice.dueDate}</div></td>
           <td>
             <div style="text-align: center;">
-              <!-- Se asigna un color por defecto (rojo) y luego se actualizará en función de la existencia de notas -->
               <div class="contenedor-icono">
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;" onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'>
                   <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
@@ -313,64 +242,7 @@ async function loadInvoices() {
 
 }
 
-async function downloadSelectedFiles() {
-  const checkboxes = document.querySelectorAll('.row-checkbox:checked');
-  if (checkboxes.length === 0) {
-    alert('Por favor, seleccione al menos un archivo.');
-    return;
-  }
 
-  // Agrupar archivos por proveedor
-  const filesByVendor = {};
-  checkboxes.forEach(checkbox => {
-    const fileURL = checkbox.dataset.fileurl;
-    const fileType = checkbox.dataset.filetype;
-    const row = checkbox.closest('tr');
-    const docName = row.querySelector('[data-field="docName"]').textContent.trim();
-    const vendor = row.querySelector('[data-field="vendor"]').textContent.trim();
-    const extension = obtenerExtension(fileType);
-    const fileName = `${docName}${extension}`;
 
-    if (!filesByVendor[vendor]) {
-      filesByVendor[vendor] = [];
-    }
-    filesByVendor[vendor].push({ fileURL, fileName });
-  });
 
-  // Crear y descargar un ZIP por cada proveedor
-  for (const [vendor, files] of Object.entries(filesByVendor)) {
-    const zip = new JSZip();
-    for (const { fileURL, fileName } of files) {
-      try {
-        const response = await fetch(fileURL, { mode: 'cors' });
-        if (!response.ok) throw new Error(`Error al descargar ${fileName}`);
-        const blob = await response.blob();
-        zip.file(fileName, blob);
-      } catch (error) {
-        console.error(`No se pudo agregar el archivo ${fileName} al ZIP:`, error);
-      }
-    }
-
-    // Generar el contenido del ZIP y descargarlo
-    const zipContent = await zip.generateAsync({ type: 'blob' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(zipContent);
-    link.download = `${vendor}.zip`;
-    link.click();
-  }
-}
-
-function obtenerExtension(fileType) {
-  switch (fileType) {
-    case 'application/pdf':
-      return '.pdf';
-    case 'image/jpeg':
-      return '.jpg';
-    case 'image/png':
-      return '.png';
-    // Agrega más casos según sea necesario
-    default:
-      return '';
-  }
-}
 
