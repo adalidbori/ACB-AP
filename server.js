@@ -303,6 +303,29 @@ app.post("/insert", async (req, res) => {
   }
 });
 
+
+// Insert SQL Request
+app.post("/company/insert/:CompanyName", async (req, res) => {
+  try {
+    const { CompanyName } = req.params;
+    const pool = await testConnection();
+    const result = await pool.request()
+      .input('CompanyName', sql.NVarChar(255), CompanyName)
+      .query(`
+        INSERT INTO Company 
+          (CompanyName)
+        OUTPUT INSERTED.CompanyID insertedId
+        VALUES 
+          (@CompanyName)
+      `);
+
+    res.json({ message: "Registro insertado exitosamente", invoiceId: result.recordset[0].insertedId });
+  } catch (error) {
+    console.error("Error al insertar registro:", error);
+    res.status(500).json({ error: "Error al insertar registro" });
+  }
+});
+
 // Insert Update Notes Request
 app.post("/notes-upsert", async (req, res) => {
   try {

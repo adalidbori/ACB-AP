@@ -57,4 +57,52 @@ WHEN MATCHED THEN
 WHEN NOT MATCHED THEN
     INSERT (invoiceID, content, userID)
     VALUES (source.invoiceID, source.content, source.userID);
+GO
+
+
+-- Crear tabla Company
+CREATE TABLE Company (
+    CompanyID INT IDENTITY(1,1) PRIMARY KEY,
+    CompanyName NVARCHAR(255) NOT NULL,
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- Crear tabla Role
+CREATE TABLE Role (
+    RoleID INT IDENTITY(1,1) PRIMARY KEY,
+    RoleName NVARCHAR(100) NOT NULL UNIQUE,
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- Crear tabla UserTable
+CREATE TABLE UserTable (
+    UserID INT IDENTITY(1,1) PRIMARY KEY,
+    FirstName NVARCHAR(100) NOT NULL,
+    LastName NVARCHAR(100) NOT NULL,
+    WorkEmail NVARCHAR(255) NOT NULL UNIQUE,
+    Phone NVARCHAR(20),
+    PasswordHash NVARCHAR(255) NOT NULL,
+    CompanyID INT NOT NULL,
+    RoleID INT NOT NULL,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (CompanyID) REFERENCES Company(CompanyID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (RoleID) REFERENCES Role(RoleID) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- Insertar datos iniciales para Role
+INSERT INTO Role (RoleName) VALUES ('Admin');
+INSERT INTO Role (RoleName) VALUES ('User');
+INSERT INTO Role (RoleName) VALUES ('Manager');
+
+-- Insertar datos de ejemplo en Company
+INSERT INTO Company (CompanyName) VALUES ('OpenAI');
+INSERT INTO Company (CompanyName) VALUES ('Microsoft');
+
+-- Insertar usuario de ejemplo
+INSERT INTO UserTable (FirstName, LastName, WorkEmail, Phone, PasswordHash, CompanyID, RoleID)
+VALUES 
+('John', 'Doe', 'john.doe@openai.com', '123-456-7890', 'hashed_password_example', 1, 1);
+
+select * from Role
+
 

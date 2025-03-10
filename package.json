@@ -20,6 +20,7 @@
     "node-fetch": "^2.7.0",
     "node-windows": "^1.0.0-beta.8",
     "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^4.10.38",
     "tesseract.js": "^6.0.0"
   }
 }
