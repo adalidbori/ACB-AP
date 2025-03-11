@@ -95,11 +95,13 @@ async function uploadFile(file) {
     const data = await uploadResponse.json();
     const timestampName = data.filename;
     // Obtenemos el texto extraído del archivo
-    const texto = await extractText(data.url);
+    const operationn = await operationLocation(data.url);//Obtener el operationLocation
+    const textoJson = await getExtractedTextPost(operationn);//Llamar al operationLocation para obtener el Json con los datos
+    const finalText = frmattingTexto(textoJson);
 
 
     // Llamamos a ChatGPT usando el texto extraído
-    const chatGPTResponse = await callChatGPT(texto);
+    const chatGPTResponse = await callChatGPT(finalText);
 
     const responseObject = JSON.parse(chatGPTResponse);
 
@@ -111,12 +113,28 @@ async function uploadFile(file) {
 }
 
 
+function frmattingTexto(textoJson){
+  const data = typeof textoJson === 'string' ? JSON.parse(textoJson) : textoJson;
+  // Inicializar una variable para almacenar el texto extraído
+  let extractedText = '';
+  console.log(textoJson);
+  console.log(data.length);
+  data.forEach(page => {
+    //Recorrer las paginas
+    if(page.lines){
+      page.lines.forEach(line => {
+        //Recorrer las lineas de cada pagina
+        extractedText += line.text + '\n';
+      })
+    }
+  });
+  return extractedText;
+}
 
-
-async function extractText(url) {
+async function operationLocation(url) {
   const filePath = url;
   try {
-    const response = await fetch(`http://${window.miVariable}:3000/extract-text`, {
+    const response = await fetch(`http://${window.miVariable}:3000/get-operationLocation`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -127,12 +145,33 @@ async function extractText(url) {
     if (data.error) {
       throw new Error(`Error: ${data.error}`);
     }
-    return data.text;
+    return data.operationLocation;
   } catch (error) {
     console.error('Error al realizar la solicitud:', error);
     throw error;
   }
 }
+
+async function getExtractedTextPost(operationLocationUrl) {
+  try {
+    const response = await fetch(`http://${window.miVariable}:3000/extract-text`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ operationLocation: operationLocationUrl })
+    });
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(`Error: ${data.error}`);
+    }
+    return data.results;
+  } catch (error) {
+    console.error('Error al obtener el resultado:', error);
+    throw error;
+  }
+}
+
 
 //Cargar elementos pending to review de la base de datos
 async function loadInvoices() {

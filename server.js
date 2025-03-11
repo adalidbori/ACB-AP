@@ -75,6 +75,8 @@ const OPENAI_KEY = process.env.OPENAI_KEY;
 const containerName = process.env.AZURE_STORAGE_CONTAINER;
 const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
 const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
+const AZURE_OCR_ENDPOINT = process.env.AZURE_OCR_ENDPOINT;
+const AZURE_OCR_KEY = process.env.AZURE_OCR_KEY;
 const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
 
 async function uploadFileToAzure(localFilePath, blobName, contentType) {
@@ -117,44 +119,85 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 });
 
 // Ruta para procesar la URL del archivo en Azure y extraer texto sin guardarlo localmente
-app.post("/extract-text", async (req, res) => {
+app.post("/get-operationLocation", async (req, res) => {
   let { filePath } = req.body;
-  const sasUrl = generateSasUrlForBlob(filePath);
-  if (!sasUrl) {
+  const url = generateSasUrlForBlob(filePath);
+  if (!url) {
     return res.status(400).json({ error: "No se proporcionó la URL del archivo." });
   }
 
   // Validar que filePath sea una URL
-  if (!sasUrl.startsWith("http")) {
+  if (!url.startsWith("http")) {
     return res.status(400).json({ error: "El filePath debe ser una URL." });
   }
-
   try {
-    const response = await fetch(sasUrl);
-    if (!response.ok) {
-      return res.status(500).json({ error: "Error al descargar el archivo desde la URL." });
+    const apiUrl = AZURE_OCR_ENDPOINT;
+    const subscriptionKey = AZURE_OCR_KEY;
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Ocp-Apim-Subscription-Key": subscriptionKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ url })
+    });
+    const operationLocation = response.headers.get("operation-location");
+    console.log(response);
+
+    if (!operationLocation) {
+      return res.status(500).json({ error: "No se pudo obtener la ubicación de la operación." });
     }
-    const buffer = await response.buffer();
-
-    const ext = path.extname(new URL(sasUrl).pathname).toLowerCase();
-    let extractedText = "";
-
-    if (ext === ".pdf") {
-      const data = await pdfParse(buffer);
-      extractedText = data.text;
-    } else if ([".png", ".jpg", ".jpeg", ".bmp", ".tiff"].includes(ext)) {
-      const { data: { text } } = await Tesseract.recognize(buffer, "eng");
-      extractedText = text;
-    } else {
-      return res.status(400).json({ error: "Tipo de archivo no soportado." });
-    }
-
-    return res.json({ text: extractedText });
+    
+    res.json({ mensaje: "Llamada iniciada", operationLocation });
+    return operationLocation;
   } catch (error) {
     console.error("Error al extraer texto del archivo desde la URL:", error);
     return res.status(500).json({ error: "Error al procesar el archivo." });
   }
 });
+
+async function pollForResult(operationLocation) {
+  let result;
+  // Polling: se repite la consulta hasta que el estado sea 'succeeded' o 'failed'
+  while (true) {
+    const response = await fetch(operationLocation, {
+      method: "GET",
+      headers: {
+        "Ocp-Apim-Subscription-Key": process.env.AZURE_OCR_KEY // Asegúrate de usar tu clave aquí
+      }
+    });
+    result = await response.json();
+    
+    if (result.status === "succeeded") {
+      // El análisis se completó: retorna los resultados (normalmente en result.analyzeResult.readResults)
+      return result.analyzeResult.readResults;
+    } else if (result.status === "failed") {
+      throw new Error("La operación falló.");
+    }
+    
+    // Espera un segundo antes de la siguiente consulta
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+}
+
+// Ejemplo de uso en una ruta Express:
+app.post("/extract-text", async (req, res) => {
+  const { operationLocation } = req.body;
+  
+  if (!operationLocation) {
+    return res.status(400).json({ error: "Falta la URL de la operación." });
+  }
+
+  try {
+    const readResults = await pollForResult(operationLocation);
+    res.json({ results: readResults });
+  } catch (error) {
+    console.error("Error al obtener el resultado:", error);
+    res.status(500).json({ error: "Error al obtener el resultado." });
+  }
+});
+
+
 
 // Ruta para manejar la solicitud POST
 app.post('/open-document', (req, res) => {
@@ -174,9 +217,6 @@ app.post('/open-document', (req, res) => {
 });
 
 function generateSasUrlForBlob(blobUrl) {
-  // Se obtienen las credenciales desde variables de entorno
-  const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
-  const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
 
   // Parsear la URL para extraer el nombre del contenedor y del blob
   const urlObj = new URL(blobUrl);
@@ -193,7 +233,7 @@ function generateSasUrlForBlob(blobUrl) {
     blobName,
     permissions: BlobSASPermissions.parse("rd"), // permiso de lectura
     startsOn: new Date(now.getTime() - 5 * 60 * 1000), // permite un desfase de 5 minutos
-    expiresOn: new Date(now.getTime() + 60 * 60 * 1000) // válido por 1 hora
+    expiresOn: new Date(now.getTime() + 10 * 60 * 1000) // válido por 10 minutos
   };
 
   // Generar el SAS token
@@ -241,14 +281,14 @@ app.post("/chatgpt", async (req, res) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": process.env.OPENAI_KEY
+        "Authorization": OPENAI_KEY
       },
       body: JSON.stringify({
         model: "gpt-4",
         messages: [
           {
             role: "system",
-            content: "You are an assistant that extracts invoice information. Based on the following text, generate a JSON containing the following fields:\n\n- `vendor_name`\n- `invoice_date` (formatted as MM/DD/YYYY)\n- `vendor_address` \n- `invoice_number`\n- `invoice_due_date`(formatted as MM/DD/YYYY)\n- `invoice_total` (Formatted as a decimal number with the (.) as the decimal separator. Remove any other character except the (.) in the decimals, e.g., 3096,33)\n\nIf any of the fields cannot be filled, leave them as an empty string.\n\nImportant: The buyer (client) is always 'A Customs Brokerage' so this information should not be included in the JSON. And "
+            content: "You are an assistant specialized in extracting invoice information. Based on the text provided, return ONLY a JSON object with the following keys: {'vendor_name', 'invoice_date' (formatted as MM/DD/YYYY), 'vendor_address', 'invoice_number', 'invoice_due_date' (formatted as MM/DD/YYYY), 'invoice_total' (formatted as a decimal number using a period (.) as the decimal separator and removing any other characters from the decimals)}. If any field cannot be extracted, leave it as an empty string. Additionally, if the provided text is blank or does not appear to be an invoice, still return a JSON object with all fields empty. Do not include any additional text or explanation in your response. 'A Customs Brokerage or A Customs Brokerage Inc' is always the buyer, so it should never be included as the vendor."
           },
           {
             role: "user",
