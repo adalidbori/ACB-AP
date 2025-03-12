@@ -28,9 +28,30 @@ body {
   }
   
   /* Airtable-like styling */
+
+  .table-container {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+
+  .editable-table th:first-child {
+    border-top-left-radius: 0.375rem;
+  }
+  
+  .editable-table th:last-child {
+    border-top-right-radius: 0.375rem;
+  }
+
+  .editable-table tr:last-child td {
+    border-bottom: none;
+  }
+
   .editable-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
   }
   
   .editable-table th {
@@ -182,4 +203,35 @@ body {
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+
+
+  .filter-container {
+    transition: all 0.3s ease;
+  }
+
+  .filter-toggle {
+    color: #6c757d;
+    text-decoration: none;
+  }
+
+  .filter-toggle:hover {
+    color: #495057;
+  }
+
+  .filter-arrow {
+    display: inline-block;
+    transition: transform 0.3s ease;
+    font-style: normal;
+    font-size: 12px;
+  }
+
+  #filter-header {
+    cursor: pointer;
+  }
+
+  #filter-header.collapsed .filter-arrow {
+    transform: rotate(-90deg);
+  }
+  
+
   

@@ -186,7 +186,10 @@ async function loadInvoices() {
             const invoiceTotalDiv = row.querySelector('div[data-field="invoiceTotal"]');
             if (invoiceTotalDiv) {
               // Aquí puedes definir el nuevo valor que necesites; en este ejemplo se pone $0.00
-              invoiceTotalDiv.textContent = "$"+groupedInvoices[vendor].total;
+              invoiceTotalDiv.textContent = "$"+groupedInvoices[vendor].total.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              });
             }
           }
         });
@@ -225,7 +228,10 @@ async function loadInvoices() {
           const totalCell = totalRow.querySelector('div[data-field="invoiceTotal"]');
           if (totalCell) {
             // Actualizar el contenido de la celda con el total formateado
-            totalCell.textContent = `$${sum.toFixed(2)}`;
+            totalCell.textContent = `$${sum.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}`;
           } else {
             console.warn("Div con data-field='invoiceTotal' no encontrado en la fila de total");
           }

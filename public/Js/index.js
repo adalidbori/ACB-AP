@@ -336,3 +336,23 @@ function obtenerExtension(fileType) {
 function parseInternationalCurrency(amountStr) {
   return parseFloat(amountStr) || 0;
 }
+
+// Filter collapse functionality
+const filterHeader = document.getElementById('filter-header');
+const filterCollapse = document.getElementById('filterCollapse');
+const filterArrow = document.querySelector('.filter-arrow');
+const tableResponsive = document.querySelector('.table-responsive');
+  filterHeader.addEventListener('click', function() {
+  const isCollapsed = filterCollapse.classList.contains('show');
+  if (isCollapsed) {
+    filterCollapse.classList.remove('show');
+    filterArrow.style.transform = 'rotate(-90deg)';
+    console.log("Cerrado");
+    tableResponsive.style.maxHeight = '550px';
+  } else {
+    filterCollapse.classList.add('show');
+    filterArrow.style.transform = 'rotate(0deg)';
+    console.log("Abierto");
+    tableResponsive.style.maxHeight = '400px';
+  }
+});
