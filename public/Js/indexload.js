@@ -17,10 +17,10 @@ dropArea.addEventListener("dragleave", () => {
 dropArea.addEventListener("drop", (event) => {
   event.preventDefault();
   dropArea.style.backgroundColor = "#f9f9f9";
-
   const files = event.dataTransfer.files;
   for (const file of files) {
     if (file.type === "application/pdf" || file.type === "image/png" || file.type === "image/jpeg") {
+      showTemporaryRow();
       uploadFile(file);
     } else {
       alert("The file types allowed are PDF, PNG and JPG.");
@@ -79,14 +79,10 @@ async function insertRecord(docName, timestampName, fileType, fileURL, chatGPTDa
     throw error;
   }
 }
-
-
-
 // Función para subir el archivo, extraer el texto y llamar a ChatGPT
 async function uploadFile(file) {
   const formData = new FormData();
   formData.append("file", file);
-
   try {
     const uploadResponse = await fetch(`http://${window.miVariable}:3000/upload`, {
       method: "POST",
@@ -113,19 +109,18 @@ async function uploadFile(file) {
 }
 
 
-function frmattingTexto(textoJson){
+function frmattingTexto(textoJson) {
   const data = typeof textoJson === 'string' ? JSON.parse(textoJson) : textoJson;
   // Inicializar una variable para almacenar el texto extraído
   let extractedText = '';
   console.log(textoJson);
   console.log(data.length);
-  data.forEach(page => {
-    //Recorrer las paginas
-    if(page.lines){
+  // Recorrer solo las primeras 3 páginas
+  data.forEach((page, index) => {
+    if (index < 3 && page.lines) {
       page.lines.forEach(line => {
-        //Recorrer las lineas de cada pagina
         extractedText += line.text + '\n';
-      })
+      });
     }
   });
   return extractedText;
@@ -172,14 +167,31 @@ async function getExtractedTextPost(operationLocationUrl) {
   }
 }
 
+function showTemporaryRow() {
+  const tempRow = document.createElement("tr");
+  tempRow.id = "tempRow"; // Asigna un ID para poder eliminarla luego
+  // Suponiendo que la tabla tiene 9 columnas (ajusta colSpan si es necesario)
+  const tempCell = document.createElement("td");
+  tempCell.colSpan = 9;
+  // Puedes incluir un spinner o icono de carga junto con un mensaje
+  tempCell.innerHTML = `
+    <div style="display: flex; align-items: center;">
+      <div class="spinner" style="margin-right: 8px;"></div>
+      Processing...
+    </div>
+  `;
+  tempRow.appendChild(tempCell);
+  tableBody.appendChild(tempRow);
+}
 
 //Cargar elementos pending to review de la base de datos
 async function loadInvoices() {
+  
   try {
     const response = await fetch(`http://${window.miVariable}:3000/invoices/status/1`);
     const invoices = await response.json();
     tableBody.innerHTML = ""; // Limpiar contenido previo
-
+    
     // Agrupar facturas por vendor y sumar los totales usando el formato internacional
     const groupedInvoices = invoices.reduce((groups, invoice) => {
       const vendor = invoice.vendor;
@@ -240,12 +252,12 @@ async function loadInvoices() {
               </div>
             </a>
           </td>
-          <td><div class="editable-cell" data-field="docName" contenteditable="true">${invoice.docName}</div></td>
-          <td><div class="editable-cell" data-field="invoiceNumber" contenteditable="true">${invoice.invoiceNumber}</div></td>
-          <td><div class="editable-cell" data-field="vendor" contenteditable="true">${invoice.vendor}</div></td>
-          <td><div class="editable-cell" data-field="invoiceTotal" contenteditable="true">${invoice.invoiceTotal}</div></td>
-          <td><div class="editable-cell" data-field="invoiceDate" contenteditable="true">${invoice.invoiceDate}</div></td>
-          <td><div class="editable-cell" data-field="dueDate" contenteditable="true">${invoice.dueDate}</div></td>
+          <td><div class="editable-cell" data-field="docName" contenteditable="true" style="${invoice.docName ? '' : 'background-color: #f8d7da;'}">${invoice.docName}</div></td>
+          <td><div class="editable-cell" data-field="invoiceNumber" contenteditable="true" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceNumber}</div></td>
+          <td><div class="editable-cell" data-field="vendor" contenteditable="true" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${invoice.vendor}</div></td>
+          <td><div class="editable-cell" data-field="invoiceTotal" contenteditable="true" style="${invoice.invoiceTotal ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceTotal}</div></td>
+          <td><div class="editable-cell" data-field="invoiceDate" contenteditable="true" style="${invoice.invoiceDate ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceDate}</div></td>
+          <td><div class="editable-cell" data-field="dueDate" contenteditable="true" style="${invoice.dueDate ? '' : 'background-color: #f8d7da;'}">${invoice.dueDate}</div></td>
           <td>
             <div style="text-align: center;">
               <!-- Se asigna un color por defecto (rojo) y luego se actualizará en función de la existencia de notas -->
@@ -360,7 +372,10 @@ async function loadInvoices() {
             const invoiceTotalDiv = row.querySelector('div[data-field="invoiceTotal"]');
             if (invoiceTotalDiv) {
               // Aquí puedes definir el nuevo valor que necesites; en este ejemplo se pone $0.00
-              invoiceTotalDiv.textContent = "$"+groupedInvoices[vendor].total;
+              invoiceTotalDiv.textContent = "$"+groupedInvoices[vendor].total.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              });
             }
           }
         });
@@ -399,7 +414,10 @@ async function loadInvoices() {
           const totalCell = totalRow.querySelector('div[data-field="invoiceTotal"]');
           if (totalCell) {
             // Actualizar el contenido de la celda con el total formateado
-            totalCell.textContent = `$${sum.toFixed(2)}`;
+            totalCell.textContent = `$${sum.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}`;
           } else {
             console.warn("Div con data-field='invoiceTotal' no encontrado en la fila de total");
           }

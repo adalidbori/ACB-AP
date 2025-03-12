@@ -142,7 +142,6 @@ app.post("/get-operationLocation", async (req, res) => {
       body: JSON.stringify({ url })
     });
     const operationLocation = response.headers.get("operation-location");
-    console.log(response);
 
     if (!operationLocation) {
       return res.status(500).json({ error: "No se pudo obtener la ubicación de la operación." });

@@ -27,6 +27,7 @@ CREATE TABLE Notes (
 	content NVARCHAR(MAX),
 	userID INT,
     [Timestamp] DATETIME DEFAULT GETDATE()  -- timestamp (fecha de creación, se asigna automáticamente)
+	FOREIGN KEY (invoiceID) REFERENCES Invoices(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 GO
 
