@@ -419,16 +419,42 @@ app.get('/invoices/notes/:ID', async (req, res) => {
 app.get('/invoices/status/:invoiceStatus', async (req, res) => {
   try {
     const { invoiceStatus } = req.params;
+    // Recibimos parámetros opcionales vía query string:
+    const { vendor, invoiceNumber, invoiceDate } = req.query;
+
     const pool = await testConnection();
-    const result = await pool.request()
-      .input('invoiceStatus', sql.Int, invoiceStatus)
-      .query("SELECT * FROM Invoices WHERE invoiceStatus = @invoiceStatus");
+
+    // Consulta base
+    let query = "SELECT * FROM Invoices WHERE invoiceStatus = @invoiceStatus";
+
+    // Preparar la request y asignar los parámetros
+    const request = pool.request();
+    request.input('invoiceStatus', sql.Int, invoiceStatus);
+
+    // Agregar filtros si se han proporcionado y asignar comodines en el parámetro
+    if (vendor && vendor.trim() !== "") {
+      query += " AND vendor LIKE @vendor";
+      request.input('vendor', sql.VarChar, `%${vendor}%`);
+    }
+    if (invoiceNumber && invoiceNumber.trim() !== "") {
+      query += " AND invoiceNumber LIKE @invoiceNumber";
+      request.input('invoiceNumber', sql.VarChar, `%${invoiceNumber}%`);
+    }
+    if (invoiceDate && invoiceDate.trim() !== "") {
+      query += " AND invoiceDate = @invoiceDate";
+      // Se asume que el input date está en formato 'YYYY-MM-DD'
+      request.input('invoiceDate', sql.Date, invoiceDate);
+    }
+
+    const result = await request.query(query);
     res.json(result.recordset);
   } catch (error) {
     console.error("Error al obtener los invoices:", error);
     res.status(500).json({ error: "Error al obtener los invoices" });
   }
 });
+
+
 
 // Remove Invoices
 app.delete('/invoices', async (req, res) => {

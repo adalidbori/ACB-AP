@@ -1,8 +1,30 @@
 document.addEventListener('DOMContentLoaded', loadInvoices);
 const tableBody = document.querySelector('tbody');
+
+function clearFilter() {
+  // Restablecer los valores de los inputs del filtro
+  document.getElementById('filter-vendor').value = '';
+  document.getElementById('filter-invoiceNumber').value = '';
+  document.getElementById('filter-invoiceDate').value = '';
+  
+  // Llamar a loadInvoices para recargar las facturas sin ningún filtro aplicado
+  loadInvoices();
+}
+
 async function loadInvoices() {
   try {
-    const response = await fetch(`http://${window.miVariable}:3000/invoices/status/3`);
+    const vendor = document.getElementById('filter-vendor').value;
+    const invoiceNumber = document.getElementById('filter-invoiceNumber').value;
+    const invoiceDate = document.getElementById('filter-invoiceDate').value;
+    console.log("Vendor: "+vendor);
+    console.log("invoiceNumber: "+invoiceNumber);
+    console.log("invoiceDate: "+invoiceDate);
+    const params = new URLSearchParams({
+      vendor,
+      invoiceNumber,
+      invoiceDate
+    });
+    const response = await fetch(`http://${window.miVariable}:3000/invoices/status/3?${params.toString()}`);
     const invoices = await response.json();
     tableBody.innerHTML = ""; // Limpiar contenido previo
 

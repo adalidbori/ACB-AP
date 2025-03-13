@@ -1,5 +1,5 @@
 
-window.miVariable = "localhost";
+window.miVariable = "192.168.1.158";
 
 
 // Función para obtener los invoices y llenar la tabla
@@ -281,8 +281,8 @@ async function downloadSelectedFiles() {
 
   // Agrupar archivos por proveedor
   const filesByVendor = {};
-  checkboxes.forEach(checkbox => {
-    const fileURL = checkbox.dataset.fileurl;
+  for (const checkbox of checkboxes) {
+    const fileURL = await getSASUrl(checkbox.dataset.fileurl);
     const fileType = checkbox.dataset.filetype;
     const row = checkbox.closest('tr');
     const docName = row.querySelector('[data-field="docName"]').textContent.trim();
@@ -294,7 +294,7 @@ async function downloadSelectedFiles() {
       filesByVendor[vendor] = [];
     }
     filesByVendor[vendor].push({ fileURL, fileName });
-  });
+  }
 
   // Crear y descargar un ZIP por cada proveedor
   for (const [vendor, files] of Object.entries(filesByVendor)) {
@@ -318,6 +318,7 @@ async function downloadSelectedFiles() {
     link.click();
   }
 }
+
 
 function obtenerExtension(fileType) {
   switch (fileType) {
