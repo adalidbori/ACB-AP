@@ -34,6 +34,12 @@ GO
 select * from Invoices
 go
 
+SELECT invoiceNumber, COUNT(*) AS occurrences
+FROM Invoices
+GROUP BY invoiceNumber
+HAVING COUNT(*) > 1;
+go
+
 select * from Notes
 go
 

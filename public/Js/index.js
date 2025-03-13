@@ -338,6 +338,16 @@ function parseInternationalCurrency(amountStr) {
   return parseFloat(amountStr) || 0;
 }
 
+// Notification banner functionality
+const notificationBanner = document.getElementById('notification-banner');
+const notificationMessage = document.getElementById('notification-message');
+const notificationClose = document.getElementById('notification-close');
+
+// Close notification banner
+notificationClose.addEventListener('click', function() {
+  notificationBanner.style.display = 'none';
+});
+
 // Filter collapse functionality
 const filterHeader = document.getElementById('filter-header');
 const filterCollapse = document.getElementById('filterCollapse');
