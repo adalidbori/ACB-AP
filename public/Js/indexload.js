@@ -105,6 +105,7 @@ async function uploadFile(file) {
     loadInvoices();
   } catch (error) {
     console.error("Error en el proceso:", error);
+    alert(error);
   }
 }
 
@@ -117,7 +118,7 @@ function frmattingTexto(textoJson) {
   console.log(data.length);
   // Recorrer solo las primeras 3 páginas
   data.forEach((page, index) => {
-    if (index < 3 && page.lines) {
+    if (index <= 30 && page.lines) {
       page.lines.forEach(line => {
         extractedText += line.text + '\n';
       });

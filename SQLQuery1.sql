@@ -35,7 +35,7 @@ select * from Invoices
 go
 
 SELECT invoiceNumber, COUNT(*) AS occurrences
-FROM Invoices
+FROM Invoices where invoiceStatus = 
 GROUP BY invoiceNumber
 HAVING COUNT(*) > 1;
 go

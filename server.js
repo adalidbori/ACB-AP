@@ -283,7 +283,7 @@ app.post("/chatgpt", async (req, res) => {
         "Authorization": OPENAI_KEY
       },
       body: JSON.stringify({
-        model: "gpt-4",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
