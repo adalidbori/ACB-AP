@@ -95,20 +95,35 @@ async function uploadFile(file) {
     const textoJson = await getExtractedTextPost(operationn);//Llamar al operationLocation para obtener el Json con los datos
     const finalText = frmattingTexto(textoJson);
 
-
     // Llamamos a ChatGPT usando el texto extraído
     const chatGPTResponse = await callChatGPT(finalText);
+    const responseObject = extractJson(chatGPTResponse);
 
-    const responseObject = JSON.parse(chatGPTResponse);
-
-    const id = await insertRecord(file.name, timestampName, file.type, data.url, responseObject);
+    console.log(responseObject.invoices.length);
+    if(responseObject.invoices.length === 1){
+      const id = await insertRecord(file.name, timestampName, file.type, data.url, responseObject.invoices[0]);
+    }else{
+      //llamada a PDF4me
+    }
     loadInvoices();
   } catch (error) {
     console.error("Error en el proceso:", error);
-    alert(error);
   }
 }
 
+function extractJson(text) {
+  const match = text.match(/\{[\s\S]*\}/); // Busca el contenido entre el primer [ y el último ]
+  console.log(match[0]);
+  if (match) {
+    try {
+      return JSON.parse(match); // Intenta convertir el resultado a JSON
+    } catch (error) {
+      console.error('Error parsing JSON:', error);
+      return null;
+    }
+  }
+  return null;
+}
 
 function frmattingTexto(textoJson) {
   const data = typeof textoJson === 'string' ? JSON.parse(textoJson) : textoJson;
@@ -122,6 +137,7 @@ function frmattingTexto(textoJson) {
       page.lines.forEach(line => {
         extractedText += line.text + '\n';
       });
+      extractedText += "This is the end of page "+page.page +'\n';
     }
   });
   return extractedText;

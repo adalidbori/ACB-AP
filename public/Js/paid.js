@@ -69,7 +69,6 @@ async function loadInvoices() {
         // Asignar el vendor para relacionarlas con la cabecera
         tr.dataset.vendor = invoice.vendor;
         tr.dataset.id = invoice.ID;
-
         tr.innerHTML = `
           <td>
             <input type="checkbox" class="row-checkbox" data-fileurl="${invoice.fileURL}" data-filetype="${invoice.fileType}">

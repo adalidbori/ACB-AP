@@ -283,18 +283,17 @@ app.post("/chatgpt", async (req, res) => {
         "Authorization": OPENAI_KEY
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "o3-mini",
         messages: [
           {
             role: "system",
-            content: "You are an assistant specialized in extracting invoice information. Based on the text provided, return ONLY a JSON object with the following keys: {'vendor_name', 'invoice_date' (formatted as MM/DD/YYYY), 'vendor_address', 'invoice_number', 'invoice_due_date' (formatted as MM/DD/YYYY), 'invoice_total' (formatted as a decimal number using a period (.) as the decimal separator and removing any other characters from the decimals)}. If any field cannot be extracted, leave it as an empty string. Additionally, if the provided text is blank or does not appear to be an invoice, still return a JSON object with all fields empty. Do not include any additional text or explanation in your response. 'A Customs Brokerage or A Customs Brokerage Inc' is always the buyer, so it should never be included as the vendor."
+            content: "You are an assistant specialized in extracting invoice information. Based on the text provided, return ONLY a JSON object with the following keys: { 'invoices' : [ {'vendor_name', 'invoice_date' (formatted as MM/DD/YYYY), 'vendor_address', 'invoice_number', 'invoice_due_date' (formatted as MM/DD/YYYY), 'invoice_total' (formatted as a decimal number using a period (.) as the decimal separator and removing any other characters from the decimals), 'pages' (The actual range of pages in the document where the invoice appears, formatted as 1-1, 2-3, 5-6, etc, based on the document's physical page order and also based on the line that says 'This is the end of page # of page')} ]}, please note . If any field cannot be extracted, leave it as an empty string. Additionally, if the provided text is blank or does not appear to be an invoice, still return an JSON array with one object with all fields empty. Do not include any additional text or explanation in your response. 'A Customs Brokerage or A Customs Brokerage Inc' is always the buyer, so it should never be included as the vendor. There may be more than one invoice in the document. Only if you consider there is more than one invoice, add new elements to the JSON. If you consider there isn't enough data, such as the total and invoice number, leave the JSON with a single element."
           },
           {
             role: "user",
             content: text
           }
-        ],
-        temperature: 0.7
+        ]
       })
     });
     const chatData = await chatResponse.json();
