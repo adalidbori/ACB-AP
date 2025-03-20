@@ -1,5 +1,5 @@
 
-window.miVariable = "192.168.1.158";
+window.miVariable = "localhost";
 
 
 // Función para obtener los invoices y llenar la tabla

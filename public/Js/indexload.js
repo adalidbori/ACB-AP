@@ -98,18 +98,88 @@ async function uploadFile(file) {
     // Llamamos a ChatGPT usando el texto extraído
     const chatGPTResponse = await callChatGPT(finalText);
     const responseObject = extractJson(chatGPTResponse);
-
-    console.log(responseObject.invoices.length);
-    if(responseObject.invoices.length === 1){
+    if (responseObject.invoices.length === 1) {
       const id = await insertRecord(file.name, timestampName, file.type, data.url, responseObject.invoices[0]);
-    }else{
-      //llamada a PDF4me
+    } else {
+      // setup the pdf4meClient
+      const url = data.url;
+      const promises = responseObject.invoices.map(invoice => extractPages(url, invoice));
+      await Promise.all(promises);
+      eliminarBlobMultiInvoice(data.url);
     }
+
     loadInvoices();
   } catch (error) {
     console.error("Error en el proceso:", error);
   }
 }
+
+async function eliminarBlobMultiInvoice(url) {
+  try {
+    // Enviar petición DELETE para Azure
+    const response = await fetch(`http://${window.miVariable}:3000/eliminar-blob`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ urls: url })
+    });
+    const result = await response.json();
+    console.log("Resultado de la eliminación de Azure Blob:", result);
+  }
+  catch (error) {
+    console.error("Error eliminando registros Blob:", error);
+  }
+}
+
+function convertirRango(rango) {
+  // Separamos el string usando '-' y convertimos a números
+  const [inicio, fin] = rango.split("-").map(num => parseInt(num, 10));
+
+  // Creamos un arreglo para almacenar los números
+  const numeros = [];
+  for (let i = inicio; i <= fin; i++) {
+    numeros.push(i);
+  }
+
+  // Retornamos el arreglo convertido a string separado por comas
+  return numeros.join(",");
+}
+
+async function extractPages(url, invoice) {
+  const range = convertirRango(invoice.pages);
+  try {
+    const response = await fetch(`http://${window.miVariable}:3000/extractpdf`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url, range }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Error en la respuesta del servidor");
+    }
+
+    // Obtén el PDF extraído como un Blob
+    const pdfBlob = await response.blob();
+
+    // Crea un FormData para enviarlo al endpoint de upload
+    const formData = new FormData();
+    // El tercer parámetro es el nombre del archivo
+    formData.append("file", pdfBlob, "extractedPdf.pdf");
+
+    const uploadResponse = await fetch(`http://${window.miVariable}:3000/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    const data = await uploadResponse.json();
+    const timestampName = data.filename;
+    const id = await insertRecord(timestampName, timestampName, "application/pdf", data.url, invoice);
+  } catch (error) {
+    console.error("Error al extraer el pdf", error);
+  }
+}
+
+
 
 function extractJson(text) {
   const match = text.match(/\{[\s\S]*\}/); // Busca el contenido entre el primer [ y el último ]
@@ -137,7 +207,7 @@ function frmattingTexto(textoJson) {
       page.lines.forEach(line => {
         extractedText += line.text + '\n';
       });
-      extractedText += "This is the end of page "+page.page +'\n';
+      extractedText += "This is the end of page " + page.page + '\n';
     }
   });
   return extractedText;
@@ -206,7 +276,7 @@ function clearFilter() {
   document.getElementById('filter-vendor').value = '';
   document.getElementById('filter-invoiceNumber').value = '';
   document.getElementById('filter-invoiceDate').value = '';
-  
+
   // Llamar a loadInvoices para recargar las facturas sin ningún filtro aplicado
   loadInvoices();
 }
@@ -218,9 +288,9 @@ async function loadInvoices() {
     const vendor = document.getElementById('filter-vendor').value;
     const invoiceNumber = document.getElementById('filter-invoiceNumber').value;
     const invoiceDate = document.getElementById('filter-invoiceDate').value;
-    console.log("Vendor: "+vendor);
-    console.log("invoiceNumber: "+invoiceNumber);
-    console.log("invoiceDate: "+invoiceDate);
+    console.log("Vendor: " + vendor);
+    console.log("invoiceNumber: " + invoiceNumber);
+    console.log("invoiceDate: " + invoiceDate);
     const params = new URLSearchParams({
       vendor,
       invoiceNumber,
@@ -229,7 +299,7 @@ async function loadInvoices() {
     const response = await fetch(`http://${window.miVariable}:3000/invoices/status/1?${params.toString()}`);
     const invoices = await response.json();
     tableBody.innerHTML = ""; // Limpiar contenido previo
-    
+
     // Agrupar facturas por vendor y sumar los totales usando el formato internacional
     const groupedInvoices = invoices.reduce((groups, invoice) => {
       const vendor = invoice.vendor;
@@ -251,9 +321,9 @@ async function loadInvoices() {
       headerRow.innerHTML = `
         <td colspan="9" style="background:#f0f0f0; cursor: pointer;">
           <strong>${vendor}</strong></td>`;
-      
+
       // Agregar evento de clic para contraer/expandir
-      headerRow.addEventListener('click', function() {
+      headerRow.addEventListener('click', function () {
         // Seleccionar todas las filas de factura para este vendor
         const invoiceRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${vendor}"]`);
         invoiceRows.forEach(row => {
@@ -261,7 +331,7 @@ async function loadInvoices() {
           row.style.display = row.style.display === 'none' ? '' : 'none';
         });
       });
-      
+
       tableBody.appendChild(headerRow);
 
       // Agregar cada factura asociada al vendor
@@ -284,9 +354,9 @@ async function loadInvoices() {
               data-filetype="${invoice.fileType}">
               <div data-field="fileType">
                 ${invoice.fileType === 'application/pdf'
-                  ? '<img src="/Styles/pdf.svg" alt="Icono PDF">'
-                  : '<img src="/Styles/image.svg" alt="Icono imagen">'
-                }
+            ? '<img src="/Styles/pdf.svg" alt="Icono PDF">'
+            : '<img src="/Styles/image.svg" alt="Icono imagen">'
+          }
               </div>
             </a>
           </td>
@@ -309,7 +379,7 @@ async function loadInvoices() {
           </td>
         `;
 
-        
+
         // Manejo de edición de celdas
         let shouldFireChange = false;
         tr.addEventListener("input", function () {
@@ -368,9 +438,9 @@ async function loadInvoices() {
         <td style="font-weight: bold; text-align: right;">Total:</td>
         <td style="font-weight: bold; text-align: left;"><div data-field="invoiceTotal">
           $${groupedInvoices[vendor].total.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          })}
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}
         </div>
         </td>
         <td></td>
@@ -410,7 +480,7 @@ async function loadInvoices() {
             const invoiceTotalDiv = row.querySelector('div[data-field="invoiceTotal"]');
             if (invoiceTotalDiv) {
               // Aquí puedes definir el nuevo valor que necesites; en este ejemplo se pone $0.00
-              invoiceTotalDiv.textContent = "$"+groupedInvoices[vendor].total.toLocaleString('en-US', {
+              invoiceTotalDiv.textContent = "$" + groupedInvoices[vendor].total.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
               });
@@ -418,14 +488,14 @@ async function loadInvoices() {
           }
         });
       }
-      
+
 
       function updateVendorHeaderTotal(vendor) {
         let sum = 0;
         // Seleccionar todas las filas del proveedor especificado
         const vendorRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${vendor}"]`);
 
-        
+
         vendorRows.forEach(row => {
           const checkbox = row.querySelector('.row-checkbox');
           // Verificar si el checkbox existe y está seleccionado
@@ -445,7 +515,7 @@ async function loadInvoices() {
             }
           }
         });
-      
+
         // Seleccionar la fila del total del proveedor
         const totalRow = document.querySelector(`tr[data-vendor="${vendor}"][data-totalbyvendor="true"]`);
         if (totalRow) {

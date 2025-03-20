@@ -7,6 +7,8 @@ const pdfParse = require("pdf-parse");
 const fs = require("fs");
 const fetch = require("node-fetch"); // Asegúrate de instalar node-fetch versión 2: npm install node-fetch@2
 const sql = require('mssql');
+const pdf4me = require('pdf4me')
+const https = require('https');
 
 require("dotenv").config();
 
@@ -41,7 +43,7 @@ async function testConnection() {
 
 //const { BlobServiceClient } = require("@azure/storage-blob");
 //const { StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } = require("@azure/storage-blob");
-const { BlobServiceClient, BlobClient, StorageSharedKeyCredential, BlobSASPermissions, generateBlobSASQueryParameters} = require('@azure/storage-blob');
+const { BlobServiceClient, BlobClient, StorageSharedKeyCredential, BlobSASPermissions, generateBlobSASQueryParameters } = require('@azure/storage-blob');
 
 
 
@@ -77,6 +79,7 @@ const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
 const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
 const AZURE_OCR_ENDPOINT = process.env.AZURE_OCR_ENDPOINT;
 const AZURE_OCR_KEY = process.env.AZURE_OCR_KEY;
+const PDF4ME = process.env.PDF4ME;
 const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
 
 async function uploadFileToAzure(localFilePath, blobName, contentType) {
@@ -146,7 +149,7 @@ app.post("/get-operationLocation", async (req, res) => {
     if (!operationLocation) {
       return res.status(500).json({ error: "No se pudo obtener la ubicación de la operación." });
     }
-    
+
     res.json({ mensaje: "Llamada iniciada", operationLocation });
     return operationLocation;
   } catch (error) {
@@ -154,6 +157,65 @@ app.post("/get-operationLocation", async (req, res) => {
     return res.status(500).json({ error: "Error al procesar el archivo." });
   }
 });
+
+app.post("/extractpdf", async (req, res) => {
+  try {
+    // Reemplaza 'YOUR_API_KEY' por tu clave real
+    const { url, range } = req.body;
+    const pdf4meClient = pdf4me.createClient(PDF4ME);
+
+    // Descarga el PDF y conviértelo a Base64
+    const pdfBase64 = await downloadPDF(url);
+
+    // Crea el objeto de solicitud usando docData
+    const extractReq = {
+      document: {
+        docData: pdfBase64
+      },
+      extractAction: {
+        extractPages: [range] // Extrae la página 1
+      }
+    };
+
+    // Llama a la API de pdf4me para extraer el PDF
+    const extractRes = await pdf4meClient.extract(extractReq);
+
+    // Convierte el PDF extraído de Base64 a Buffer y lo guarda en disco
+    const pdfDocument = Buffer.from(extractRes.document.docData, 'base64');
+    //fs.writeFileSync(path.join(__dirname, 'extractedPdf.pdf'), pdfDocument);
+
+    // Envía el PDF extraído en la respuesta
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "attachment; filename=extractedPdf.pdf");
+    return res.send(pdfDocument); // Usamos return para detener la ejecución
+  } catch (error) {
+    console.error("Error al extraer el PDF:", error);
+    res.status(500).send("Error al extraer el PDF");
+  }
+});
+
+function downloadPDF(url) {
+  const sasUrl = generateSasUrlForBlob(url)
+  return new Promise((resolve, reject) => {
+    https.get(sasUrl, (res) => {
+      if (res.statusCode !== 200) {
+        return reject(new Error(`Error al descargar PDF, status code: ${res.statusCode}`));
+      }
+      const data = [];
+      res.on('data', (chunk) => data.push(chunk));
+      res.on('end', () => {
+        const buffer = Buffer.concat(data);
+        const base64 = buffer.toString('base64');
+        resolve(base64);
+      });
+    }).on('error', (err) => {
+      reject(err);
+    });
+  });
+}
+
+
+
 
 async function pollForResult(operationLocation) {
   let result;
@@ -166,14 +228,14 @@ async function pollForResult(operationLocation) {
       }
     });
     result = await response.json();
-    
+
     if (result.status === "succeeded") {
       // El análisis se completó: retorna los resultados (normalmente en result.analyzeResult.readResults)
       return result.analyzeResult.readResults;
     } else if (result.status === "failed") {
       throw new Error("La operación falló.");
     }
-    
+
     // Espera un segundo antes de la siguiente consulta
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
@@ -182,7 +244,7 @@ async function pollForResult(operationLocation) {
 // Ejemplo de uso en una ruta Express:
 app.post("/extract-text", async (req, res) => {
   const { operationLocation } = req.body;
-  
+
   if (!operationLocation) {
     return res.status(400).json({ error: "Falta la URL de la operación." });
   }
@@ -202,7 +264,7 @@ app.post("/extract-text", async (req, res) => {
 app.post('/open-document', (req, res) => {
   try {
     const { url } = req.body; // Obtiene la URL del cuerpo de la solicitud
-    
+
     if (!url) {
       return res.status(400).json({ error: "La propiedad 'url' es requerida." });
     }
@@ -242,7 +304,7 @@ function generateSasUrlForBlob(blobUrl) {
   return `${blobUrl}?${sasToken}`;
 }
 
-async function deleteFile(fileUrl){
+async function deleteFile(fileUrl) {
   const sasUrl = generateSasUrlForBlob(fileUrl);
   // Crear un BlobClient utilizando la URL con SAS
   const blobClient = new BlobClient(sasUrl);
@@ -379,7 +441,7 @@ app.post("/notes-upsert", async (req, res) => {
         INSERT (invoiceID, content, userID)
         VALUES (@invoiceID, @content, @userID);
     `;
-    
+
     const result = await pool.request()
       .input('invoiceID', sql.Int, invoiceID)
       .input('content', sql.NVarChar(sql.MAX), content)
@@ -387,8 +449,8 @@ app.post("/notes-upsert", async (req, res) => {
       .query(query);
 
     // Después de la consulta:
-      const responseData = result.recordset && result.recordset.length ? result.recordset : { mensaje: "Operación realizada correctamente" };
-      res.json(responseData);
+    const responseData = result.recordset && result.recordset.length ? result.recordset : { mensaje: "Operación realizada correctamente" };
+    res.json(responseData);
   } catch (error) {
     console.error("Error al insertar o actualizar la nota:", error);
     res.status(500).json({ error: "Error al insertar o actualizar la nota" });
@@ -485,15 +547,15 @@ app.put('/invoices/update/:invoiceStatus', async (req, res) => {
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ error: 'No se proporcionaron IDs válidos' });
     }
-    
+
     const pool = await testConnection();
     const idsList = ids.map(id => Number(id)).join(',');
     const query = `UPDATE Invoices SET invoiceStatus = @invoiceStatus WHERE ID IN (${idsList})`;
-    
+
     await pool.request()
       .input('invoiceStatus', sql.Int, invoiceStatus)
       .query(query);
-    
+
     res.json({ message: "Registros actualizados correctamente" });
   } catch (error) {
     console.error("Error al actualizar registros:", error);
