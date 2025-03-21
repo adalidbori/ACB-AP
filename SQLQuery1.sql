@@ -9,6 +9,7 @@ CREATE TABLE Invoices (
     docName NVARCHAR(255),                     -- name tipo texto
 	timestampName NVARCHAR(255),                     -- name tipo texto
     vendor NVARCHAR(255),                   -- vendor tipo texto
+	referenceNumber NVARCHAR(100),
     invoiceNumber NVARCHAR(100),            -- Invoice Number tipo texto
     invoiceStatus INT,                             -- status tipo número
     vendorAddress NVARCHAR(255),            -- vendor address tipo texto
@@ -34,8 +35,11 @@ GO
 select * from Invoices
 go
 
+update Invoices set referenceNumber = 'Adalid' where ID = 1
+go
+
 SELECT invoiceNumber, COUNT(*) AS occurrences
-FROM Invoices where invoiceStatus = 
+FROM Invoices where invoiceStatus = 1 or invoiceStatus = 2 or invoiceStatus = 3 or invoiceStatus = 4 
 GROUP BY invoiceNumber
 HAVING COUNT(*) > 1;
 go
@@ -53,7 +57,7 @@ go
 truncate table Invoices
 go
 
-DROP TABLE Notes;
+DROP TABLE Invoices;
 go
 
 MERGE INTO Notes AS target
