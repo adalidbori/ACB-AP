@@ -92,6 +92,17 @@ async function showDocument(url, fileType) {
   
 }
 
+// Función para limitar caracteres visibles en celdas editables
+function limitCellText(text, maxLength = 20) {
+  if (!text || text.length <= maxLength) return text;
+  
+  // Guardar el texto completo como atributo data y mostrar versión truncada
+  return `<span 
+    title="${text}" 
+    data-full-text="${text}" 
+    class="truncated-text">${text.substring(0, maxLength)}...</span>`;
+}
+
 
 async function deleteSelectedRows() {
   // Recopilar los IDs de las filas seleccionadas
