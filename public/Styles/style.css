@@ -1,288 +1,303 @@
 body {
-    background-color: #f8f9fa;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
-  
-  .dashboard-card {
-    border-radius: 10px;
-    border: none;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s;
-  }
-  
-  .dashboard-card:hover {
-    transform: translateY(-5px);
-  }
-  
-  .card-icon {
-    font-size: 2rem;
-    margin-bottom: 10px;
-  }
-  
-  .content-section {
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    height: calc(100vh - 220px);
-    overflow: hidden;
-  }
-  
-  /* Airtable-like styling */
+  background-color: #f8f9fa;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
 
-  .table-container {
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    overflow: hidden;
-    margin-bottom: 1rem;
-  }
+.dashboard-card {
+  border-radius: 10px;
+  border: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
 
-  .editable-table th:first-child {
-    border-top-left-radius: 0.375rem;
-  }
-  
-  .editable-table th:last-child {
-    border-top-right-radius: 0.375rem;
-  }
+.dashboard-card:hover {
+  transform: translateY(-5px);
+}
 
-  .editable-table tr:last-child td {
-    border-bottom: none;
-  }
+.card-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
 
-  .editable-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-  }
-  
-  .editable-table th {
-    background-color: #f1f3f5;
-    padding: 12px;
-    font-weight: 600;
-    text-align: left;
-    border-bottom: 2px solid #dee2e6;
-  }
-  
-  .editable-table td {
-    padding: 8px 12px;
-    border-bottom: 1px solid #dee2e6;
-  }
-  
-  .editable-table tr:hover {
-    background-color: #f8f9fa;
-  }
-  
-  .editable-cell {
-    min-height: 24px;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-  }
-  
-  .editable-cell:hover {
-    background-color: #e9ecef;
-  }
-  
-  .editable-cell.editing {
-    background-color: #e7f5ff;
-    outline: 2px solid #4dabf7;
-  }
-  
-  .dropdown-cell {
-    position: relative;
-  }
-  
-  .dropdown-options {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 1000;
-    display: none;
-    min-width: 10rem;
-    padding: 0.5rem 0;
-    background-color: #fff;
-    border: 1px solid rgba(0, 0, 0, 0.15);
-    border-radius: 0.25rem;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.175);
-  }
-  
-  .dropdown-option {
-    display: block;
-    width: 100%;
-    padding: 0.25rem 1.5rem;
-    clear: both;
-    text-align: inherit;
-    white-space: nowrap;
-    background-color: transparent;
-    border: 0;
-    cursor: pointer;
-  }
-  
-  .dropdown-option:hover {
-    background-color: #f8f9fa;
-  }
-  
-  /* Document viewer */
-  .document-viewer {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .viewer-toolbar {
-    padding: 10px;
-    background-color: #f1f3f5;
-    border-bottom: 1px solid #dee2e6;
-  }
-  
-  .viewer-content {
-    flex: 1;
-    overflow: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .viewer-content iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-  }
-  
-  .viewer-content img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-  }
-  
-  .document-list {
-    max-height: 200px;
-    overflow-y: auto;
-  }
-  
-  .document-item {
-    cursor: pointer;
-    padding: 8px 12px;
-    border-bottom: 1px solid #dee2e6;
-  }
-  
-  .document-item:hover {
-    background-color: #f8f9fa;
-  }
-  
-  .document-item.active {
-    background-color: #e7f5ff;
-  }
-  #drop-area {
-    border: 2px dashed #ccc;
-    padding: 20px;
-    text-align: center;
-    margin: 20px;
-    background-color: #f9f9f9;
-  }
-  .contenedor-icono.has-notes {
-    color: red;
-  }
+.content-section {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  height: calc(100vh - 220px);
+  overflow: hidden;
+}
 
+/* Airtable-like styling */
 
-  td{
-    font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+.table-container {
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
 
-  .spinner {
-    border: 4px solid rgba(0,0,0,0.1);
-    border-top: 4px solid #007bff;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    animation: spin 1s linear infinite;
-  }
-  
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+.editable-table th:first-child {
+  border-top-left-radius: 0.375rem;
+}
+
+.editable-table th:last-child {
+  border-top-right-radius: 0.375rem;
+}
+
+.editable-table tr:last-child td {
+  border-bottom: none;
+}
+
+.editable-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.editable-table th {
+  background-color: #f1f3f5;
+  padding: 12px;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.editable-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.editable-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.editable-cell {
+  min-height: 24px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.editable-cell:hover {
+  background-color: #e9ecef;
+}
+
+.editable-cell.editing {
+  background-color: #e7f5ff;
+  outline: 2px solid #4dabf7;
+}
+
+.dropdown-cell {
+  position: relative;
+}
+
+.dropdown-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  display: none;
+  min-width: 10rem;
+  padding: 0.5rem 0;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0.25rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.175);
+}
+
+.dropdown-option {
+  display: block;
+  width: 100%;
+  padding: 0.25rem 1.5rem;
+  clear: both;
+  text-align: inherit;
+  white-space: nowrap;
+  background-color: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.dropdown-option:hover {
+  background-color: #f8f9fa;
+}
+
+/* Document viewer */
+.document-viewer {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.viewer-toolbar {
+  padding: 10px;
+  background-color: #f1f3f5;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.viewer-content {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.viewer-content iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.viewer-content img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.document-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.document-item {
+  cursor: pointer;
+  padding: 8px 12px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.document-item:hover {
+  background-color: #f8f9fa;
+}
+
+.document-item.active {
+  background-color: #e7f5ff;
+}
+
+#drop-area {
+  border: 2px dashed #ccc;
+  padding: 20px;
+  text-align: center;
+  margin: 20px;
+  background-color: #f9f9f9;
+}
+
+.contenedor-icono.has-notes {
+  color: red;
+}
 
 
-  .filter-container {
-    transition: all 0.3s ease;
-  }
+td {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-  .filter-toggle {
-    color: #6c757d;
-    text-decoration: none;
-  }
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
 
-  .filter-toggle:hover {
-    color: #495057;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
+}
 
-  .filter-arrow {
-    display: inline-block;
-    transition: transform 0.3s ease;
-    font-style: normal;
-    font-size: 12px;
-  }
 
-  #filter-header {
-    cursor: pointer;
-  }
+.filter-container {
+  transition: all 0.3s ease;
+}
 
-  #filter-header.collapsed .filter-arrow {
-    transform: rotate(-90deg);
-  }
+.filter-toggle {
+  color: #6c757d;
+  text-decoration: none;
+}
 
-  .row-checkbox{
-    vertical-align: middle;
-  }
+.filter-toggle:hover {
+  color: #495057;
+}
 
-  /* Notification Banner */
-  .notification-banner {
-    background-color: #fff3cd;
-    border: 1px solid #ffeeba;
-    border-radius: 0.375rem;
-    padding: 0.75rem 1.25rem;
-    margin-bottom: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    animation: fadeIn 0.5s;
-  }
-  
-  .notification-banner.warning {
-    background-color: #fff3cd;
-    border-color: #ffeeba;
-    color: #856404;
-  }
-  
-  .notification-banner.info {
-    background-color: #d1ecf1;
-    border-color: #bee5eb;
-    color: #0c5460;
-  }
-  
-  .notification-banner.danger {
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-    color: #721c24;
-  }
-  
-  .notification-banner .notification-icon {
-    margin-right: 0.5rem;
-    font-size: 1.25rem;
-  }
-  
-  .notification-banner .notification-content {
-    flex-grow: 1;
-  }
-  
-  .notification-banner .notification-close {
-    background: transparent;
-    border: none;
-    color: inherit;
-    font-size: 1.25rem;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-  }
+.filter-arrow {
+  display: inline-block;
+  transition: transform 0.3s ease;
+  font-style: normal;
+  font-size: 12px;
+}
+
+#filter-header {
+  cursor: pointer;
+}
+
+#filter-header.collapsed .filter-arrow {
+  transform: rotate(-90deg);
+}
+
+.row-checkbox {
+  vertical-align: middle;
+}
+
+/* Notification Banner */
+.notification-banner {
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  animation: fadeIn 0.5s;
+}
+
+.notification-banner.warning {
+  background-color: #fff3cd;
+  border-color: #ffeeba;
+  color: #856404;
+}
+
+.notification-banner.info {
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+  color: #0c5460;
+}
+
+.notification-banner.danger {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+.notification-banner .notification-icon {
+  margin-right: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.notification-banner .notification-content {
+  flex-grow: 1;
+}
+
+.notification-banner .notification-close {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.hidden-column {
+  display: none;
+}
+
+.table-responsive thead th {
+  position: sticky;
+  top: 0;
+  background-color: #fff;
+  z-index: 2;
+}

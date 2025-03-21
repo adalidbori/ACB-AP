@@ -7,7 +7,7 @@ window.miVariable = "localhost";
 
 async function updateElement(invoiceId, rowData) {
   // Lista de campos permitidos (deben coincidir con lo que espera el servidor)
-  const allowedFields = ['docName', 'invoiceNumber', 'vendor', 'invoiceTotal', 'invoiceDate', 'dueDate'];
+  const allowedFields = ['docName', 'invoiceNumber', 'referenceNumber', 'vendor', 'invoiceTotal', 'invoiceDate', 'dueDate'];
 
   // Itera sobre cada propiedad en rowData
   for (const field in rowData) {
@@ -28,7 +28,7 @@ async function updateElement(invoiceId, rowData) {
   }
 }
 
-async function getSASUrl(documentUrl){
+async function getSASUrl(documentUrl) {
   try {
     // Realiza la solicitud POST al servidor
     const response = await fetch(`http://${window.miVariable}:3000/open-document`, {
@@ -60,7 +60,7 @@ async function getSASUrl(documentUrl){
 async function openDocument(documentUrl) {
   try {
     const sasUrl = await getSASUrl(documentUrl);
-    
+
     if (!sasUrl) {
       console.error("No se obtuvo una URL válida");
       return;
@@ -75,7 +75,7 @@ async function openDocument(documentUrl) {
 
 async function showDocument(url, fileType) {
   const sasUrl = await getSASUrl(url);
-  if(sasUrl){
+  if (sasUrl) {
     const viewerContent = document.getElementById('viewer-content');
     if (!viewerContent) {
       console.error("No se encontró el contenedor con id 'viewer-content'");
@@ -89,18 +89,78 @@ async function showDocument(url, fileType) {
       viewerContent.innerHTML = `<iframe src="${sasUrl}" style="width:100%; height:600px;" frameborder="0"></iframe>`;
     }
   }
-  
+
 }
 
 // Función para limitar caracteres visibles en celdas editables
 function limitCellText(text, maxLength = 20) {
   if (!text || text.length <= maxLength) return text;
-  
+
   // Guardar el texto completo como atributo data y mostrar versión truncada
   return `<span 
     title="${text}" 
     data-full-text="${text}" 
     class="truncated-text">${text.substring(0, maxLength)}...</span>`;
+}
+
+function editVendor() {
+  // Recopilar los IDs de las filas seleccionadas
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  const idsToEdit = [];
+  checkboxes.forEach(chk => {
+    if (chk.checked) {
+      const row = chk.closest('tr');
+      const id = row.dataset.id;
+      if (id) {
+        idsToEdit.push(parseInt(id, 10));
+      }
+    }
+  });
+
+  if (idsToEdit.length === 0) {
+    alert("At least one row most be selected!");
+    return;
+  }
+
+  const modalEl = document.getElementById('editModalId');
+
+  // Asigna el listener para guardar (usando onclick para evitar acumulación de listeners)
+  const saveButton = modalEl.querySelector('#saveVendorButton');
+  saveButton.onclick = async () => {
+    const texto = document.getElementById('vendor-input');
+    const valor = texto.value.trim(); // Elimina espacios al inicio y al final
+
+    if (valor === "") {
+      alert("The field cannot be empty");
+    } else {
+      try {
+        const response = await fetch(`http://${window.miVariable}:3000/editVendors`, {
+          method: "PUT", // Se cambia a PUT
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idsToEdit, valor })
+        });
+
+        const result = await response.json();
+        console.log("Resultado de la actualización:", result);
+        modal.hide();
+        loadInvoices();
+      } catch (error) {
+        console.error("Error editando los vendors!", error);
+      }
+    }
+  };
+  // Mostrar el modal
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
+  // Agrega el listener para limpiar el contenido del modal cuando se cierra
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    // Reinicia el valor del input (y otros elementos si es necesario)
+    const input = modalEl.querySelector('#vendor-input');
+    if (input) {
+      input.value = '';
+    }
+    // Si agregaste otros elementos o estados, reinícialos aquí
+  }, { once: true }); // Con { once: true } nos aseguramos que el listener se ejecute solo una vez
 }
 
 
@@ -109,7 +169,7 @@ async function deleteSelectedRows() {
   const checkboxes = document.querySelectorAll('.row-checkbox');
   const idsToDelete = [];
   const urlsToDelete = [];
-  checkboxes.forEach(chk => {    
+  checkboxes.forEach(chk => {
     if (chk.checked) {
       const row = chk.closest('tr');
       const id = row.dataset.id;
@@ -118,7 +178,7 @@ async function deleteSelectedRows() {
       if (id) {
         idsToDelete.push(parseInt(id, 10));
       }
-      if(fileUrl){
+      if (fileUrl) {
         urlsToDelete.push(fileUrl);
       }
     }
@@ -150,7 +210,7 @@ async function deleteSelectedRows() {
   } catch (error) {
     console.error("Error eliminando registros:", error);
   }
-  try{
+  try {
     // Enviar petición DELETE para Azure
     const response = await fetch(`http://${window.miVariable}:3000/eliminar-blob`, {
       method: "DELETE",
@@ -168,7 +228,7 @@ async function deleteSelectedRows() {
       }
     });
   }
-  catch(error){
+  catch (error) {
     console.error("Error eliminando registros Blob:", error);
   }
   loadInvoices();
@@ -355,7 +415,7 @@ const notificationMessage = document.getElementById('notification-message');
 const notificationClose = document.getElementById('notification-close');
 
 // Close notification banner
-notificationClose.addEventListener('click', function() {
+notificationClose.addEventListener('click', function () {
   notificationBanner.style.display = 'none';
 });
 
@@ -364,7 +424,7 @@ const filterHeader = document.getElementById('filter-header');
 const filterCollapse = document.getElementById('filterCollapse');
 const filterArrow = document.querySelector('.filter-arrow');
 const tableResponsive = document.querySelector('.table-responsive');
-  filterHeader.addEventListener('click', function() {
+filterHeader.addEventListener('click', function () {
   const isCollapsed = filterCollapse.classList.contains('show');
   if (isCollapsed) {
     filterCollapse.classList.remove('show');

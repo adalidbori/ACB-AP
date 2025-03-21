@@ -77,45 +77,55 @@
                                 Pay</button>
                             <!-- Example single danger button -->
                             <div class="btn-group">
-                                <button type="button" class="btn btn-outline-danger dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                Action
+                                <button type="button" class="btn btn-outline-danger dropdown-toggle"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                    Action
                                 </button>
                                 <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="downloadSelectedFiles()">Download</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="deleteSelectedRows()">Delete</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="downloadSelectedFiles()">Download</a>
+                                    </li>
+                                    <li><a class="dropdown-item" href="#" onclick="editVendor()">Edit Vendor</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="deleteSelectedRows()">Delete</a></li>
                                 </ul>
                             </div>
 
                         </div>
                     </div>
                     <div class="filter-container mb-3">
-                        <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded border" id="filter-header">
-                          <h6 class="mb-0">Filters</h6>
-                          <button class="btn btn-sm btn-link p-0 filter-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
-                            <i class="filter-arrow">▼</i>
-                          </button>
+                        <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded border"
+                            id="filter-header">
+                            <h6 class="mb-0">Filters</h6>
+                            <button class="btn btn-sm btn-link p-0 filter-toggle" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false"
+                                aria-controls="filterCollapse">
+                                <i class="filter-arrow">▼</i>
+                            </button>
                         </div>
                         <div class="collapse" id="filterCollapse">
-                          <div class="filter-section p-3 bg-light rounded border-start border-end border-bottom">
-                            <div class="row g-2">
-                              <div class="col-md-4">
-                                <label for="filter-name" class="form-label small mb-1">Vendor</label>
-                                <input type="text" class="form-control form-control-sm" id="filter-vendor" placeholder="Filter by vendor...">
-                              </div>
-                              <div class="col-md-4">
-                                <label for="filter-client" class="form-label small mb-1">Invoice #</label>
-                                <input type="text" class="form-control form-control-sm" id="filter-invoiceNumber" placeholder="Filter by invoice...">
-                              </div>
-                              <div class="col-md-4">
-                                <label for="filter-deadline" class="form-label small mb-1">Date</label>
-                                <input type="date" class="form-control form-control-sm" id="filter-invoiceDate">
-                              </div>
+                            <div class="filter-section p-3 bg-light rounded border-start border-end border-bottom">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label for="filter-name" class="form-label small mb-1">Vendor</label>
+                                        <input type="text" class="form-control form-control-sm" id="filter-vendor"
+                                            placeholder="Filter by vendor...">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="filter-client" class="form-label small mb-1">Invoice #</label>
+                                        <input type="text" class="form-control form-control-sm"
+                                            id="filter-invoiceNumber" placeholder="Filter by invoice...">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="filter-deadline" class="form-label small mb-1">Date</label>
+                                        <input type="date" class="form-control form-control-sm" id="filter-invoiceDate">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end mt-2">
+                                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="clearFilter()"
+                                        id="clear-filters-btn">Clear Filters</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="loadInvoices()"
+                                        id="apply-filters-btn">Apply Filters</button>
+                                </div>
                             </div>
-                            <div class="d-flex justify-content-end mt-2">
-                                <button class="btn btn-sm btn-outline-secondary me-2" onclick="clearFilter()" id="clear-filters-btn">Clear Filters</button>
-                                <button class="btn btn-sm btn-secondary" onclick="loadInvoices()" id="apply-filters-btn">Apply Filters</button>
-                            </div>
-                          </div>
                         </div>
                     </div>
                     <div class="table-container">
@@ -127,7 +137,9 @@
                                         <th></th>
                                         <th>File name</th>
                                         <th>Invoice #</th>
-                                        <th>Vendor</th>
+                                        <!-- Se oculta visualmente la columna Vendor -->
+                                        <th class="hidden-column">Vendor</th>
+                                        <th>Reference #</th>
                                         <th>Total</th>
                                         <th>Date</th>
                                         <th>Due Date</th>
@@ -188,7 +200,28 @@
             </div>
         </div>
     </div>
-
+    <!-- Modal de Edición de Vendor -->
+    <div class="modal fade" id="editModalId" tabindex="-1" aria-labelledby="exampleModalLabel">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Edit Vendor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="vendorForm">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="vendor-input" placeholder="Vendor name here...">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary modal-save-button" id="saveVendorButton">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="/Js/index.js"></script>
     <script src="/Js/paid.js"></script>
     <script src="/Js/dropdown.js"></script>

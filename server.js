@@ -345,11 +345,11 @@ app.post("/chatgpt", async (req, res) => {
         "Authorization": OPENAI_KEY
       },
       body: JSON.stringify({
-        model: "o3-mini",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: "You are an assistant specialized in extracting invoice information. Based on the text provided, return ONLY a JSON object with the following keys: { 'invoices' : [ {'vendor_name', 'invoice_date' (formatted as MM/DD/YYYY), 'vendor_address', 'invoice_number', 'invoice_due_date' (formatted as MM/DD/YYYY), 'invoice_total' (formatted as a decimal number using a period (.) as the decimal separator and removing any other characters from the decimals), 'pages' (The actual range of pages in the document where the invoice appears, formatted as 1-1, 2-3, 5-6, etc, based on the document's physical page order and also based on the line that says 'This is the end of page # of page')} ]}, please note . If any field cannot be extracted, leave it as an empty string. Additionally, if the provided text is blank or does not appear to be an invoice, still return an JSON array with one object with all fields empty. Do not include any additional text or explanation in your response. 'A Customs Brokerage or A Customs Brokerage Inc' is always the buyer, so it should never be included as the vendor. There may be more than one invoice in the document. Only if you consider there is more than one invoice, add new elements to the JSON. If you consider there isn't enough data, such as the total and invoice number, leave the JSON with a single element."
+            content: "You are an assistant specialized in extracting invoice information. Based on the text provided, return ONLY a JSON object with the following keys: { 'invoices' : [ {'vendor_name', 'reference_number' (it may appear as a reference number or file number), 'invoice_date' (formatted as MM/DD/YYYY), 'vendor_address', 'invoice_number', 'invoice_due_date' (formatted as MM/DD/YYYY), 'invoice_total' (formatted as a decimal number using a period (.) as the decimal separator and removing any other characters from the decimals), 'pages' (The actual range of pages in the document where the invoice appears, formatted as 1-1, 2-3, 5-6, etc, based on the document's physical page order and also based on the line that says 'This is the end of page # of page')} ]}, please note . If any field cannot be extracted, leave it as an empty string. Additionally, if the provided text is blank or does not appear to be an invoice, still return an JSON array with one object with all fields empty. Do not include any additional text or explanation in your response. 'A Customs Brokerage or A Customs Brokerage Inc' is always the buyer, so it should never be included as the vendor. There may be more than one invoice in the document. Only if you consider there is more than one invoice, add new elements to the JSON. If you consider there isn't enough data, such as the total and invoice number, leave the JSON with a single element."
           },
           {
             role: "user",
@@ -374,12 +374,13 @@ app.post("/chatgpt", async (req, res) => {
 app.post("/insert", async (req, res) => {
   try {
     const pool = await testConnection();
-    const { docName, timestampName, vendor, invoiceNumber, invoiceStatus, vendorAddress, invoiceDate, dueDate, fileURL, fileType, invoiceTotal } = req.body;
+    const { docName, timestampName, vendor, referenceNumber, invoiceNumber, invoiceStatus, vendorAddress, invoiceDate, dueDate, fileURL, fileType, invoiceTotal } = req.body;
 
     const result = await pool.request()
       .input('docName', sql.NVarChar(255), docName)
       .input('timestampName', sql.NVarChar(255), timestampName)
       .input('vendor', sql.NVarChar(255), vendor)
+      .input('referenceNumber', sql.NVarChar(100), referenceNumber)
       .input('invoiceNumber', sql.NVarChar(100), invoiceNumber)
       .input('invoiceStatus', sql.Int, invoiceStatus)
       .input('vendorAddress', sql.NVarChar(255), vendorAddress)
@@ -390,10 +391,10 @@ app.post("/insert", async (req, res) => {
       .input('invoiceTotal', sql.NVarChar(50), invoiceTotal)
       .query(`
         INSERT INTO Invoices 
-          (docName, timestampName, vendor, invoiceNumber, invoiceStatus, vendorAddress, invoiceDate, dueDate, fileURL, fileType, invoiceTotal)
+          (docName, timestampName, vendor, referenceNumber, invoiceNumber, invoiceStatus, vendorAddress, invoiceDate, dueDate, fileURL, fileType, invoiceTotal)
         OUTPUT INSERTED.ID insertedId
         VALUES 
-          (@docName, @timestampName, @vendor, @invoiceNumber, @invoiceStatus, @vendorAddress, @invoiceDate, @dueDate, @fileURL, @fileType, @invoiceTotal)
+          (@docName, @timestampName, @vendor, @referenceNumber, @invoiceNumber, @invoiceStatus, @vendorAddress, @invoiceDate, @dueDate, @fileURL, @fileType, @invoiceTotal)
       `);
 
     res.json({ message: "Registro insertado exitosamente", invoiceId: result.recordset[0].insertedId });
@@ -515,6 +516,41 @@ app.get('/invoices/status/:invoiceStatus', async (req, res) => {
   }
 });
 
+// Edit vendors
+app.put('/editVendors', async (req, res) => {
+  try {
+    const { idsToEdit, valor } = req.body;
+    
+    if (!idsToEdit) {
+      return res.status(400).json({ error: "No se proporcionó ningún ID" });
+    }
+    if (!valor) {
+      return res.status(400).json({ error: "No se proporcionó ningún valor" });
+    }
+    
+    const idsArray = Array.isArray(idsToEdit) ? idsToEdit : [idsToEdit];
+    const pool = await testConnection();
+
+    // Actualización en lote (opcional, ver comentario anterior)
+    const idsParam = idsArray.join(',');
+    await pool.request()
+      .input('valor', sql.VarChar, valor)
+      .query(`UPDATE Invoices SET vendor = @valor WHERE ID IN (${idsParam})`);
+
+    // Si prefieres actualizar uno por uno:
+    // for (const id of idsArray) {
+    //   await pool.request()
+    //     .input('id', sql.Int, id)
+    //     .input('valor', sql.VarChar, valor)
+    //     .query('UPDATE Invoices SET vendor = @valor WHERE ID = @id');
+    // }
+
+    res.status(200).json({ success: true, updated: idsArray.length });
+  } catch (error) {
+    console.error("Error editando vendors:", error);
+    res.status(500).json({ error: "Error editando vendors" });
+  }
+});
 
 
 // Remove Invoices
@@ -568,7 +604,7 @@ app.put('/invoices/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { field, value } = req.body;
-    const allowedFields = ['docName', 'invoiceNumber', 'vendor', 'invoiceTotal', 'invoiceDate', 'dueDate'];
+    const allowedFields = ['docName', 'invoiceNumber', 'referenceNumber', 'vendor', 'invoiceTotal', 'invoiceDate', 'dueDate'];
     if (!allowedFields.includes(field)) {
       return res.status(400).json({ error: "Campo no permitido" });
     }

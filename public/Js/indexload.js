@@ -61,6 +61,7 @@ async function insertRecord(docName, timestampName, fileType, fileURL, chatGPTDa
         docName: docName,
         timestampName: timestampName,
         vendor: chatGPTData.vendor_name,
+        referenceNumber: chatGPTData.reference_number,
         invoiceNumber: chatGPTData.invoice_number,
         invoiceStatus: 1,
         vendorAddress: chatGPTData.vendor_address,
@@ -98,6 +99,7 @@ async function uploadFile(file) {
     // Llamamos a ChatGPT usando el texto extraído
     const chatGPTResponse = await callChatGPT(finalText);
     const responseObject = extractJson(chatGPTResponse);
+    console.log(responseObject);
     if (responseObject.invoices.length === 1) {
       const id = await insertRecord(file.name, timestampName, file.type, data.url, responseObject.invoices[0]);
     } else {
@@ -366,7 +368,9 @@ async function loadInvoices() {
           </td>
           <td><div class="editable-cell" data-field="docName" contenteditable="true" style="${invoice.docName ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.docName)}</div></td>
           <td><div class="editable-cell" data-field="invoiceNumber" contenteditable="true" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceNumber}</div></td>
-          <td><div class="editable-cell" data-field="vendor" contenteditable="true" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.vendor)}</div></td>
+          <td class="hidden-column"><div class="editable-cell" data-field="vendor" contenteditable="true" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.vendor)}</div></td>
+          <td>
+          <div class="editable-cell" data-field="referenceNumber" contenteditable="true" style="${invoice.referenceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.referenceNumber}</div></td>
           <td><div class="editable-cell" data-field="invoiceTotal" contenteditable="true" style="${invoice.invoiceTotal ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceTotal}</div></td>
           <td><div class="editable-cell" data-field="invoiceDate" contenteditable="true" style="${invoice.invoiceDate ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceDate}</div></td>
           <td><div class="editable-cell" data-field="dueDate" contenteditable="true" style="${invoice.dueDate ? '' : 'background-color: #f8d7da;'}">${invoice.dueDate}</div></td>
