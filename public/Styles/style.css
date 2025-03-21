@@ -301,3 +301,12 @@ td {
   background-color: #fff;
   z-index: 2;
 }
+
+.notification-content a {
+  text-decoration: none;
+  color: #014181;
+  font-weight: bold;
+}
+
+
+

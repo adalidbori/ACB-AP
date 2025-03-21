@@ -438,3 +438,49 @@ filterHeader.addEventListener('click', function () {
     tableResponsive.style.maxHeight = '400px';
   }
 });
+
+
+function generateNotificationLinks(invoiceNumbers) {
+  const linksContainer = document.getElementById('notification-links');
+  
+  // Limpia el contenedor para evitar duplicados si se vuelve a ejecutar
+  linksContainer.innerHTML = '';
+
+  invoiceNumbers.forEach((number, index) => {
+      const link = document.createElement('a');
+      link.href = `#`; // Define el destino real si es necesario
+      link.textContent = number;
+
+      linksContainer.appendChild(link);
+
+      // Agrega una coma y espacio después de cada enlace (menos el último)
+      if (index < invoiceNumbers.length - 1) {
+          linksContainer.appendChild(document.createTextNode(', '));
+      }
+  });
+  document.getElementById('notification-banner').style.display = 'flex';
+}
+
+async function getDuplicatedInvoices() {
+  try {
+    const response = await fetch(`http://${window.miVariable}:3000/getDuplicatedInvoices`);
+    
+    if (!response.ok) {
+      throw new Error('Error en la respuesta: ' + response.status);
+    }
+    
+    const data = await response.json();
+    const invoiceNumbers = data.map(item => item.invoiceNumber);
+    generateNotificationLinks(invoiceNumbers);
+  } catch (error) {
+    console.error('Error fetching duplicated invoices:', error);
+  }
+}
+
+
+
+setTimeout(() => {
+  //generateNotificationLinks()
+  getDuplicatedInvoices();
+
+}, 5000);

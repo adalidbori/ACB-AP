@@ -516,6 +516,31 @@ app.get('/invoices/status/:invoiceStatus', async (req, res) => {
   }
 });
 
+
+// Get Duplicated Invoices SQL Request
+app.get('/getDuplicatedInvoices', async (req, res) => {
+  try {
+    const pool = await testConnection();
+
+    // Ejecuta la consulta para obtener los invoiceNumber duplicados
+    const result = await pool.request()
+      .query(`
+        SELECT invoiceNumber, COUNT(*) AS occurrences
+        FROM Invoices
+        WHERE invoiceStatus IN (1, 2, 3, 4)
+        GROUP BY invoiceNumber
+        HAVING COUNT(*) > 1;
+      `);
+
+    // Retorna el resultado en formato JSON
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error al obtener los invoices:", error);
+    res.status(500).json({ error: "Error al obtener los invoices" });
+  }
+});
+
+
 // Edit vendors
 app.put('/editVendors', async (req, res) => {
   try {
