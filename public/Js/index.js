@@ -439,6 +439,91 @@ filterHeader.addEventListener('click', function () {
   }
 });
 
+async function getDuplicatedByInvoiceNumber(texto) {
+  const tableBody = document.querySelector("#duplicated-table tbody");
+  const modalEl = document.getElementById('duplicatedElementsbyIDModal');
+  try {
+    const response = await fetch(`http://${window.miVariable}:3000/getDuplicatedByInvoiceNumber/${texto}`);
+    if (!response.ok) {
+      throw new Error('Error en la respuesta: ' + response.status);
+    }
+    const data = await response.json();
+    console.log(data);
+    data.forEach(invoice => {
+      const tr = document.createElement("tr");
+      tr.dataset.id = invoice.ID;
+      tr.dataset.invoiceStatus = invoice.invoiceStatus;
+      tr.innerHTML = `
+          <td>
+            <a class="dragout" href='#'
+              onclick="openDocument('${invoice.fileURL}')" 
+              draggable="true"
+              data-filename="${invoice.docName}" 
+              data-filetype="${invoice.fileType}">
+              <div data-field="fileType">
+                ${invoice.fileType === 'application/pdf'
+          ? '<img src="/Styles/pdf.svg" alt="Icono PDF">'
+          : '<img src="/Styles/image.svg" alt="Icono imagen">'
+        }
+              </div>
+            </a>
+          </td>
+          <td><div data-field="invoiceNumber" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.docName)}</div></td>
+          <td><div data-field="vendor" tyle="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${invoice.vendor}</div></td>
+          <td>
+          <div data-field="referenceNumber" style="${invoice.referenceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.referenceNumber}</div></td>
+          <td><div data-field="invoiceTotal" style="${invoice.invoiceTotal ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceTotal}</div></td>
+          <td><div data-field="invoiceDate" style="${invoice.invoiceDate ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceDate}</div></td>
+          <td>
+            <div data-field="invoiceStatus" style="${invoice.invoiceStatus ? '' : 'background-color: #f8d7da;'}">
+              ${getInvoiceStatusText(invoice.invoiceStatus)}
+            </div>
+          </td>
+          <td><div data-field="checknumber" style="${invoice.checknumber ? '' : 'background-color: #f8d7da;'}">${invoice.checknumber}</div></td>
+          <td>
+            <div style="text-align: center; cursor: pointer;">
+              <!-- Se asigna un color por defecto (rojo) y luego se actualizará en función de la existencia de notas -->
+              <div class="contenedor-icono">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi bi-trash" viewBox="0 0 16 16">
+                  <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                  <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                </svg>
+              </div>
+            </div>
+          </td>
+        `;
+      tableBody.appendChild(tr);
+    })
+
+    //Show the modal here
+    // Seleccionar el tbody de la tabla
+
+
+
+    if (modalEl) {
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    } else {
+      console.error('El elemento modal no fue encontrado en el DOM.');
+    }
+    // Mostrar el modal
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+  } catch (error) {
+    console.error("Error getting the duplicated invoices", error);
+  }
+
+  modalEl.addEventListener('hidden.bs.modal', function () {
+    //limpiar la tabla
+    tableBody.innerHTML = "";
+    // Buscar y eliminar el backdrop si aún existe
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) {
+      backdrop.parentNode.removeChild(backdrop);
+    }
+  });
+}
+
 
 function generateNotificationLinks(invoiceNumbers) {
   if (invoiceNumbers.length > 0) {
@@ -451,6 +536,10 @@ function generateNotificationLinks(invoiceNumbers) {
       const link = document.createElement('a');
       link.href = `#`; // Define el destino real si es necesario
       link.textContent = number;
+      link.addEventListener('click', function (event) {
+        event.preventDefault(); // Prevenir la acción por defecto del enlace
+        getDuplicatedByInvoiceNumber(this.textContent); // Llama a la función pasando el textContent
+      });
 
       linksContainer.appendChild(link);
 
@@ -486,3 +575,18 @@ setTimeout(() => {
   getDuplicatedInvoices();
 
 }, 5000);
+
+function getInvoiceStatusText(status) {
+  switch (status) {
+    case 1:
+      return "Pending to Review";
+    case 2:
+      return "Waiting for Approval";
+    case 3:
+      return "Ready to Pay";
+    case 4:
+      return "Paid";
+    default:
+      return "";
+  }
+}

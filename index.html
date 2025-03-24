@@ -14,61 +14,61 @@
 </head>
 
 <body>
-  
+
   <div class="container-fluid p-4">
     <!-- Notification Banner -->
-    
+
     <!-- Top Cards -->
     <div class="row mb-4">
       <div class="col-md-3 mb-3">
-          <a href="/" class="text-decoration-none">
-              <div class="card dashboard-card bg-primary text-white">
-                  <div class="card-body text-center">
-                      <div class="card-icon">📝</div>
-                      <h5 class="card-title">Pending to Review</h5>
-                  </div>
-              </div>
-          </a>
+        <a href="/" class="text-decoration-none">
+          <div class="card dashboard-card bg-primary text-white">
+            <div class="card-body text-center">
+              <div class="card-icon">📝</div>
+              <h5 class="card-title">Pending to Review</h5>
+            </div>
+          </div>
+        </a>
       </div>
       <div class="col-md-3 mb-3">
-          <a href="/waiting-approval" class="text-decoration-none">
-              <div class="card dashboard-card bg-success text-white">
-                  <div class="card-body text-center">
-                      <div class="card-icon">⏱️</div>
-                      <h5 class="card-title">Waiting Approval</h5>
-                  </div>
-              </div>
-          </a>
+        <a href="/waiting-approval" class="text-decoration-none">
+          <div class="card dashboard-card bg-success text-white">
+            <div class="card-body text-center">
+              <div class="card-icon">⏱️</div>
+              <h5 class="card-title">Waiting Approval</h5>
+            </div>
+          </div>
+        </a>
       </div>
       <div class="col-md-3 mb-3">
-          <a href="/ready-to-pay" class="text-decoration-none">
-              <div class="card dashboard-card bg-info text-white">
-                  <div class="card-body text-center">
-                      <div class="card-icon">💰</div>
-                      <h5 class="card-title">Ready to pay</h5>
-                  </div>
-              </div>
-          </a>
+        <a href="/ready-to-pay" class="text-decoration-none">
+          <div class="card dashboard-card bg-info text-white">
+            <div class="card-body text-center">
+              <div class="card-icon">💰</div>
+              <h5 class="card-title">Ready to pay</h5>
+            </div>
+          </div>
+        </a>
       </div>
       <div class="col-md-3 mb-3">
-          <a href="/paid" class="text-decoration-none">
-              <div class="card dashboard-card bg-warning text-white">
-                  <div class="card-body text-center">
-                      <div class="card-icon">✔️</div>
-                      <h5 class="card-title">Paid</h5>
-                  </div>
-              </div>
-          </a>
+        <a href="/paid" class="text-decoration-none">
+          <div class="card dashboard-card bg-warning text-white">
+            <div class="card-body text-center">
+              <div class="card-icon">✔️</div>
+              <h5 class="card-title">Paid</h5>
+            </div>
+          </div>
+        </a>
       </div>
-  </div>
-  <div id="notification-banner" style="display: none;" class="notification-banner warning">
-    <div class="notification-content">
-      <span class="notification-icon">⚠️</span>
-      <span id="notification-message">Duplicate invoices detected!</span>
-      <span id="notification-links"> </span>
     </div>
-    <button class="notification-close" id="notification-close">&times;</button>
-  </div>
+    <div id="notification-banner" style="display: none;" class="notification-banner warning">
+      <div class="notification-content">
+        <span class="notification-icon">⚠️</span>
+        <span id="notification-message">Duplicate invoices detected!</span>
+        <span id="notification-links"> </span>
+      </div>
+      <button class="notification-close" id="notification-close">&times;</button>
+    </div>
     <div id="drop-area">
       <p>Drop the file here!</p>
     </div>
@@ -79,32 +79,35 @@
         <div class="content-section p-3">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h4>Pending to Review</h4>
-            
+
             <div class="d-flex gap-2">
               <!-- <button type="button" class="btn bg-primary text-white">Pending to Review</button>-->
-               <div class="d-flex align-items-center">Send to:</div>
-              
+              <div class="d-flex align-items-center">Send to:</div>
+
               <button type="button" onclick="updateStatus(2)" class="btn bg-success text-white">Waiting
                 Approval</button>
               <!-- Example single danger button -->
               <div class="btn-group">
-                  <button type="button" class="btn btn-outline-danger dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <button type="button" class="btn btn-outline-danger dropdown-toggle" data-bs-toggle="dropdown"
+                  aria-expanded="false">
                   Action
-                  </button>
-                  <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="downloadSelectedFiles()">Download</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="editVendor()">Edit Vendor</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="deleteSelectedRows()">Delete</a></li>
-                  </ul>
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#" onclick="downloadSelectedFiles()">Download</a></li>
+                  <li><a class="dropdown-item" href="#" onclick="editVendor()">Edit Vendor</a></li>
+                  <li><a class="dropdown-item" href="#" onclick="deleteSelectedRows()">Delete</a></li>
+                </ul>
               </div>
 
             </div>
           </div>
 
           <div class="filter-container mb-3">
-            <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded border" id="filter-header">
+            <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded border"
+              id="filter-header">
               <h6 class="mb-0">Filters</h6>
-              <button class="btn btn-sm btn-link p-0 filter-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+              <button class="btn btn-sm btn-link p-0 filter-toggle" type="button" data-bs-toggle="collapse"
+                data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
                 <i class="filter-arrow">▼</i>
               </button>
             </div>
@@ -113,11 +116,13 @@
                 <div class="row g-2">
                   <div class="col-md-4">
                     <label for="filter-name" class="form-label small mb-1">Vendor</label>
-                    <input type="text" class="form-control form-control-sm" id="filter-vendor" placeholder="Filter by vendor...">
+                    <input type="text" class="form-control form-control-sm" id="filter-vendor"
+                      placeholder="Filter by vendor...">
                   </div>
                   <div class="col-md-4">
                     <label for="filter-client" class="form-label small mb-1">Invoice #</label>
-                    <input type="text" class="form-control form-control-sm" id="filter-invoiceNumber" placeholder="Filter by invoice...">
+                    <input type="text" class="form-control form-control-sm" id="filter-invoiceNumber"
+                      placeholder="Filter by invoice...">
                   </div>
                   <div class="col-md-4">
                     <label for="filter-deadline" class="form-label small mb-1">Date</label>
@@ -125,8 +130,10 @@
                   </div>
                 </div>
                 <div class="d-flex justify-content-end mt-2">
-                  <button class="btn btn-sm btn-outline-secondary me-2" onclick="clearFilter()" id="clear-filters-btn">Clear Filters</button>
-                  <button class="btn btn-sm btn-secondary" onclick="loadInvoices()" id="apply-filters-btn">Apply Filters</button>
+                  <button class="btn btn-sm btn-outline-secondary me-2" onclick="clearFilter()"
+                    id="clear-filters-btn">Clear Filters</button>
+                  <button class="btn btn-sm btn-secondary" onclick="loadInvoices()" id="apply-filters-btn">Apply
+                    Filters</button>
                 </div>
               </div>
             </div>
@@ -153,7 +160,7 @@
                 </tbody>
               </table>
             </div>
-          </div>          
+          </div>
         </div>
       </div>
 
@@ -182,24 +189,24 @@
   <!-- Modal de Notas -->
   <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Notas</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body">
-                <form id="notesForm">
-                    <div class="mb-3">
-                        <textarea class="form-control" id="notes-text" rows="5"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary modal-save-button" id="saveNotesButton">Save
-                    notes</button>
-            </div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Notas</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
+        <div class="modal-body">
+          <form id="notesForm">
+            <div class="mb-3">
+              <textarea class="form-control" id="notes-text" rows="5"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary modal-save-button" id="saveNotesButton">Save
+            notes</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -226,12 +233,48 @@
     </div>
   </div>
 
+  <!-- Modal de Tabla de elementos duplicados -->
+  <div class="modal fade" id="duplicatedElementsbyIDModal" tabindex="-1" aria-labelledby="exampleModalLabel">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Tabla dentro del modal -->
+          <div class="table-container">
+            <div class="table-responsive" style="max-height: 550px; overflow-y: scroll;">
+              <table class="editable-table" id="duplicated-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Invoice #</th>
+                    <th>Vendor</th>
+                    <th>Reference #</th>
+                    <th>Total</th>
+                    <th>Date</th>
+                    <th>Invoice Status</th>
+                    <th>Check #</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="/Js/indexload.js"></script>
   <script src="/Js/index.js"></script>
   <script src="/Js/dropdown.js"></script>
   <script src="/Js/editing.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </body>
 
 </html>

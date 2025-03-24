@@ -80,7 +80,7 @@
                                 Review</button>
                             <button type="button" onclick="updateStatus(2)" class="btn bg-success text-white">Waiting
                                 Approval</button>
-                            <button type="button" onclick="updateStatus(4)"
+                            <button type="button" onclick="updateToPaid(4)"
                                 class="btn bg-warning text-white">Paid</button>
                             <!-- Example single danger button -->
                             <div class="btn-group">
@@ -225,6 +225,29 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary modal-save-button" id="saveVendorButton">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Agregar numero de cheque -->
+    <div class="modal fade" id="addCheckModalId" tabindex="-1" aria-labelledby="exampleModalLabel">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Add check number:</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="checknumberForm">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="checknumberInput" placeholder="check number here...">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary modal-save-button" id="saveCheckButton">Save</button>
                 </div>
             </div>
         </div>

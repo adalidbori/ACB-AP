@@ -6,7 +6,7 @@ function clearFilter() {
   document.getElementById('filter-vendor').value = '';
   document.getElementById('filter-invoiceNumber').value = '';
   document.getElementById('filter-invoiceDate').value = '';
-  
+
   // Llamar a loadInvoices para recargar las facturas sin ningún filtro aplicado
   loadInvoices();
 }
@@ -16,9 +16,9 @@ async function loadInvoices() {
     const vendor = document.getElementById('filter-vendor').value;
     const invoiceNumber = document.getElementById('filter-invoiceNumber').value;
     const invoiceDate = document.getElementById('filter-invoiceDate').value;
-    console.log("Vendor: "+vendor);
-    console.log("invoiceNumber: "+invoiceNumber);
-    console.log("invoiceDate: "+invoiceDate);
+    console.log("Vendor: " + vendor);
+    console.log("invoiceNumber: " + invoiceNumber);
+    console.log("invoiceDate: " + invoiceDate);
     const params = new URLSearchParams({
       vendor,
       invoiceNumber,
@@ -49,9 +49,9 @@ async function loadInvoices() {
       headerRow.innerHTML = `
         <td colspan="9" style="background:#f0f0f0; cursor: pointer;">
           <strong>${vendor}</strong></td>`;
-      
+
       // Agregar evento de clic para contraer/expandir
-      headerRow.addEventListener('click', function() {
+      headerRow.addEventListener('click', function () {
         // Seleccionar todas las filas de factura para este vendor
         const invoiceRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${vendor}"]`);
         invoiceRows.forEach(row => {
@@ -59,7 +59,7 @@ async function loadInvoices() {
           row.style.display = row.style.display === 'none' ? '' : 'none';
         });
       });
-      
+
       tableBody.appendChild(headerRow);
 
       // Agregar cada factura asociada al vendor
@@ -109,7 +109,7 @@ async function loadInvoices() {
           </td>
         `;
 
-        
+
         // Manejo de edición de celdas
         let shouldFireChange = false;
         tr.addEventListener("input", function () {
@@ -168,9 +168,9 @@ async function loadInvoices() {
         <td style="font-weight: bold; text-align: right;">Total:</td>
         <td style="font-weight: bold; text-align: left;"><div data-field="invoiceTotal">
           $${groupedInvoices[vendor].total.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          })}
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}
         </div>
         </td>
         <td></td>
@@ -210,7 +210,7 @@ async function loadInvoices() {
             const invoiceTotalDiv = row.querySelector('div[data-field="invoiceTotal"]');
             if (invoiceTotalDiv) {
               // Aquí puedes definir el nuevo valor que necesites; en este ejemplo se pone $0.00
-              invoiceTotalDiv.textContent = "$"+groupedInvoices[vendor].total.toLocaleString('en-US', {
+              invoiceTotalDiv.textContent = "$" + groupedInvoices[vendor].total.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
               });
@@ -218,14 +218,14 @@ async function loadInvoices() {
           }
         });
       }
-      
+
 
       function updateVendorHeaderTotal(vendor) {
         let sum = 0;
         // Seleccionar todas las filas del proveedor especificado
         const vendorRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${vendor}"]`);
 
-        
+
         vendorRows.forEach(row => {
           const checkbox = row.querySelector('.row-checkbox');
           // Verificar si el checkbox existe y está seleccionado
@@ -245,7 +245,7 @@ async function loadInvoices() {
             }
           }
         });
-      
+
         // Seleccionar la fila del total del proveedor
         const totalRow = document.querySelector(`tr[data-vendor="${vendor}"][data-totalbyvendor="true"]`);
         if (totalRow) {
@@ -268,4 +268,67 @@ async function loadInvoices() {
     console.error("Error al obtener los invoices:", error);
   }
 
+}
+
+//Se creo uno separado porque de ready-to-paid a paid se necesita numero de cheque
+async function updateToPaid(invoiceStatus) {
+
+  // Recopilar los IDs de las filas seleccionadas
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  const idsToEdit = [];
+  checkboxes.forEach(chk => {
+    if (chk.checked) {
+      const row = chk.closest('tr');
+      const id = row.dataset.id;
+      if (id) {
+        idsToEdit.push(parseInt(id, 10));
+      }
+    }
+  });
+
+  if (idsToEdit.length === 0) {
+    alert("At least one row most be selected!");
+    return;
+  }
+  
+
+  const modalEl = document.getElementById('addCheckModalId');
+
+  // Asigna el listener para guardar (usando onclick para evitar acumulación de listeners)
+  const saveButton = modalEl.querySelector('#saveCheckButton');
+  saveButton.onclick = async () => {
+    const texto = document.getElementById('checknumberInput');
+    const valor = texto.value.trim(); // Elimina espacios al inicio y al final
+
+    if (valor === "") {
+      alert("The field cannot be empty");
+    } else {
+      try {
+        const response = await fetch(`http://${window.miVariable}:3000/editCheckNumber`, {
+          method: "PUT", // Se cambia a PUT
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idsToEdit, valor })
+        });
+
+        const result = await response.json();
+        console.log("Resultado de la actualización:", result);
+        modal.hide();
+        loadInvoices();
+      } catch (error) {
+        console.error("Error editando los vendors!", error);
+      }
+    }
+  };
+  // Mostrar el modal
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
+  // Agrega el listener para limpiar el contenido del modal cuando se cierra
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    // Reinicia el valor del input (y otros elementos si es necesario)
+    const input = modalEl.querySelector('#checknumberInput');
+    if (input) {
+      input.value = '';
+    }
+    // Si agregaste otros elementos o estados, reinícialos aquí
+  }, { once: true }); // Con { once: true } nos aseguramos que el listener se ejecute solo una vez
 }

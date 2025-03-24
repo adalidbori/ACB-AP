@@ -93,6 +93,7 @@
                                     <li><a class="dropdown-item" href="#" onclick="downloadSelectedFiles()">Download</a>
                                     </li>
                                     <li><a class="dropdown-item" href="#" onclick="editVendor()">Edit Vendor</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="editCheckNumber()">Edit Check Number</a></li>
                                     <li><a class="dropdown-item" href="#" onclick="deleteSelectedRows()">Delete</a></li>
                                 </ul>
                             </div>
@@ -150,7 +151,7 @@
                                         <th>Reference #</th>
                                         <th>Total</th>
                                         <th>Date</th>
-                                        <th>Due Date</th>
+                                        <th>Check #</th>
                                         <th></th>
                                     </tr>
                                 </thead>
@@ -226,6 +227,28 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary modal-save-button" id="saveVendorButton">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de Edit check number -->
+    <div class="modal fade" id="editCkeckNumber" tabindex="-1" aria-labelledby="exampleModalLabel">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Edit Check Number</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="vendorForm">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="editCkeckNumberInput" placeholder="check number here...">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary modal-save-button" id="saveEditCheckNumberButton">Save</button>
                 </div>
             </div>
         </div>

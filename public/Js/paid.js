@@ -87,17 +87,16 @@ async function loadInvoices() {
               </div>
             </a>
           </td>
-          <td><div class="editable-cell" data-field="docName" contenteditable="true" style="${invoice.docName ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.docName)}</div></td>
-          <td><div class="editable-cell" data-field="invoiceNumber" contenteditable="true" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceNumber}</div></td>
-          <td class="hidden-column"><div class="editable-cell" data-field="vendor" contenteditable="true" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${invoice.vendor}</div></td>
+          <td><div data-field="docName" style="${invoice.docName ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.docName)}</div></td>
+          <td><div data-field="invoiceNumber" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceNumber}</div></td>
+          <td class="hidden-column"><div data-field="vendor" contenteditable="true" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${invoice.vendor}</div></td>
           <td>
-          <div class="editable-cell" data-field="referenceNumber" contenteditable="true" style="${invoice.referenceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.referenceNumber}</div></td>
-          <td><div class="editable-cell" data-field="invoiceTotal" contenteditable="true" style="${invoice.invoiceTotal ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceTotal}</div></td>
-          <td><div class="editable-cell" data-field="invoiceDate" contenteditable="true" style="${invoice.invoiceDate ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceDate}</div></td>
-          <td><div class="editable-cell" data-field="dueDate" contenteditable="true" style="${invoice.dueDate ? '' : 'background-color: #f8d7da;'}">${invoice.dueDate}</div></td>
+          <div data-field="referenceNumber" style="${invoice.referenceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.referenceNumber}</div></td>
+          <td><div data-field="invoiceTotal" style="${invoice.invoiceTotal ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceTotal}</div></td>
+          <td><div data-field="invoiceDate" style="${invoice.invoiceDate ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceDate}</div></td>
+          <td><div data-field="checknumber" style="${invoice.checknumber ? '' : 'background-color: #f8d7da;'}">${invoice.checknumber}</div></td>
           <td>
             <div style="text-align: center;">
-              <!-- Se asigna un color por defecto (rojo) y luego se actualizará en función de la existencia de notas -->
               <div class="contenedor-icono">
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;" onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'>
                   <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
@@ -267,6 +266,67 @@ async function loadInvoices() {
     console.error("Error al obtener los invoices:", error);
   }
 
+}
+
+
+function editCheckNumber() {
+  // Recopilar los IDs de las filas seleccionadas
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  const idsToEdit = [];
+  checkboxes.forEach(chk => {
+    if (chk.checked) {
+      const row = chk.closest('tr');
+      const id = row.dataset.id;
+      if (id) {
+        idsToEdit.push(parseInt(id, 10));
+      }
+    }
+  });
+
+  if (idsToEdit.length === 0) {
+    alert("At least one row most be selected!");
+    return;
+  }
+
+  const modalEl = document.getElementById('editCkeckNumber');
+
+  // Asigna el listener para guardar (usando onclick para evitar acumulación de listeners)
+  const saveButton = modalEl.querySelector('#saveEditCheckNumberButton');
+  saveButton.onclick = async () => {
+    const texto = document.getElementById('editCkeckNumberInput');
+    const valor = texto.value.trim(); // Elimina espacios al inicio y al final
+
+    if (valor === "") {
+      alert("The field cannot be empty");
+    } else {
+      try {
+        const response = await fetch(`http://${window.miVariable}:3000/editCheckNumberOnPaid`, {
+          method: "PUT", // Se cambia a PUT
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idsToEdit, valor })
+        });
+
+        const result = await response.json();
+        console.log("Resultado de la actualización:", result);
+        modal.hide();
+        loadInvoices();
+      } catch (error) {
+        console.error("Error editando los vendors!", error);
+      }
+    }
+  };
+  // Mostrar el modal
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
+  // Agrega el listener para limpiar el contenido del modal cuando se cierra
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    // Reinicia el valor del input (y otros elementos si es necesario)
+    const input = modalEl.querySelector('#editCkeckNumberInput');
+    if (input) {
+      input.value = '';
+    }
+    // Si agregaste otros elementos o estados, reinícialos aquí
+  }, { once: true }); // Con { once: true } nos aseguramos que el listener se ejecute solo una vez
 }
 
 

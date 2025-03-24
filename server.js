@@ -345,11 +345,11 @@ app.post("/chatgpt", async (req, res) => {
         "Authorization": OPENAI_KEY
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "o3-mini",
         messages: [
           {
             role: "system",
-            content: "You are an assistant specialized in extracting invoice information. Based on the text provided, return ONLY a JSON object with the following keys: { 'invoices' : [ {'vendor_name', 'reference_number' (it may appear as a reference number or file number), 'invoice_date' (formatted as MM/DD/YYYY), 'vendor_address', 'invoice_number', 'invoice_due_date' (formatted as MM/DD/YYYY), 'invoice_total' (formatted as a decimal number using a period (.) as the decimal separator and removing any other characters from the decimals), 'pages' (The actual range of pages in the document where the invoice appears, formatted as 1-1, 2-3, 5-6, etc, based on the document's physical page order and also based on the line that says 'This is the end of page # of page')} ]}, please note . If any field cannot be extracted, leave it as an empty string. Additionally, if the provided text is blank or does not appear to be an invoice, still return an JSON array with one object with all fields empty. Do not include any additional text or explanation in your response. 'A Customs Brokerage or A Customs Brokerage Inc' is always the buyer, so it should never be included as the vendor. There may be more than one invoice in the document. Only if you consider there is more than one invoice, add new elements to the JSON. If you consider there isn't enough data, such as the total and invoice number, leave the JSON with a single element."
+            content: "You are an assistant specialized in extracting invoice information. Based on the text provided, return ONLY a JSON object with the following keys: { 'invoices' : [ {'vendor_name', 'reference_number' (it may appear as a reference number or file number), 'invoice_date' (formatted as MM/DD/YYYY), 'vendor_address', 'invoice_number', 'invoice_due_date' (formatted as MM/DD/YYYY), 'invoice_total' (formatted as a decimal number using a period (.) as the decimal separator and removing any other characters from the decimals), 'pages' (The actual range of pages in the document where the invoice appears, formatted as 1-1, 2-3, 5-6, etc, based on the document's physical page order and also based on the line that says 'This is the end of page # of page')} ]}, please note . If any field cannot be extracted, leave it as an empty string. Additionally, if the provided text is blank or does not appear to be an invoice, still return an JSON array with one object with all fields empty. Do not include any additional text or explanation in your response. 'A Customs Brokerage or A Customs Brokerage Inc' is always the buyer, so it should never be included as the vendor. There may be more than one invoice in the document. Only if you consider there is more than one invoice, add new elements to the JSON. If you consider there isn't enough data, such as the total and invoice number, leave the JSON with a single element. Please note that for a document to be declared as an invoice, it must at least have an Invoice Number, and that the Reference Number is not the same as the Invoice Number."
           },
           {
             role: "user",
@@ -474,7 +474,20 @@ app.get('/invoices/notes/:ID', async (req, res) => {
   }
 });
 
-
+//Get Duplicated Invoices by InvoiceNumber
+app.get('/getDuplicatedByInvoiceNumber/:ID', async (req, res) => {
+  try {
+    const { ID } = req.params;
+    const pool = await testConnection();
+    const result = await pool.request()
+      .input('ID', sql.NVarChar(100), ID)
+      .query("SELECT * FROM Invoices WHERE invoiceNumber = @ID and invoiceStatus != 5"); // Si el status de es archivada (status 5)
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error al obtener las notas:", error);
+    res.status(500).json({ error: "Error al obtener las notas" });
+  }
+});
 
 
 // Get Invoices SQL Request
@@ -562,13 +575,62 @@ app.put('/editVendors', async (req, res) => {
       .input('valor', sql.VarChar, valor)
       .query(`UPDATE Invoices SET vendor = @valor WHERE ID IN (${idsParam})`);
 
-    // Si prefieres actualizar uno por uno:
-    // for (const id of idsArray) {
-    //   await pool.request()
-    //     .input('id', sql.Int, id)
-    //     .input('valor', sql.VarChar, valor)
-    //     .query('UPDATE Invoices SET vendor = @valor WHERE ID = @id');
-    // }
+    res.status(200).json({ success: true, updated: idsArray.length });
+  } catch (error) {
+    console.error("Error editando vendors:", error);
+    res.status(500).json({ error: "Error editando vendors" });
+  }
+});
+
+//Edit check number on PAID screen
+app.put('/editCheckNumberOnPaid', async (req, res) => {
+  try {
+    const { idsToEdit, valor } = req.body;
+    
+    if (!idsToEdit) {
+      return res.status(400).json({ error: "No se proporcionó ningún ID" });
+    }
+    if (!valor) {
+      return res.status(400).json({ error: "No se proporcionó ningún valor" });
+    }
+    
+    const idsArray = Array.isArray(idsToEdit) ? idsToEdit : [idsToEdit];
+    const pool = await testConnection();
+
+    // Actualización en lote (opcional, ver comentario anterior)
+    const idsParam = idsArray.join(',');
+    await pool.request()
+      .input('valor', sql.VarChar, valor)
+      .query(`UPDATE Invoices SET checknumber = @valor WHERE ID IN (${idsParam})`);
+
+    res.status(200).json({ success: true, updated: idsArray.length });
+  } catch (error) {
+    console.error("Error editando check numbers:", error);
+    res.status(500).json({ error: "Error editando check numbers" });
+  }
+});
+
+
+// Edit Status to Paid and add check number
+app.put('/editCheckNumber', async (req, res) => {
+  try {
+    const { idsToEdit, valor } = req.body;
+    
+    if (!idsToEdit) {
+      return res.status(400).json({ error: "No se proporcionó ningún ID" });
+    }
+    if (!valor) {
+      return res.status(400).json({ error: "No se proporcionó ningún valor" });
+    }
+    
+    const idsArray = Array.isArray(idsToEdit) ? idsToEdit : [idsToEdit];
+    const pool = await testConnection();
+
+    // Actualización en lote (opcional, ver comentario anterior)
+    const idsParam = idsArray.join(',');
+    await pool.request()
+      .input('valor', sql.VarChar, valor)
+      .query(`UPDATE Invoices SET checknumber = @valor, invoiceStatus = 4 WHERE ID IN (${idsParam})`);
 
     res.status(200).json({ success: true, updated: idsArray.length });
   } catch (error) {
