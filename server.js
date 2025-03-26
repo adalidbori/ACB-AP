@@ -214,13 +214,11 @@ function downloadPDF(url) {
   });
 }
 
-
-
-
 async function pollForResult(operationLocation) {
   let result;
+  let counter = 0;
   // Polling: se repite la consulta hasta que el estado sea 'succeeded' o 'failed'
-  while (true) {
+  while (counter < 120) {
     const response = await fetch(operationLocation, {
       method: "GET",
       headers: {
@@ -233,13 +231,21 @@ async function pollForResult(operationLocation) {
       // El análisis se completó: retorna los resultados (normalmente en result.analyzeResult.readResults)
       return result.analyzeResult.readResults;
     } else if (result.status === "failed") {
-      throw new Error("La operación falló.");
+      // Muestra detalles en la consola y lanza un error con la información
+      console.error("La operación falló. Detalles:", result);
+      throw new Error("La operación falló, status failed. Detalles: " + JSON.stringify(result));
     }
 
     // Espera un segundo antes de la siguiente consulta
     await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log("status: " + result.status);
+    counter++;
   }
+  // Si se sale del bucle sin obtener un status 'succeeded' ni 'failed'
+  console.error("La operación no completó en 10 intentos. Última respuesta:", result);
+  throw new Error("La operación falló después de 10 intentos. Detalles: " + JSON.stringify(result));
 }
+
 
 // Ejemplo de uso en una ruta Express:
 app.post("/extract-text", async (req, res) => {
@@ -386,18 +392,52 @@ app.post("/insert", async (req, res) => {
       .input('vendorAddress', sql.NVarChar(255), vendorAddress)
       .input('invoiceDate', sql.NVarChar(50), invoiceDate)
       .input('dueDate', sql.NVarChar(50), dueDate)
+      .input('checknumber', sql.NVarChar(50), '')
       .input('fileURL', sql.NVarChar(255), fileURL)
       .input('fileType', sql.NVarChar(50), fileType)
       .input('invoiceTotal', sql.NVarChar(50), invoiceTotal)
       .query(`
         INSERT INTO Invoices 
-          (docName, timestampName, vendor, referenceNumber, invoiceNumber, invoiceStatus, vendorAddress, invoiceDate, dueDate, fileURL, fileType, invoiceTotal)
+          (docName, timestampName, vendor, referenceNumber, invoiceNumber, invoiceStatus, vendorAddress, invoiceDate, dueDate, fileURL, fileType, invoiceTotal, checknumber)
         OUTPUT INSERTED.ID insertedId
         VALUES 
-          (@docName, @timestampName, @vendor, @referenceNumber, @invoiceNumber, @invoiceStatus, @vendorAddress, @invoiceDate, @dueDate, @fileURL, @fileType, @invoiceTotal)
+          (@docName, @timestampName, @vendor, @referenceNumber, @invoiceNumber, @invoiceStatus, @vendorAddress, @invoiceDate, @dueDate, @fileURL, @fileType, @invoiceTotal, @checknumber)
       `);
 
     res.json({ message: "Registro insertado exitosamente", invoiceId: result.recordset[0].insertedId });
+  } catch (error) {
+    console.error("Error al insertar registro:", error);
+    res.status(500).json({ error: "Error al insertar registro" });
+  }
+});
+
+// Insert SQL Request
+app.post("/insertDocumentIntoDatabase", async (req, res) => {
+  try {
+    const pool = await testConnection();
+    const { docName, timestampName, fileURL, fileType } = req.body;
+
+    const result = await pool.request()
+      .input('docName', sql.NVarChar(255), docName)
+      .input('timestampName', sql.NVarChar(255), timestampName)
+      .input('fileURL', sql.NVarChar(255), fileURL)
+      .input('fileType', sql.NVarChar(50), fileType)
+      .input('vendor', sql.NVarChar(255), '') 
+      .input('invoiceNumber', sql.NVarChar(100), '')            // Valor vacío
+      .input('referenceNumber', sql.NVarChar(100), '')     // Valor vacío
+      .input('checknumber', sql.NVarChar(50), '')
+      .input('invoiceTotal', sql.NVarChar(50), '')         // Valor vacío
+      .input('invoiceDate', sql.NVarChar(50), '')          // Valor vacío
+      .input('dueDate', sql.NVarChar(50), '')              // Valor vacío
+      .query(`
+      INSERT INTO Invoices 
+        (docName, timestampName, invoiceStatus, fileURL, fileType, vendor, referenceNumber, invoiceTotal, invoiceDate, dueDate, invoiceNumber, checknumber)
+      OUTPUT INSERTED.ID
+      VALUES 
+        (@docName, @timestampName, 1, @fileURL, @fileType, @vendor, @referenceNumber, @invoiceTotal, @invoiceDate, @dueDate, @invoiceNumber, @checknumber)
+  `);
+
+    res.json({ message: "Registro insertado exitosamente", ID: result.recordset[0].ID });
   } catch (error) {
     console.error("Error al insertar registro:", error);
     res.status(500).json({ error: "Error al insertar registro" });
@@ -481,7 +521,7 @@ app.get('/getDuplicatedByInvoiceNumber/:ID', async (req, res) => {
     const pool = await testConnection();
     const result = await pool.request()
       .input('ID', sql.NVarChar(100), ID)
-      .query("SELECT * FROM Invoices WHERE invoiceNumber = @ID and invoiceStatus != 5"); // Si el status de es archivada (status 5)
+      .query("SELECT * FROM Invoices WHERE invoiceNumber = @ID and invoiceStatus != 5 and invoiceStatus != 6"); // Si el status de es archivada (status 5)
     res.json(result.recordset);
   } catch (error) {
     console.error("Error al obtener las notas:", error);
@@ -540,7 +580,7 @@ app.get('/getDuplicatedInvoices', async (req, res) => {
       .query(`
         SELECT invoiceNumber, COUNT(*) AS occurrences
         FROM Invoices
-        WHERE invoiceStatus IN (1, 2, 3, 4)
+        WHERE invoiceStatus IN (1, 2, 3, 4) AND invoiceNumber <> ''
         GROUP BY invoiceNumber
         HAVING COUNT(*) > 1;
       `);
@@ -558,14 +598,14 @@ app.get('/getDuplicatedInvoices', async (req, res) => {
 app.put('/editVendors', async (req, res) => {
   try {
     const { idsToEdit, valor } = req.body;
-    
+
     if (!idsToEdit) {
       return res.status(400).json({ error: "No se proporcionó ningún ID" });
     }
     if (!valor) {
       return res.status(400).json({ error: "No se proporcionó ningún valor" });
     }
-    
+
     const idsArray = Array.isArray(idsToEdit) ? idsToEdit : [idsToEdit];
     const pool = await testConnection();
 
@@ -586,14 +626,14 @@ app.put('/editVendors', async (req, res) => {
 app.put('/editCheckNumberOnPaid', async (req, res) => {
   try {
     const { idsToEdit, valor } = req.body;
-    
+
     if (!idsToEdit) {
       return res.status(400).json({ error: "No se proporcionó ningún ID" });
     }
     if (!valor) {
       return res.status(400).json({ error: "No se proporcionó ningún valor" });
     }
-    
+
     const idsArray = Array.isArray(idsToEdit) ? idsToEdit : [idsToEdit];
     const pool = await testConnection();
 
@@ -615,14 +655,14 @@ app.put('/editCheckNumberOnPaid', async (req, res) => {
 app.put('/editCheckNumber', async (req, res) => {
   try {
     const { idsToEdit, valor } = req.body;
-    
+
     if (!idsToEdit) {
       return res.status(400).json({ error: "No se proporcionó ningún ID" });
     }
     if (!valor) {
       return res.status(400).json({ error: "No se proporcionó ningún valor" });
     }
-    
+
     const idsArray = Array.isArray(idsToEdit) ? idsToEdit : [idsToEdit];
     const pool = await testConnection();
 
@@ -707,6 +747,45 @@ app.put('/invoices/:id', async (req, res) => {
     res.status(500).json({ error: "Error al actualizar registro" });
   }
 });
+
+//Primera actualizacion despues de subir el documento e ingresar primeros datos a la base de datos
+app.put('/invoiceFirstUpdate', async (req, res) => {
+  try {
+    const pool = await testConnection();
+    const { invoiceID, vendor, referenceNumber, invoiceNumber, vendorAddress, invoiceDate, dueDate, invoiceTotal } = req.body;
+
+    const result = await pool.request()
+      .input('vendor', sql.NVarChar(255), vendor)
+      .input('referenceNumber', sql.NVarChar(100), referenceNumber)
+      .input('invoiceNumber', sql.NVarChar(100), invoiceNumber)
+      .input('vendorAddress', sql.NVarChar(255), vendorAddress)
+      .input('invoiceDate', sql.NVarChar(50), invoiceDate)
+      .input('dueDate', sql.NVarChar(50), dueDate)
+      .input('checknumber', sql.NVarChar(50), '')
+      .input('invoiceTotal', sql.NVarChar(50), invoiceTotal)
+      .input('invoiceID', sql.Int, invoiceID)
+      .query(`
+    UPDATE Invoices
+    SET vendor = @vendor,
+        referenceNumber = @referenceNumber,
+        invoiceNumber = @invoiceNumber,
+        vendorAddress = @vendorAddress,
+        invoiceDate = @invoiceDate,
+        dueDate = @dueDate,
+        invoiceTotal = @invoiceTotal,
+        checknumber = @checknumber
+    WHERE ID = @invoiceID
+  `);
+
+
+    // Se retorna el número de filas afectadas para confirmar la actualización
+    res.json({ message: 'Factura actualizada exitosamente', rowsAffected: result.rowsAffected[0] });
+  } catch (error) {
+    console.error("Error al actualizar la factura:", error);
+    res.status(500).json({ error: "Error al actualizar la factura" });
+  }
+});
+
 
 // Servir archivos estáticos (para ver los archivos subidos)
 app.use("/uploads", express.static(uploadDir));

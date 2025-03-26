@@ -84,53 +84,108 @@ async function insertRecord(docName, timestampName, fileType, fileURL, chatGPTDa
 async function uploadFile(file) {
   const formData = new FormData();
   formData.append("file", file);
+  // Declaramos las variables fuera del try para tener acceso a ellas en el catch
+  let data = null;
+  let timestampName = null;
+  let responseObject = null;
+  let invoiceID = null;
+
   try {
     const uploadResponse = await fetch(`http://${window.miVariable}:3000/upload`, {
       method: "POST",
       body: formData,
     });
-    const data = await uploadResponse.json();
-    const timestampName = data.filename;
+    data = await uploadResponse.json();
+    timestampName = data.filename;
+    console.log(data);
+
+    invoiceID = await insertDocumentIntoDatabase(file.name, timestampName, file.type, data.url)
+
     // Obtenemos el texto extraído del archivo
-    const operationn = await operationLocation(data.url);//Obtener el operationLocation
-    const textoJson = await getExtractedTextPost(operationn);//Llamar al operationLocation para obtener el Json con los datos
+    const operationn = await operationLocation(data.url); // Obtener el operationLocation
+    const textoJson = await getExtractedTextPost(operationn); // Obtener el JSON con los datos
     const finalText = frmattingTexto(textoJson);
 
     // Llamamos a ChatGPT usando el texto extraído
     const chatGPTResponse = await callChatGPT(finalText);
-    const responseObject = extractJson(chatGPTResponse);
+    responseObject = extractJson(chatGPTResponse);
     console.log(responseObject);
+
     if (responseObject.invoices.length === 1) {
-      const id = await insertRecord(file.name, timestampName, file.type, data.url, responseObject.invoices[0]);
+      await updateRecord(invoiceID, responseObject.invoices[0]);
     } else {
       // setup the pdf4meClient
       const url = data.url;
       const promises = responseObject.invoices.map(invoice => extractPages(url, invoice));
       await Promise.all(promises);
       eliminarBlobMultiInvoice(data.url);
+      if (invoiceID) {
+        await deleteInvoiceByID(invoiceID)
+      }
     }
-
     loadInvoices();
   } catch (error) {
     console.error("Error en el proceso:", error);
+    loadInvoices();
+  }
+
+}
+
+async function updateRecord(invoiceID, invoice) {
+  try {
+    const response = await fetch(`http://${window.miVariable}:3000/invoiceFirstUpdate`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        invoiceID,
+        vendor: invoice.vendor_name,
+        referenceNumber: invoice.reference_number,
+        invoiceNumber: invoice.invoice_number,
+        vendorAddress: invoice.vendor_address,
+        invoiceDate: invoice.invoice_date,  // Asegúrate que sea el campo correcto
+        dueDate: invoice.invoice_due_date,
+        invoiceTotal: invoice.invoice_total
+      })
+    });
+  } catch (error) {
+    alert(error);
+    console.log("error al actualizar la factura", error);
   }
 }
 
-async function eliminarBlobMultiInvoice(url) {
+async function insertDocumentIntoDatabase(docName, timestampName, fileType, fileURL) {
   try {
-    // Enviar petición DELETE para Azure
-    const response = await fetch(`http://${window.miVariable}:3000/eliminar-blob`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ urls: url })
+    const response = await fetch(`http://${window.miVariable}:3000/insertDocumentIntoDatabase`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        docName: docName,
+        timestampName: timestampName,
+        fileURL: fileURL,
+        fileType: fileType
+      })
     });
-    const result = await response.json();
-    console.log("Resultado de la eliminación de Azure Blob:", result);
-  }
-  catch (error) {
-    console.error("Error eliminando registros Blob:", error);
+
+    // Procesamos la respuesta en formato JSON
+    const data = await response.json();
+    // Se asume que el servidor retorna el ID con el nombre "ID"
+    const insertedID = data.ID;
+
+    // Puedes retornar o utilizar el ID según lo necesites
+    console.log(insertedID);
+    return insertedID;
+  } catch (error) {
+    console.log(error);
+    alert("Unable to insert the document at this time!");
   }
 }
+
+
+
 
 function convertirRango(rango) {
   // Separamos el string usando '-' y convertimos a números
@@ -216,6 +271,7 @@ function frmattingTexto(textoJson) {
 }
 
 async function operationLocation(url) {
+
   const filePath = url;
   try {
     const response = await fetch(`http://${window.miVariable}:3000/get-operationLocation`, {
@@ -237,6 +293,7 @@ async function operationLocation(url) {
 }
 
 async function getExtractedTextPost(operationLocationUrl) {
+
   try {
     const response = await fetch(`http://${window.miVariable}:3000/extract-text`, {
       method: 'POST',
@@ -246,6 +303,7 @@ async function getExtractedTextPost(operationLocationUrl) {
       body: JSON.stringify({ operationLocation: operationLocationUrl })
     });
     const data = await response.json();
+    console.log(data);
     if (data.error) {
       throw new Error(`Error: ${data.error}`);
     }
@@ -347,7 +405,7 @@ async function loadInvoices() {
         // Asignar el vendor para relacionarlas con la cabecera
         tr.dataset.vendor = invoice.vendor;
         tr.dataset.id = invoice.ID;
-
+        tr.dataset.url = invoice.fileURL;
         tr.innerHTML = `
           <td>
             <input type="checkbox" class="row-checkbox" data-fileurl="${invoice.fileURL}" data-filetype="${invoice.fileType}">

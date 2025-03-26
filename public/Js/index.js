@@ -163,95 +163,70 @@ function editVendor() {
   }, { once: true }); // Con { once: true } nos aseguramos que el listener se ejecute solo una vez
 }
 
-
-async function deleteSelectedRows() {
-  // Recopilar los IDs de las filas seleccionadas
-  const checkboxes = document.querySelectorAll('.row-checkbox');
-  const idsToDelete = [];
-  const urlsToDelete = [];
-  checkboxes.forEach(chk => {
-    if (chk.checked) {
-      const row = chk.closest('tr');
-      const id = row.dataset.id;
-      const fileUrl = chk.dataset.fileurl;
-      console.log(fileUrl);
-      if (id) {
-        idsToDelete.push(parseInt(id, 10));
-      }
-      if (fileUrl) {
-        urlsToDelete.push(fileUrl);
-      }
-    }
-  });
-
-  if (idsToDelete.length === 0) {
-    alert("At least one row most be selected!");
-    return;
-  }
-
+async function deleteInvoiceByID(invoiceID) {
   try {
     // Enviar petición DELETE al servidor con los IDs a eliminar
     const response = await fetch(`http://${window.miVariable}:3000/invoices`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: idsToDelete })
+      body: JSON.stringify({ ids: invoiceID })
     });
 
     const result = await response.json();
     console.log("Resultado de la eliminación:", result);
-
-    // Si la eliminación es exitosa, remover las filas del DOM
-    checkboxes.forEach(chk => {
-      if (chk.checked) {
-        const row = chk.closest('tr');
-        row.remove();
-      }
-    });
   } catch (error) {
     console.error("Error eliminando registros:", error);
   }
-  try {
-    // Enviar petición DELETE para Azure
-    const response = await fetch(`http://${window.miVariable}:3000/eliminar-blob`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ urls: urlsToDelete })
-    });
-    const result = await response.json();
-    console.log("Resultado de la eliminación de Azure Blob:", result);
-
-    // Si la eliminación es exitosa, remover las filas del DOM
-    checkboxes.forEach(chk => {
-      if (chk.checked) {
-        const row = chk.closest('tr');
-        row.remove();
-      }
-    });
-  }
-  catch (error) {
-    console.error("Error eliminando registros Blob:", error);
-  }
-  loadInvoices();
 }
 
 async function updateStatus(invoiceStatus) {
   // Recopilar los IDs de las filas seleccionadas
   const checkboxes = document.querySelectorAll('.row-checkbox');
   const idsToChange = [];
-
-  checkboxes.forEach(chk => {
-    if (chk.checked) {
-      const row = chk.closest('tr');
-      const id = row.dataset.id;
-      if (id) {
-        idsToChange.push(parseInt(id, 10));
+  const urlsToDelete = [];
+  
+  if (invoiceStatus === 6) {
+    
+    checkboxes.forEach(chk => {
+      if (chk.checked) {
+        const row = chk.closest('tr');
+        const id = row.dataset.id;
+        const url = row.dataset.url;
+        if (id) {
+          idsToChange.push(parseInt(id, 10));
+        }
+        if (url) {
+          urlsToDelete.push(url);
+        }
       }
-    }
-  });
+    });
+  } else {
+    checkboxes.forEach(chk => {
+      if (chk.checked) {
+        const row = chk.closest('tr');
+        const id = row.dataset.id;
+        if (id) {
+          idsToChange.push(parseInt(id, 10));
+        }
+      }
+    });
+  }
+
+
 
   if (idsToChange.length === 0) {
     alert("At least one row most be selected!");
     return;
+  }
+
+  if (invoiceStatus === 6) {
+    console.log(urlsToDelete.length);
+    if (urlsToDelete.length === 0) {
+      alert("At least one URL most be selected!");
+      return;
+    }else{
+      eliminarBlobMultiInvoice(urlsToDelete);
+    }
   }
 
   try {
@@ -448,11 +423,12 @@ async function getDuplicatedByInvoiceNumber(texto) {
       throw new Error('Error en la respuesta: ' + response.status);
     }
     const data = await response.json();
-    console.log(data);
     data.forEach(invoice => {
       const tr = document.createElement("tr");
       tr.dataset.id = invoice.ID;
       tr.dataset.invoiceStatus = invoice.invoiceStatus;
+      tr.dataset.url = invoice.fileURL;
+      console.log("El vendor es: "+invoice.vendor);
       tr.innerHTML = `
           <td>
             <a class="dragout" href='#'
@@ -468,8 +444,8 @@ async function getDuplicatedByInvoiceNumber(texto) {
               </div>
             </a>
           </td>
-          <td><div data-field="invoiceNumber" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.docName)}</div></td>
-          <td><div data-field="vendor" tyle="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${invoice.vendor}</div></td>
+          <td><div data-field="invoiceNumber" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceNumber}</div></td>
+          <td><div data-field="vendor" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.vendor)}</div></td>
           <td>
           <div data-field="referenceNumber" style="${invoice.referenceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.referenceNumber}</div></td>
           <td><div data-field="invoiceTotal" style="${invoice.invoiceTotal ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceTotal}</div></td>
@@ -492,6 +468,18 @@ async function getDuplicatedByInvoiceNumber(texto) {
             </div>
           </td>
         `;
+
+      // Obtener el elemento SVG recién creado
+      const svgElement = tr.querySelector('.bi-trash');
+
+      // Asignar el controlador de eventos al SVG
+      svgElement.addEventListener('click', function (event) {
+        const invoiceId = tr.dataset.id;
+        const urlToDelete = tr.dataset.url;
+        deleteInvoiceByID(invoiceId);
+        eliminarBlobMultiInvoice(urlToDelete);
+        tr.remove();
+      });
       tableBody.appendChild(tr);
     })
 
@@ -521,6 +509,7 @@ async function getDuplicatedByInvoiceNumber(texto) {
     if (backdrop) {
       backdrop.parentNode.removeChild(backdrop);
     }
+    loadInvoices();
   });
 }
 
@@ -568,6 +557,22 @@ async function getDuplicatedInvoices() {
   }
 }
 
+async function eliminarBlobMultiInvoice(urls) {
+  try {
+    // Enviar petición DELETE para Azure
+    const response = await fetch(`http://${window.miVariable}:3000/eliminar-blob`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ urls })
+    });
+    const result = await response.json();
+    console.log("Resultado de la eliminación de Azure Blob:", result);
+  }
+  catch (error) {
+    console.error("Error eliminando registros Blob:", error);
+  }
+}
+
 
 
 setTimeout(() => {
@@ -590,3 +595,4 @@ function getInvoiceStatusText(status) {
       return "";
   }
 }
+

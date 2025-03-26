@@ -62,12 +62,12 @@
         </div>
         <div id="notification-banner" style="display: none;" class="notification-banner warning">
             <div class="notification-content">
-              <span class="notification-icon">⚠️</span>
-              <span id="notification-message">Duplicate invoices detected!</span>
-              <span id="notification-links"> </span>
+                <span class="notification-icon">⚠️</span>
+                <span id="notification-message">Duplicate invoices detected!</span>
+                <span id="notification-links"> </span>
             </div>
             <button class="notification-close" id="notification-close">&times;</button>
-          </div>
+        </div>
         <!-- Main Content -->
         <div class="row">
             <!-- Left Side: Editable List -->
@@ -93,8 +93,9 @@
                                     <li><a class="dropdown-item" href="#" onclick="downloadSelectedFiles()">Download</a>
                                     </li>
                                     <li><a class="dropdown-item" href="#" onclick="editVendor()">Edit Vendor</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="editCheckNumber()">Edit Check Number</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="deleteSelectedRows()">Delete</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="editCheckNumber()">Edit Check
+                                            Number</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="updateStatus(6)">Delete</a></li>
                                 </ul>
                             </div>
 
@@ -242,13 +243,51 @@
                 <div class="modal-body">
                     <form id="vendorForm">
                         <div class="mb-3">
-                            <input type="text" class="form-control" id="editCkeckNumberInput" placeholder="check number here...">
+                            <input type="text" class="form-control" id="editCkeckNumberInput"
+                                placeholder="check number here...">
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary modal-save-button" id="saveEditCheckNumberButton">Save</button>
+                    <button type="button" class="btn btn-primary modal-save-button"
+                        id="saveEditCheckNumberButton">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Tabla de elementos duplicados -->
+    <div class="modal fade" id="duplicatedElementsbyIDModal" tabindex="-1" aria-labelledby="exampleModalLabel">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tabla dentro del modal -->
+                    <div class="table-container">
+                        <div class="table-responsive" style="max-height: 550px; overflow-y: scroll;">
+                            <table class="editable-table" id="duplicated-table">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Invoice #</th>
+                                        <th>Vendor</th>
+                                        <th>Reference #</th>
+                                        <th>Total</th>
+                                        <th>Date</th>
+                                        <th>Invoice Status</th>
+                                        <th>Check #</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

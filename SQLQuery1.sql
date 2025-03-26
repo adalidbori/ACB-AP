@@ -18,6 +18,7 @@ CREATE TABLE Invoices (
     fileURL NVARCHAR(255),                  -- file url tipo texto
     fileType NVARCHAR(50),                  -- file type tipo texto
 	invoiceTotal NVARCHAR(50),
+	checknumber NVARCHAR(50),
     [Timestamp] DATETIME DEFAULT GETDATE()  -- timestamp (fecha de creación, se asigna automáticamente)
 );
 GO
@@ -32,7 +33,27 @@ CREATE TABLE Notes (
 );
 GO
 
-select * from Invoices
+CREATE TABLE InvoiceStatus(
+	ID INT IDENTITY(1,1) PRIMARY KEY,
+	invoiceStatusName NVARCHAR(50),
+	invoiceStatusCode int);
+go
+
+-- Insertar usuario de ejemplo
+INSERT INTO InvoiceStatus (invoiceStatusName, invoiceStatusCode)
+VALUES  ('Pending to Review', 1);
+INSERT INTO InvoiceStatus (invoiceStatusName, invoiceStatusCode)
+VALUES  ('Waiting Approval', 2);
+INSERT INTO InvoiceStatus (invoiceStatusName, invoiceStatusCode)
+VALUES  ('Ready to pay', 3);
+INSERT INTO InvoiceStatus (invoiceStatusName, invoiceStatusCode)
+VALUES  ('Paid', 4);
+INSERT INTO InvoiceStatus (invoiceStatusName, invoiceStatusCode)
+VALUES  ('Archived', 5);
+INSERT INTO InvoiceStatus (invoiceStatusName, invoiceStatusCode)
+VALUES  ('Deleted', 6);
+
+select * from InvoiceStatus
 go
 
 update Invoices set referenceNumber = 'Adalid' where ID = 1
@@ -47,6 +68,9 @@ go
 select * from Notes
 go
 
+select * from Invoices
+go
+
 
 delete from Invoices
 go
@@ -58,6 +82,9 @@ truncate table Invoices
 go
 
 DROP TABLE Invoices;
+go
+
+DROP TABLE Notes;
 go
 
 MERGE INTO Notes AS target
@@ -114,6 +141,6 @@ INSERT INTO UserTable (FirstName, LastName, WorkEmail, Phone, PasswordHash, Comp
 VALUES 
 ('John', 'Doe', 'john.doe@openai.com', '123-456-7890', 'hashed_password_example', 1, 1);
 
-select * from Role
+
 
 
