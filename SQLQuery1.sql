@@ -60,10 +60,12 @@ update Invoices set referenceNumber = 'Adalid' where ID = 1
 go
 
 SELECT invoiceNumber, COUNT(*) AS occurrences
-FROM Invoices where invoiceStatus = 1 or invoiceStatus = 2 or invoiceStatus = 3 or invoiceStatus = 4 
+FROM Invoices
+WHERE invoiceStatus IN (1, 2, 3, 4)
+  AND invoiceNumber <> ''
 GROUP BY invoiceNumber
 HAVING COUNT(*) > 1;
-go
+GO
 
 select * from Notes
 go
