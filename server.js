@@ -218,7 +218,7 @@ async function pollForResult(operationLocation) {
   let result;
   let counter = 0;
   // Polling: se repite la consulta hasta que el estado sea 'succeeded' o 'failed'
-  while (counter < 120) {
+  while (counter < 30) {
     const response = await fetch(operationLocation, {
       method: "GET",
       headers: {
@@ -515,12 +515,12 @@ app.get('/invoices/notes/:ID', async (req, res) => {
 });
 
 //Get Duplicated Invoices by InvoiceNumber
-app.get('/getDuplicatedByInvoiceNumber/:ID', async (req, res) => {
+app.post('/getDuplicatedByInvoiceNumber', async (req, res) => {
   try {
-    const { ID } = req.params;
+    const { texto } = req.body;
     const pool = await testConnection();
     const result = await pool.request()
-      .input('ID', sql.NVarChar(100), ID)
+      .input('ID', sql.NVarChar(100), texto)
       .query("SELECT * FROM Invoices WHERE invoiceNumber = @ID and invoiceStatus != 5 and invoiceStatus != 6"); // Si el status de es archivada (status 5)
     res.json(result.recordset);
   } catch (error) {

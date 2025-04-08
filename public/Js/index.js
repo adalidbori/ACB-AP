@@ -118,7 +118,7 @@ function editVendor() {
   });
 
   if (idsToEdit.length === 0) {
-    alert("At least one row most be selected!");
+    alert("At least one row most be selected.");
     return;
   }
 
@@ -131,7 +131,7 @@ function editVendor() {
     const valor = texto.value.trim(); // Elimina espacios al inicio y al final
 
     if (valor === "") {
-      alert("The field cannot be empty");
+      alert("The field cannot be empty.");
     } else {
       try {
         const response = await fetch(`http://${window.miVariable}:3000/editVendors`, {
@@ -215,14 +215,14 @@ async function updateStatus(invoiceStatus) {
 
 
   if (idsToChange.length === 0) {
-    alert("At least one row most be selected!");
+    alert("At least one row most be selected.");
     return;
   }
 
   if (invoiceStatus === 6) {
     console.log(urlsToDelete.length);
     if (urlsToDelete.length === 0) {
-      alert("At least one URL most be selected!");
+      alert("At least one URL most be selected.");
       return;
     }else{
       eliminarBlobMultiInvoice(urlsToDelete);
@@ -321,7 +321,7 @@ async function showNotesModal(invoiceId, invoiceNumber) {
 async function downloadSelectedFiles() {
   const checkboxes = document.querySelectorAll('.row-checkbox:checked');
   if (checkboxes.length === 0) {
-    alert('Por favor, seleccione al menos un archivo.');
+    alert('At least one row most be selected.');
     return;
   }
 
@@ -418,7 +418,13 @@ async function getDuplicatedByInvoiceNumber(texto) {
   const tableBody = document.querySelector("#duplicated-table tbody");
   const modalEl = document.getElementById('duplicatedElementsbyIDModal');
   try {
-    const response = await fetch(`http://${window.miVariable}:3000/getDuplicatedByInvoiceNumber/${texto}`);
+    const response = await fetch(`http://${window.miVariable}:3000/getDuplicatedByInvoiceNumber`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ texto })
+    });
     if (!response.ok) {
       throw new Error('Error en la respuesta: ' + response.status);
     }
