@@ -1,7 +1,6 @@
 
 window.miVariable = "localhost";
 
-
 // Función para obtener los invoices y llenar la tabla
 
 
@@ -184,9 +183,9 @@ async function updateStatus(invoiceStatus) {
   const checkboxes = document.querySelectorAll('.row-checkbox');
   const idsToChange = [];
   const urlsToDelete = [];
-  
+
   if (invoiceStatus === 6) {
-    
+
     checkboxes.forEach(chk => {
       if (chk.checked) {
         const row = chk.closest('tr');
@@ -224,7 +223,7 @@ async function updateStatus(invoiceStatus) {
     if (urlsToDelete.length === 0) {
       alert("At least one URL most be selected.");
       return;
-    }else{
+    } else {
       eliminarBlobMultiInvoice(urlsToDelete);
     }
   }
@@ -434,7 +433,7 @@ async function getDuplicatedByInvoiceNumber(texto) {
       tr.dataset.id = invoice.ID;
       tr.dataset.invoiceStatus = invoice.invoiceStatus;
       tr.dataset.url = invoice.fileURL;
-      console.log("El vendor es: "+invoice.vendor);
+      console.log("El vendor es: " + invoice.vendor);
       tr.innerHTML = `
           <td>
             <a class="dragout" href='#'
