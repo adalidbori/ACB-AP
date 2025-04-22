@@ -45,6 +45,20 @@ CREATE TABLE InvoiceStatus(
 	invoiceStatusName NVARCHAR(50),
 	invoiceStatusCode int);
 go
+INSERT INTO checks_db (check_number)
+VALUES  (1);
+go
+
+select top 1 * from checks_db order by ID DESC
+go
+
+update checks_db set check_number = 3
+go
+
+delete from checks_db
+go
+
+
 
 -- Insertar usuario de ejemplo
 INSERT INTO InvoiceStatus (invoiceStatusName, invoiceStatusCode)
