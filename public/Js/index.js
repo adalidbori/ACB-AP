@@ -102,6 +102,27 @@ function limitCellText(text, maxLength = 20) {
     class="truncated-text">${text.substring(0, maxLength)}...</span>`;
 }
 
+function addNotesBulk() {
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  const idsToEdit = [];
+  checkboxes.forEach(chk => {
+    if (chk.checked) {
+      const row = chk.closest('tr');
+      const id = row.dataset.id;
+      if (id) {
+        idsToEdit.push(parseInt(id, 10));
+      }
+    }
+  });
+
+  if (idsToEdit.length === 0) {
+    alert("At least one row most be selected.");
+    return;
+  }
+
+  
+}
+
 function editVendor() {
   // Recopilar los IDs de las filas seleccionadas
   const checkboxes = document.querySelectorAll('.row-checkbox');

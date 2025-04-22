@@ -74,8 +74,9 @@
             <div class="col-md-7 mb-4">
                 <div class="content-section p-3">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h4>Paid</h4>
+                        <h4>Ready to Pay</h4>
                         <div class="d-flex gap-2">
+                            <!-- Example single danger button -->
                             <div class="btn-group">
                                 <button type="button" class="btn btn-outline-danger dropdown-toggle"
                                     data-bs-toggle="dropdown" aria-expanded="false">
@@ -84,8 +85,7 @@
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="#" onclick="downloadSelectedFiles()">Download</a>
                                     </li>
-                                    <li><a class="dropdown-item" href="#" onclick="editCheckNumber()">Edit Check
-                                            Number</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="editVendor()">Edit Vendor</a></li>
                                 </ul>
                             </div>
 
@@ -128,47 +128,48 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="table-responsive">
-                        <table class="editable-table w-100" id="editable-table">
-                            <thead>
-                                <tr>
-                                    <th></th>
-                                    <th></th>
-                                    <th>File name</th>
-                                    <th>Invoice #</th>
-                                    <!-- Se oculta visualmente la columna Vendor -->
-                                    <th class="hidden-column">Vendor</th>
-                                    <th>Reference #</th>
-                                    <th>Total</th>
-                                    <th>Date</th>
-                                    <th>Due Date</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            </tbody>
-                        </table>
+                    <div class="table-container">
+                        <div class="table-responsive">
+                            <table class="editable-table w-100" id="editable-table">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th></th>
+                                        <th>File name</th>
+                                        <th>Invoice #</th>
+                                        <!-- Se oculta visualmente la columna Vendor -->
+                                        <th class="hidden-column">Vendor</th>
+                                        <th>Reference #</th>
+                                        <th>Total</th>
+                                        <th>Date</th>
+                                        <th>Due Date</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Right Side: Document Viewer -->
-        <div class="col-md-5 mb-4">
-            <div class="content-section">
-                <div class="document-viewer">
-                    <div class="viewer-toolbar d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0">Document Viewer</h4>
-                        <div class="btn-group">
-                            <button class="btn btn-outline-secondary btn-sm" id="zoom-in-btn">Zoom In</button>
-                            <button class="btn btn-outline-secondary btn-sm" id="zoom-out-btn">Zoom Out</button>
+            <!-- Right Side: Document Viewer -->
+            <div class="col-md-5 mb-4">
+                <div class="content-section">
+                    <div class="document-viewer">
+                        <div class="viewer-toolbar d-flex justify-content-between align-items-center">
+                            <h4 class="mb-0">Document Viewer</h4>
+                            <div class="btn-group">
+                                <button class="btn btn-outline-secondary btn-sm" id="zoom-in-btn">Zoom In</button>
+                                <button class="btn btn-outline-secondary btn-sm" id="zoom-out-btn">Zoom Out</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="viewer-content" id="viewer-content">
-                        <div class="text-center text-muted">
-                            <h5>Select a document to view</h5>
-                            <p>Click on "Show Documents" to see available files</p>
+                        <div class="viewer-content" id="viewer-content">
+                            <div class="text-center text-muted">
+                                <h5>Select a document to view</h5>
+                                <p>Click on "Show Documents" to see available files</p>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -6,7 +6,7 @@ function clearFilter() {
   document.getElementById('filter-vendor').value = '';
   document.getElementById('filter-invoiceNumber').value = '';
   document.getElementById('filter-invoiceDate').value = '';
-  
+
   // Llamar a loadInvoices para recargar las facturas sin ningún filtro aplicado
   loadInvoices();
 }
@@ -16,9 +16,9 @@ async function loadInvoices() {
     const vendor = document.getElementById('filter-vendor').value;
     const invoiceNumber = document.getElementById('filter-invoiceNumber').value;
     const invoiceDate = document.getElementById('filter-invoiceDate').value;
-    console.log("Vendor: "+vendor);
-    console.log("invoiceNumber: "+invoiceNumber);
-    console.log("invoiceDate: "+invoiceDate);
+    console.log("Vendor: " + vendor);
+    console.log("invoiceNumber: " + invoiceNumber);
+    console.log("invoiceDate: " + invoiceDate);
     const params = new URLSearchParams({
       vendor,
       invoiceNumber,
@@ -29,16 +29,41 @@ async function loadInvoices() {
     tableBody.innerHTML = ""; // Limpiar contenido previo
 
     // Agrupar facturas por vendor y sumar los totales usando el formato internacional
-    const groupedInvoices = invoices.reduce((groups, invoice) => {
+    const invoiceSummary = invoices.reduce((accumulator, invoice) => {
+      // 'accumulator' ahora contiene tanto los grupos como el total general.
+      // Estructura esperada de accumulator: { groups: { ... }, totalOwe: 0 }
+
       const vendor = invoice.vendor;
-      if (!groups[vendor]) {
-        groups[vendor] = { invoices: [], total: 0 };
+
+      // Accedemos al objeto de grupos DENTRO del acumulador
+      if (!accumulator.groups[vendor]) {
+        accumulator.groups[vendor] = { invoices: [], total: 0 };
       }
-      groups[vendor].invoices.push(invoice);
+
+      // Agregamos la factura al grupo correspondiente dentro del acumulador
+      accumulator.groups[vendor].invoices.push(invoice);
+
+      // Convertimos el invoiceTotal a número (asumiendo que parseInternationalCurrency devuelve un número)
+      // Esta función ya debería manejar la conversión a float/número.
       const amount = parseInternationalCurrency(invoice.invoiceTotal);
-      groups[vendor].total += amount;
-      return groups;
-    }, {});
+
+      // Sumamos al total del vendor específico
+      accumulator.groups[vendor].total += amount;
+
+      // *** NUEVO: Sumamos al total general (totalOwe) en el acumulador ***
+      accumulator.totalOwe += amount;
+
+      // Devolvemos el acumulador completo para la siguiente iteración
+      return accumulator;
+
+    }, { groups: {}, totalOwe: 0 }); // <--- Valor inicial del acumulador modificado
+
+    // Después del reduce, los resultados están en 'invoiceSummary'
+    const groupedInvoices = invoiceSummary.groups; // Los grupos como antes
+    const totalSpan = document.querySelector('.total-span');
+    const totalOwe = `$${invoiceSummary.totalOwe.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;     // El total general calculado
+    totalSpan.textContent = totalOwe;
+    console.log("Total Adeudado General:", totalOwe);
 
     // Recorrer cada grupo y agregar las filas en la tabla
     for (const vendor in groupedInvoices) {
@@ -47,19 +72,45 @@ async function loadInvoices() {
       headerRow.classList.add("vendor-header");
       headerRow.dataset.vendor = vendor;
       headerRow.innerHTML = `
-        <td colspan="9" style="background:#f0f0f0; cursor: pointer;">
-          <strong>${vendor}</strong></td>`;
-      
-      // Agregar evento de clic para contraer/expandir
-      headerRow.addEventListener('click', function() {
-        // Seleccionar todas las filas de factura para este vendor
-        const invoiceRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${vendor}"]`);
+        <td colspan="9" style="background:#f0f0f0;">
+          <input type="checkbox" class="vendor-checkbox" data-vendor="${vendor}" style="margin-right: 10px; cursor: pointer;">
+          <strong style="cursor: pointer;">${vendor}</strong>
+        </td>`;
+
+      // ---- Obtener referencias al área clickeable del nombre y al nuevo checkbox ----
+      const vendorNameStrong = headerRow.querySelector("strong");
+      const vendorCheckbox = headerRow.querySelector(".vendor-checkbox");
+
+      // ---- Evento de Clic para Contraer/Expandir (ahora en el nombre) ----
+      // Se asocia solo al nombre para no interferir con el checkbox
+      vendorNameStrong.addEventListener('click', function () {
+        const currentVendor = headerRow.dataset.vendor; // Obtenemos el vendor desde el data-attribute de la fila
+        const invoiceRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${currentVendor}"]`);
         invoiceRows.forEach(row => {
-          // Alternar visibilidad: si está oculto, se muestra; si se muestra, se oculta
           row.style.display = row.style.display === 'none' ? '' : 'none';
         });
       });
-      
+
+      // MODIFICACIÓN 2: Agregar Evento de Cambio al Checkbox de Cabecera ----
+      vendorCheckbox.addEventListener('change', function (event) {
+        const isChecked = event.target.checked; // Estado del checkbox de cabecera (true si está marcado)
+        const currentVendor = event.target.dataset.vendor; // Vendor asociado a este checkbox
+
+        // Seleccionar todos los checkboxes DENTRO de las filas de factura para este vendor
+        const invoiceCheckboxes = document.querySelectorAll(`tr.invoice-row[data-vendor="${currentVendor}"] .row-checkbox`);
+
+        // Iterar sobre los checkboxes de las facturas y establecer su estado 'checked'
+        invoiceCheckboxes.forEach(checkbox => {
+          checkbox.checked = isChecked;
+          // Opcional: podrías querer disparar el evento 'change' en cada checkbox individual
+          // si tienes otra lógica que depende de ello, aunque usualmente no es necesario
+          // checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        console.log('vendor checkbox');
+        updateVendorHeaderTotal(currentVendor);
+        actualizarTotalSiNoHayCheckboxMarcado();
+      });
+
       tableBody.appendChild(headerRow);
 
       // Agregar cada factura asociada al vendor
@@ -109,7 +160,7 @@ async function loadInvoices() {
           </td>
         `;
 
-        
+
         // Manejo de edición de celdas
         let shouldFireChange = false;
         tr.addEventListener("input", function () {
@@ -168,9 +219,9 @@ async function loadInvoices() {
         <td style="font-weight: bold; text-align: right;">Total:</td>
         <td style="font-weight: bold; text-align: left;"><div data-field="invoiceTotal">
           $${groupedInvoices[vendor].total.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          })}
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}
         </div>
         </td>
         <td></td>
@@ -210,7 +261,7 @@ async function loadInvoices() {
             const invoiceTotalDiv = row.querySelector('div[data-field="invoiceTotal"]');
             if (invoiceTotalDiv) {
               // Aquí puedes definir el nuevo valor que necesites; en este ejemplo se pone $0.00
-              invoiceTotalDiv.textContent = "$"+groupedInvoices[vendor].total.toLocaleString('en-US', {
+              invoiceTotalDiv.textContent = "$" + groupedInvoices[vendor].total.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
               });
@@ -218,14 +269,14 @@ async function loadInvoices() {
           }
         });
       }
-      
+
 
       function updateVendorHeaderTotal(vendor) {
         let sum = 0;
         // Seleccionar todas las filas del proveedor especificado
         const vendorRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${vendor}"]`);
 
-        
+
         vendorRows.forEach(row => {
           const checkbox = row.querySelector('.row-checkbox');
           // Verificar si el checkbox existe y está seleccionado
@@ -245,7 +296,7 @@ async function loadInvoices() {
             }
           }
         });
-      
+
         // Seleccionar la fila del total del proveedor
         const totalRow = document.querySelector(`tr[data-vendor="${vendor}"][data-totalbyvendor="true"]`);
         if (totalRow) {

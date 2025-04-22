@@ -33,6 +33,13 @@ CREATE TABLE Notes (
 );
 GO
 
+CREATE TABLE checks_db (
+    ID INT IDENTITY(1,1) PRIMARY KEY,
+    check_number INT NOT NULL,
+    [Timestamp] DATETIME DEFAULT GETDATE() 
+);
+
+
 CREATE TABLE InvoiceStatus(
 	ID INT IDENTITY(1,1) PRIMARY KEY,
 	invoiceStatusName NVARCHAR(50),

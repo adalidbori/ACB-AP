@@ -422,7 +422,7 @@ app.post("/insertDocumentIntoDatabase", async (req, res) => {
       .input('timestampName', sql.NVarChar(255), timestampName)
       .input('fileURL', sql.NVarChar(255), fileURL)
       .input('fileType', sql.NVarChar(50), fileType)
-      .input('vendor', sql.NVarChar(255), '') 
+      .input('vendor', sql.NVarChar(255), '')
       .input('invoiceNumber', sql.NVarChar(100), '')            // Valor vacío
       .input('referenceNumber', sql.NVarChar(100), '')     // Valor vacío
       .input('checknumber', sql.NVarChar(50), '')
@@ -472,6 +472,8 @@ app.post("/notes-upsert", async (req, res) => {
   try {
     const pool = await testConnection();
     const { invoiceID, content, userID } = req.body;
+    const idsArray = Array.isArray(invoiceID) ? invoiceID : [invoiceID];
+    
     const query = `
       MERGE INTO Notes AS target
       USING (SELECT @invoiceID AS invoiceID) AS source
@@ -482,16 +484,15 @@ app.post("/notes-upsert", async (req, res) => {
         INSERT (invoiceID, content, userID)
         VALUES (@invoiceID, @content, @userID);
     `;
+    for (const id of idsArray){
+      await pool.request()
+        .input('invoiceID', sql.Int, id)
+        .input('content', sql.NVarChar(sql.MAX), content)
+        .input('userID', sql.Int, userID)
+        .query(query);
+    }
 
-    const result = await pool.request()
-      .input('invoiceID', sql.Int, invoiceID)
-      .input('content', sql.NVarChar(sql.MAX), content)
-      .input('userID', sql.Int, userID)
-      .query(query);
-
-    // Después de la consulta:
-    const responseData = result.recordset && result.recordset.length ? result.recordset : { mensaje: "Operación realizada correctamente" };
-    res.json(responseData);
+    res.json({ mensaje: "Notas actualizadas/insertadas correctamente" });
   } catch (error) {
     console.error("Error al insertar o actualizar la nota:", error);
     res.status(500).json({ error: "Error al insertar o actualizar la nota" });
@@ -568,14 +569,9 @@ app.get('/invoices/status/:invoiceStatus', async (req, res) => {
     res.status(500).json({ error: "Error al obtener los invoices" });
   }
 });
-
-
-// Get Duplicated Invoices SQL Request
-app.get('/getDuplicatedInvoices', async (req, res) => {
+app.get('/invoices/status/:invoiceStatus', async (req, res) => {
   try {
     const pool = await testConnection();
-
-    // Ejecuta la consulta para obtener los invoiceNumber duplicados
     const result = await pool.request()
       .query(`
         SELECT invoiceNumber, COUNT(*) AS occurrences
@@ -584,9 +580,27 @@ app.get('/getDuplicatedInvoices', async (req, res) => {
         GROUP BY invoiceNumber
         HAVING COUNT(*) > 1;
       `);
-
-    // Retorna el resultado en formato JSON
     res.json(result.recordset);
+  } catch (error) {
+    console.error("Error al obtener los invoices:", error);
+    res.status(500).json({ error: "Error al obtener los invoices" });
+  }
+});
+
+
+// Get Duplicated Invoices SQL Request
+app.get('/getCheckNumber', async (req, res) => {
+  try {
+    const pool = await testConnection();
+
+    // Ejecuta la consulta para obtener los invoiceNumber duplicados
+    const result = await pool.request()
+      .query(`
+        select top 1 * from checks_db order by ID DESC
+      `);
+    // Enviar el primer registro (o null si no hay resultados)
+    const record = result.recordset.length > 0 ? result.recordset[0] : null;
+    res.json(record);
   } catch (error) {
     console.error("Error al obtener los invoices:", error);
     res.status(500).json({ error: "Error al obtener los invoices" });
@@ -627,6 +641,7 @@ app.put('/editCheckNumberOnPaid', async (req, res) => {
   try {
     const { idsToEdit, valor } = req.body;
 
+    // Validaciones
     if (!idsToEdit) {
       return res.status(400).json({ error: "No se proporcionó ningún ID" });
     }
@@ -634,16 +649,40 @@ app.put('/editCheckNumberOnPaid', async (req, res) => {
       return res.status(400).json({ error: "No se proporcionó ningún valor" });
     }
 
+    // Validar que valor sea un número entero positivo
+    const numero = Number(valor);
+    if (isNaN(numero) || !Number.isInteger(numero) || numero <= 0) {
+      return res.status(400).json({ error: "El valor debe ser un número entero positivo" });
+    }
+
     const idsArray = Array.isArray(idsToEdit) ? idsToEdit : [idsToEdit];
     const pool = await testConnection();
 
-    // Actualización en lote (opcional, ver comentario anterior)
-    const idsParam = idsArray.join(',');
-    await pool.request()
-      .input('valor', sql.VarChar, valor)
-      .query(`UPDATE Invoices SET checknumber = @valor WHERE ID IN (${idsParam})`);
 
-    res.status(200).json({ success: true, updated: idsArray.length });
+    try {
+      // Actualizar las facturas
+      const idsParam = idsArray.join(',');
+      await pool.request()
+        .input('valor', sql.VarChar, valor)
+        .query(`UPDATE Invoices SET checknumber = @valor WHERE ID IN (${idsParam})`);
+
+      // Actualizar el número de cheque en checks_db
+      await pool.request()
+        .input('valor', sql.Int, numero) // Usar Int para el número
+        .query(`
+          IF EXISTS (SELECT 1 FROM checks_db)
+            UPDATE checks_db SET check_number = @valor
+          ELSE
+            INSERT INTO checks_db (check_number) VALUES (@valor)
+        `);
+
+      res.status(200).json({ success: true, updated: idsArray.length });
+    } catch (error) {
+      // Revertir la transacción en caso de error
+      await transaction.rollback();
+      console.error("Error en la transacción:", error);
+      res.status(500).json({ error: "Error editando check numbers" });
+    }
   } catch (error) {
     console.error("Error editando check numbers:", error);
     res.status(500).json({ error: "Error editando check numbers" });
@@ -666,16 +705,32 @@ app.put('/editCheckNumber', async (req, res) => {
     const idsArray = Array.isArray(idsToEdit) ? idsToEdit : [idsToEdit];
     const pool = await testConnection();
 
-    // Actualización en lote (opcional, ver comentario anterior)
+    // Actualización en lote para Invoices
     const idsParam = idsArray.join(',');
     await pool.request()
       .input('valor', sql.VarChar, valor)
       .query(`UPDATE Invoices SET checknumber = @valor, invoiceStatus = 4 WHERE ID IN (${idsParam})`);
 
+    // Verificar si existen registros en checks_db
+    const checkDbResult = await pool.request().query(`SELECT COUNT(*) AS RecordCount FROM checks_db`);
+    const recordCount = checkDbResult.recordset[0].RecordCount;
+
+    if (recordCount > 0) {
+      // Actualizar todos los registros en checks_db
+      await pool.request()
+        .input('valor', sql.VarChar, valor)
+        .query(`UPDATE checks_db SET check_number = @valor`);
+    } else {
+      // Insertar un nuevo registro en checks_db
+      await pool.request()
+        .input('valor', sql.VarChar, valor)
+        .query(`INSERT INTO checks_db (check_number) VALUES (@valor)`); // Ajusta los nombres de las columnas según tu tabla
+    }
+
     res.status(200).json({ success: true, updated: idsArray.length });
   } catch (error) {
-    console.error("Error editando vendors:", error);
-    res.status(500).json({ error: "Error editando vendors" });
+    console.error("Error editando:", error);
+    res.status(500).json({ error: "Error editando" });
   }
 });
 

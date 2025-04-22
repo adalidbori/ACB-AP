@@ -348,6 +348,7 @@ function clearFilter() {
 
 //Cargar elementos pending to review de la base de datos
 async function loadInvoices() {
+  let totalOwe = 0;
   try {
     const vendor = document.getElementById('filter-vendor').value;
     const invoiceNumber = document.getElementById('filter-invoiceNumber').value;
@@ -363,18 +364,43 @@ async function loadInvoices() {
     const response = await fetch(`http://${window.miVariable}:3000/invoices/status/1?${params.toString()}`);
     const invoices = await response.json();
     tableBody.innerHTML = ""; // Limpiar contenido previo
-
     // Agrupar facturas por vendor y sumar los totales usando el formato internacional
-    const groupedInvoices = invoices.reduce((groups, invoice) => {
+    // Modificamos el valor inicial del reduce y la lógica interna
+    const invoiceSummary = invoices.reduce((accumulator, invoice) => {
+      // 'accumulator' ahora contiene tanto los grupos como el total general.
+      // Estructura esperada de accumulator: { groups: { ... }, totalOwe: 0 }
+
       const vendor = invoice.vendor;
-      if (!groups[vendor]) {
-        groups[vendor] = { invoices: [], total: 0 };
+
+      // Accedemos al objeto de grupos DENTRO del acumulador
+      if (!accumulator.groups[vendor]) {
+        accumulator.groups[vendor] = { invoices: [], total: 0 };
       }
-      groups[vendor].invoices.push(invoice);
+
+      // Agregamos la factura al grupo correspondiente dentro del acumulador
+      accumulator.groups[vendor].invoices.push(invoice);
+
+      // Convertimos el invoiceTotal a número (asumiendo que parseInternationalCurrency devuelve un número)
+      // Esta función ya debería manejar la conversión a float/número.
       const amount = parseInternationalCurrency(invoice.invoiceTotal);
-      groups[vendor].total += amount;
-      return groups;
-    }, {});
+
+      // Sumamos al total del vendor específico
+      accumulator.groups[vendor].total += amount;
+
+      // *** NUEVO: Sumamos al total general (totalOwe) en el acumulador ***
+      accumulator.totalOwe += amount;
+
+      // Devolvemos el acumulador completo para la siguiente iteración
+      return accumulator;
+
+    }, { groups: {}, totalOwe: 0 }); // <--- Valor inicial del acumulador modificado
+
+    // Después del reduce, los resultados están en 'invoiceSummary'
+    const groupedInvoices = invoiceSummary.groups; // Los grupos como antes
+    const totalSpan = document.querySelector('.total-span');
+    const totalOwe = `$${invoiceSummary.totalOwe.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;     // El total general calculado
+    totalSpan.textContent = totalOwe;
+    console.log("Total Adeudado General:", totalOwe);
 
     // Recorrer cada grupo y agregar las filas en la tabla
     for (const vendor in groupedInvoices) {
@@ -383,17 +409,43 @@ async function loadInvoices() {
       headerRow.classList.add("vendor-header");
       headerRow.dataset.vendor = vendor;
       headerRow.innerHTML = `
-        <td colspan="9" style="background:#f0f0f0; cursor: pointer;">
-          <strong>${vendor}</strong></td>`;
+        <td colspan="9" style="background:#f0f0f0;">
+          <input type="checkbox" class="vendor-checkbox" data-vendor="${vendor}" style="margin-right: 10px; cursor: pointer;">
+          <strong style="cursor: pointer;">${vendor}</strong>
+        </td>`;
 
-      // Agregar evento de clic para contraer/expandir
-      headerRow.addEventListener('click', function () {
-        // Seleccionar todas las filas de factura para este vendor
-        const invoiceRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${vendor}"]`);
+      // ---- Obtener referencias al área clickeable del nombre y al nuevo checkbox ----
+      const vendorNameStrong = headerRow.querySelector("strong");
+      const vendorCheckbox = headerRow.querySelector(".vendor-checkbox");
+
+      // ---- Evento de Clic para Contraer/Expandir (ahora en el nombre) ----
+      // Se asocia solo al nombre para no interferir con el checkbox
+      vendorNameStrong.addEventListener('click', function () {
+        const currentVendor = headerRow.dataset.vendor; // Obtenemos el vendor desde el data-attribute de la fila
+        const invoiceRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${currentVendor}"]`);
         invoiceRows.forEach(row => {
-          // Alternar visibilidad: si está oculto, se muestra; si se muestra, se oculta
           row.style.display = row.style.display === 'none' ? '' : 'none';
         });
+      });
+
+      // MODIFICACIÓN 2: Agregar Evento de Cambio al Checkbox de Cabecera ----
+      vendorCheckbox.addEventListener('change', function (event) {
+        const isChecked = event.target.checked; // Estado del checkbox de cabecera (true si está marcado)
+        const currentVendor = event.target.dataset.vendor; // Vendor asociado a este checkbox
+
+        // Seleccionar todos los checkboxes DENTRO de las filas de factura para este vendor
+        const invoiceCheckboxes = document.querySelectorAll(`tr.invoice-row[data-vendor="${currentVendor}"] .row-checkbox`);
+
+        // Iterar sobre los checkboxes de las facturas y establecer su estado 'checked'
+        invoiceCheckboxes.forEach(checkbox => {
+          checkbox.checked = isChecked;
+          // Opcional: podrías querer disparar el evento 'change' en cada checkbox individual
+          // si tienes otra lógica que depende de ello, aunque usualmente no es necesario
+          // checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        console.log('vendor checkbox');
+        updateVendorHeaderTotal(currentVendor);
+        actualizarTotalSiNoHayCheckboxMarcado();
       });
 
       tableBody.appendChild(headerRow);
@@ -402,48 +454,44 @@ async function loadInvoices() {
       for (const invoice of groupedInvoices[vendor].invoices) {
         const tr = document.createElement("tr");
         tr.classList.add("invoice-row");
-        // Asignar el vendor para relacionarlas con la cabecera
         tr.dataset.vendor = invoice.vendor;
         tr.dataset.id = invoice.ID;
         tr.dataset.url = invoice.fileURL;
         tr.innerHTML = `
-          <td>
-            <input type="checkbox" class="row-checkbox" data-fileurl="${invoice.fileURL}" data-filetype="${invoice.fileType}">
-          </td>
-          <td>
-            <a class="dragout" href='#'
-              onclick="openDocument('${invoice.fileURL}')" 
-              draggable="true"
-              data-filename="${invoice.docName}" 
-              data-filetype="${invoice.fileType}">
-              <div data-field="fileType">
-                ${invoice.fileType === 'application/pdf'
+      <td>
+        <input type="checkbox" class="row-checkbox" data-fileurl="${invoice.fileURL}" data-filetype="${invoice.fileType}">
+      </td>
+      <td>
+        <a class="dragout" href='#'
+           onclick="openDocument('${invoice.fileURL}')"
+           draggable="true"
+           data-filename="${invoice.docName}"
+           data-filetype="${invoice.fileType}">
+          <div data-field="fileType">
+            ${invoice.fileType === 'application/pdf'
             ? '<img src="/Styles/pdf.svg" alt="Icono PDF">'
             : '<img src="/Styles/image.svg" alt="Icono imagen">'
           }
-              </div>
-            </a>
-          </td>
-          <td><div class="editable-cell" data-field="docName" contenteditable="true" style="${invoice.docName ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.docName)}</div></td>
-          <td><div class="editable-cell" data-field="invoiceNumber" contenteditable="true" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceNumber}</div></td>
-          <td class="hidden-column"><div class="editable-cell" data-field="vendor" contenteditable="true" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${invoice.vendor}</div></td>
-          <td>
-          <div class="editable-cell" data-field="referenceNumber" contenteditable="true" style="${invoice.referenceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.referenceNumber}</div></td>
-          <td><div class="editable-cell" data-field="invoiceTotal" contenteditable="true" style="${invoice.invoiceTotal ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceTotal}</div></td>
-          <td><div class="editable-cell" data-field="invoiceDate" contenteditable="true" style="${invoice.invoiceDate ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceDate}</div></td>
-          <td><div class="editable-cell" data-field="dueDate" contenteditable="true" style="${invoice.dueDate ? '' : 'background-color: #f8d7da;'}">${invoice.dueDate}</div></td>
-          <td>
-            <div style="text-align: center;">
-              <!-- Se asigna un color por defecto (rojo) y luego se actualizará en función de la existencia de notas -->
-              <div class="contenedor-icono">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;" onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'>
-                  <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
-                </svg>
-
-              </div>
-            </div>
-          </td>
-        `;
+          </div>
+        </a>
+      </td>
+      <td><div class="editable-cell" data-field="docName" contenteditable="true" style="${invoice.docName ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.docName)}</div></td>
+      <td><div class="editable-cell" data-field="invoiceNumber" contenteditable="true" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceNumber}</div></td>
+      <td class="hidden-column"><div class="editable-cell" data-field="vendor" contenteditable="true" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${invoice.vendor}</div></td>
+      <td><div class="editable-cell" data-field="referenceNumber" contenteditable="true" style="${invoice.referenceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.referenceNumber}</div></td>
+      <td><div class="editable-cell" data-field="invoiceTotal" contenteditable="true" style="${invoice.invoiceTotal ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceTotal}</div></td>
+      <td><div class="editable-cell" data-field="invoiceDate" contenteditable="true" style="${invoice.invoiceDate ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceDate}</div></td>
+      <td><div class="editable-cell" data-field="dueDate" contenteditable="true" style="${invoice.dueDate ? '' : 'background-color: #f8d7da;'}">${invoice.dueDate}</div></td>
+      <td>
+        <div style="text-align: center;">
+          <div class="contenedor-icono">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;" onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'>
+              <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
+            </svg>
+          </div>
+        </div>
+      </td>
+    `;
 
 
         // Manejo de edición de celdas
