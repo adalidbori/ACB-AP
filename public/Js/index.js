@@ -120,7 +120,26 @@ function addNotesBulk() {
     return;
   }
 
-  
+  showNotesModalBulk(idsToEdit);
+}
+
+async function showNotesModalBulk(invoiceIds) {
+  console.log(invoiceIds);
+  const modalEl = document.getElementById('exampleModal');
+
+  // Asigna el listener para guardar (usando onclick para evitar acumulación de listeners)
+  const saveButton = modalEl.querySelector('.modal-save-button');
+  saveButton.onclick = async () => {
+    const notesContent = modalEl.querySelector('#notes-text').value;
+    await insertUpdateNotes(invoiceIds, notesContent);
+    // Cierra el modal
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    modal.hide();
+  };
+
+  // Mostrar el modal
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
 }
 
 function editVendor() {
