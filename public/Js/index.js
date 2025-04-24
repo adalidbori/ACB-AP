@@ -618,6 +618,38 @@ async function eliminarBlobMultiInvoice(urls) {
   }
 }
 
+const headers = document.querySelectorAll('#editable-table thead th');
+headers.forEach((th, colIndex) => {
+  const title = th.textContent.trim();
+  if (!title) return;               // Saltamos celdas sin texto
+  th.dataset.order = 'none';        // Estado inicial
+
+  th.style.cursor = 'pointer';      // Cambiamos el cursor para indicar clickeable
+
+  th.addEventListener('click', () => {
+    // 1. Determinar nuevo estado
+    const current = th.dataset.order;
+    const nextOrder = current === 'asc'
+      ? 'desc'
+      : 'asc';
+
+    // 2. Guardar el nuevo estado en el atributo data-order
+    th.dataset.order = nextOrder;
+
+    // 3. (Opcional) Actualizar clases para iconos
+    headers.forEach(h => {
+      h.classList.remove('sort-asc', 'sort-desc');
+    });
+    th.classList.add(nextOrder === 'asc' ? 'sort-asc' : 'sort-desc');
+
+    // 4. Disparar tu función de ordenamiento, pasándole:
+    //    - el índice de columna (colIndex)
+    //    - la dirección (nextOrder)
+    sortTableByColumn(colIndex, nextOrder);
+  });
+});
+
+
 
 
 setTimeout(() => {

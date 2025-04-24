@@ -653,3 +653,7 @@ async function loadInvoices() {
   }
 
 }
+function sortTableByColumn(colIndex, order) {
+  console.log(`Ordenando columna ${colIndex} en modo ${order}`);
+  // Aquí irá la lógica de extracción de filas, comparación y re-inserción
+}
