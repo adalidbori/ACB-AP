@@ -641,11 +641,12 @@ headers.forEach((th, colIndex) => {
       h.classList.remove('sort-asc', 'sort-desc');
     });
     th.classList.add(nextOrder === 'asc' ? 'sort-asc' : 'sort-desc');
+    const field = th.id;
 
     // 4. Disparar tu función de ordenamiento, pasándole:
     //    - el índice de columna (colIndex)
     //    - la dirección (nextOrder)
-    sortTableByColumn(colIndex, nextOrder);
+    sortTableByColumn(field, nextOrder);
   });
 });
 
