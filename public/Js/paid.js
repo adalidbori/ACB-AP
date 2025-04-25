@@ -345,6 +345,13 @@ function editCheckNumber() {
     // Si agregaste otros elementos o estados, reinícialos aquí
   }, { once: true }); // Con { once: true } nos aseguramos que el listener se ejecute solo una vez
 }
+function sortTableByColumn(colID, order) {
+  console.log(`Ordenando columna ${colID} en modo ${order}`);
+  const aux = ordenarLista(invoices, colID, order);
+  const tableResult = groupByVendors(aux);
+  fillTableLocal(tableResult);
+  // Aquí irá la lógica de extracción de filas, comparación y re-inserción
+}
 
 
 

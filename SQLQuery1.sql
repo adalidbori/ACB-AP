@@ -98,7 +98,7 @@ VALUES  ('Deleted', 6);
 select * from InvoiceStatus
 go
 
-update Invoices set referenceNumber = 'Adalid' where ID = 1
+update Invoices set invoiceStatus = 4 where ID = 1
 go
 
 SELECT invoiceNumber, COUNT(*) AS occurrences

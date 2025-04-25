@@ -473,6 +473,7 @@ async function getDuplicatedByInvoiceNumber(texto) {
       tr.dataset.id = invoice.ID;
       tr.dataset.invoiceStatus = invoice.invoiceStatus;
       tr.dataset.url = invoice.fileURL;
+      
       console.log("El vendor es: " + invoice.vendor);
       tr.innerHTML = `
           <td>
@@ -921,14 +922,6 @@ function fillTable(invoiceList){
       }
     }
   }
-}
-
-function sortTableByColumn(colID, order) {
-  console.log(`Ordenando columna ${colID} en modo ${order}`);
-  const aux = ordenarLista(invoices, colID, order);
-  const tableResult = groupByVendors(aux);
-  fillTable(tableResult);
-  // Aquí irá la lógica de extracción de filas, comparación y re-inserción
 }
 
 function ordenarLista(lista, campo, orden = 'asc') {

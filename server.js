@@ -11,12 +11,18 @@ const pdf4me = require('pdf4me')
 const https = require('https');
 
 require("dotenv").config();
+const nodemailer = require('nodemailer');
 
 const USER = process.env.USER;
 const PASSWORD = process.env.PASSWORD;
 const SERVER = process.env.SERVER;
 const DATABASE = process.env.DATABASE;
 const PORT = parseInt(process.env.PORT, 10);
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = process.env.SMTP_PORT;
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const EMAIL_TO = process.env.EMAIL_TO;
 
 const connection = {
   user: USER,
@@ -40,6 +46,24 @@ async function testConnection() {
     throw error;
   }
 }
+
+const transporter = nodemailer.createTransport({
+  host: SMTP_HOST,
+  port: Number(SMTP_PORT),
+  secure: false,       // true solo si usas el puerto 465
+  auth: {
+    user: SMTP_USER,
+    pass: SMTP_PASS,
+  },
+  tls: {
+    // Microsoft recomienda TLS 1.2; este flag permite negociar correctamente
+    ciphers: 'TLSv1.2'
+  }
+});
+
+transporter.verify()
+  .then(() => console.log('✅ Conexión a Office365 SMTP OK'))
+  .catch(err => console.error('❌ Error al conectar Office365 SMTP:', err));
 
 //const { BlobServiceClient } = require("@azure/storage-blob");
 //const { StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } = require("@azure/storage-blob");
@@ -473,7 +497,7 @@ app.post("/notes-upsert", async (req, res) => {
     const pool = await testConnection();
     const { invoiceID, content, userID } = req.body;
     const idsArray = Array.isArray(invoiceID) ? invoiceID : [invoiceID];
-    
+
     const query = `
       MERGE INTO Notes AS target
       USING (SELECT @invoiceID AS invoiceID) AS source
@@ -484,7 +508,7 @@ app.post("/notes-upsert", async (req, res) => {
         INSERT (invoiceID, content, userID)
         VALUES (@invoiceID, @content, @userID);
     `;
-    for (const id of idsArray){
+    for (const id of idsArray) {
       await pool.request()
         .input('invoiceID', sql.Int, id)
         .input('content', sql.NVarChar(sql.MAX), content)
@@ -527,6 +551,28 @@ app.post('/getDuplicatedByInvoiceNumber', async (req, res) => {
   } catch (error) {
     console.error("Error al obtener las notas:", error);
     res.status(500).json({ error: "Error al obtener las notas" });
+  }
+});
+
+app.get('/getDuplicatedInvoices', async (req, res) => {
+  try {
+    const pool = await testConnection();
+
+    // Ejecuta la consulta para obtener los invoiceNumber duplicados
+    const result = await pool.request()
+      .query(`
+        SELECT invoiceNumber, COUNT(*) AS occurrences
+        FROM Invoices
+        WHERE invoiceStatus IN (1, 2, 3, 4)
+        GROUP BY invoiceNumber
+        HAVING COUNT(*) > 1;
+      `);
+
+    // Retorna el resultado en formato JSON
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error al obtener los invoices:", error);
+    res.status(500).json({ error: "Error al obtener los invoices" });
   }
 });
 
@@ -838,6 +884,29 @@ app.put('/invoiceFirstUpdate', async (req, res) => {
   } catch (error) {
     console.error("Error al actualizar la factura:", error);
     res.status(500).json({ error: "Error al actualizar la factura" });
+  }
+});
+
+app.post('/send-email', async (req, res) => {
+  const { subject, invoices } = req.body;
+  const to = EMAIL_TO;
+  const attachments = invoices.map(({ url, docName }) => ({
+    filename: docName,  // nombre con que aparecerá el adjunto
+    path: generateSasUrlForBlob(url)           // la URL o ruta al archivo
+  }));
+  try {
+    const info = await transporter.sendMail({
+      from: `"AP" <${SMTP_USER}>`,
+      to,         // puede ser un string o lista de correos
+      subject,    // asunto
+      attachments
+    });
+
+    console.log('Mensaje enviado: %s', info.messageId);
+    res.json({ ok: true, messageId: info.messageId });
+  } catch (error) {
+    console.error('Error al enviar correo:', error);
+    res.status(500).json({ ok: false, error: error.message });
   }
 });
 

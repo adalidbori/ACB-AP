@@ -364,3 +364,11 @@ async function loadInvoices() {
     console.error("Error al obtener los invoices:", error);
   }
 }
+
+function sortTableByColumn(colID, order) {
+  console.log(`Ordenando columna ${colID} en modo ${order}`);
+  const aux = ordenarLista(invoices, colID, order);
+  const tableResult = groupByVendors(aux);
+  fillTable(tableResult);
+  // Aquí irá la lógica de extracción de filas, comparación y re-inserción
+}

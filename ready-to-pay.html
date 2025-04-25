@@ -7,11 +7,13 @@
     <title>Account Payable</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+    
     <!-- Bootstrap 5 JS (no requiere jQuery) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <link rel="stylesheet" href="/Styles/style.css">
     <link rel="stylesheet" href="/Styles/bell.css">
+    <link href="/Styles/spinner.css" rel="stylesheet" />
 </head>
 
 <body>
@@ -102,6 +104,8 @@
                                     <li><a class="dropdown-item" href="#" onclick="editVendor()">Edit Vendor</a></li>
                                     <li><a class="dropdown-item" href="#" onclick="addNotesBulk()">Add Notes</a></li>
                                     <li><a class="dropdown-item" href="#" onclick="updateStatus(6)">Delete</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="sendEmailToTruvis()">Send Email</a>
+                                    </li>
                                 </ul>
                             </div>
 
@@ -298,6 +302,27 @@
             </div>
         </div>
     </div>
+    <!-- Pon esto en tu HTML, por ejemplo justo debajo de <body> -->
+    <!-- Colócalo en tu HTML, justo dentro de <body> -->
+    <div id="emailStatus" style="
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 50%; 
+            transform: translateX(-50%);
+            padding: .75rem 1.25rem;
+            border-radius: .25rem;
+            color: #fff;
+            font-weight: bold;
+            z-index: 1000;
+            "></div>
+    <!-- Spinner overlay -->
+    <div id="spinnerOverlay" class="spinner-overlay">
+        <div class="spinner"></div>
+    </div>
+
+
+
     <script src="/Js/index.js"></script>
     <script src="/Js/ready-to-pay.js"></script>
     <script src="/Js/dropdown.js"></script>

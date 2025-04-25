@@ -114,14 +114,15 @@ async function updateToPaid(invoiceStatus) {
       const result = await response.json();
       console.log("Resultado de la actualización:", result);
       modal.hide();
-      loadInvoices();
+      sendEmailToTruvis(valor);
+      //loadInvoices();
     } catch (error) {
       console.error("Error editando los vendors!", error);
     }
   };
   // Mostrar el modal
   const modal = new bootstrap.Modal(modalEl);
-  
+
   // Agrega el listener para limpiar el contenido del modal cuando se cierra
   modalEl.addEventListener('hidden.bs.modal', () => {
     // Reinicia el valor del input (y otros elementos si es necesario)
@@ -143,4 +144,68 @@ async function updateToPaid(invoiceStatus) {
     }
   });
   modal.show();
+}
+
+async function sendEmailToTruvis(checkNumber) {
+  showSpinner();
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  const invoices = [];
+  checkboxes.forEach(chk => {
+    if (chk.checked) {
+      console.log(chk);
+      const row = chk.closest('tr');
+      const url = row.dataset.url;
+      const docName = row.querySelector('[data-field="docName"]').textContent.trim();
+      if (url && docName) {
+        invoices.push({ url, docName });
+      }
+    }
+  });
+  try {
+    const subject = checkNumber;
+    const sendEmailresponse = await fetch(`http://${window.miVariable}:3000/send-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject, invoices }) // Enviar el número, no el string
+    });
+    const result = await sendEmailresponse.json();
+    if (result.ok) {
+      showMessage(`Email enviado correctamente!`, 'success');
+      hideSpinner();
+      loadInvoices();
+    } else {
+      showMessage(`Error al enviar email: ${result.error}`, 'error');
+      hideSpinner();
+    }
+
+  } catch (error) {
+    console.error("Error sending the files to Truvis", error);
+  }
+}
+function sortTableByColumn(colID, order) {
+  console.log(`Ordenando columna ${colID} en modo ${order}`);
+  const aux = ordenarLista(invoices, colID, order);
+  const tableResult = groupByVendors(aux);
+  fillTable(tableResult);
+  // Aquí irá la lógica de extracción de filas, comparación y re-inserción
+}
+
+function showMessage(msg, type = 'success') {
+  const el = document.getElementById('emailStatus');
+  el.textContent = msg;
+  el.style.backgroundColor = type === 'success' ? '#28a745' : '#dc3545';
+  el.style.display = 'block';
+
+  // Oculta después de 4s
+  setTimeout(() => {
+    el.style.display = 'none';
+  }, 4000);
+}
+
+function showSpinner() {
+  document.getElementById('spinnerOverlay').style.visibility = 'visible';
+}
+
+function hideSpinner() {
+  document.getElementById('spinnerOverlay').style.visibility = 'hidden';
 }
