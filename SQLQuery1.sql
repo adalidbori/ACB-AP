@@ -23,6 +23,27 @@ CREATE TABLE Invoices (
 );
 GO
 
+
+-- Agregar la columna
+ALTER TABLE Invoices
+ADD LastModified DATETIME;
+GO
+
+-- Crear un trigger para actualizar LastModified cada vez que se modifique un registro
+CREATE TRIGGER trg_UpdateLastModified
+ON Invoices
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE Invoices
+    SET LastModified = GETDATE()
+    FROM Invoices i
+    INNER JOIN inserted ins ON i.ID = ins.ID;
+END;
+GO
+
+
 CREATE TABLE Notes (
     ID INT IDENTITY(1,1) PRIMARY KEY,       -- ID autoincremental
 	invoiceID INT,
