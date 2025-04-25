@@ -95,7 +95,7 @@ select * from Invoices
 go
 
 
-delete from Invoices
+delete from InvoiceStatus
 go
 
 delete from Notes
