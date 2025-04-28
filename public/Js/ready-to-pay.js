@@ -170,11 +170,11 @@ async function sendEmailToTruvis(checkNumber) {
     });
     const result = await sendEmailresponse.json();
     if (result.ok) {
-      showMessage(`Email enviado correctamente!`, 'success');
+      showMessage(`Data sync to Truvis!`, 'success');
       hideSpinner();
       loadInvoices();
     } else {
-      showMessage(`Error al enviar email: ${result.error}`, 'error');
+      showMessage(`Error syncing to Truvis: ${result.error}`, 'error');
       hideSpinner();
     }
 
