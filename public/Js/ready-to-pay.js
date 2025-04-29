@@ -155,7 +155,8 @@ async function sendEmailToTruvis(checkNumber) {
       console.log(chk);
       const row = chk.closest('tr');
       const url = row.dataset.url;
-      const docName = row.querySelector('[data-field="docName"]').textContent.trim();
+      //const docName = row.querySelector('[data-field="docName"]').textContent.trim();
+      const docName = row.dataset.timestampName;
       if (url && docName) {
         invoices.push({ url, docName });
       }

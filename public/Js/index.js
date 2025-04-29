@@ -473,6 +473,7 @@ async function getDuplicatedByInvoiceNumber(texto) {
       tr.dataset.id = invoice.ID;
       tr.dataset.invoiceStatus = invoice.invoiceStatus;
       tr.dataset.url = invoice.fileURL;
+
       
       console.log("El vendor es: " + invoice.vendor);
       tr.innerHTML = `
@@ -677,6 +678,7 @@ function getInvoiceStatusText(status) {
 
 function fillTable(invoiceList){
   // Recorrer cada grupo y agregar las filas en la tabla
+  console.log(invoiceList);
   for (const vendor in invoiceList) {
     // Crear fila de cabecera para cada vendor
     const headerRow = document.createElement("tr");
@@ -723,7 +725,6 @@ function fillTable(invoiceList){
     });
 
     tableBody.appendChild(headerRow);
-
     // Agregar cada factura asociada al vendor
     for (const invoice of invoiceList[vendor].invoices) {
       const tr = document.createElement("tr");
@@ -731,6 +732,7 @@ function fillTable(invoiceList){
       tr.dataset.vendor = invoice.vendor;
       tr.dataset.id = invoice.ID;
       tr.dataset.url = invoice.fileURL;
+      tr.dataset.timestampName = invoice.timestampName;
       tr.innerHTML = `
     <td>
       <input type="checkbox" class="row-checkbox" data-fileurl="${invoice.fileURL}" data-filetype="${invoice.fileType}">
