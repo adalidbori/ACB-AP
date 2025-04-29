@@ -474,7 +474,7 @@ async function getDuplicatedByInvoiceNumber(texto) {
       tr.dataset.invoiceStatus = invoice.invoiceStatus;
       tr.dataset.url = invoice.fileURL;
 
-      
+
       console.log("El vendor es: " + invoice.vendor);
       tr.innerHTML = `
           <td>
@@ -676,7 +676,7 @@ function getInvoiceStatusText(status) {
   }
 }
 
-function fillTable(invoiceList){
+function fillTable(invoiceList) {
   // Recorrer cada grupo y agregar las filas en la tabla
   console.log(invoiceList);
   for (const vendor in invoiceList) {
@@ -926,6 +926,8 @@ function fillTable(invoiceList){
   }
 }
 
+
+
 function ordenarLista(lista, campo, orden = 'asc') {
   return lista.slice().sort((a, b) => {
     let valorA = a[campo];
@@ -936,10 +938,15 @@ function ordenarLista(lista, campo, orden = 'asc') {
       valorA = new Date(valorA);
       valorB = new Date(valorB);
     }
-    // Verificamos si es un total que debe tratarse como número
+    // Si el campo es 'invoiceTotal', lo parseamos como float limpiando caracteres
     else if (campo === 'invoiceTotal') {
       valorA = parseFloat(valorA.replace(/[^0-9.-]+/g, '')) || 0;
       valorB = parseFloat(valorB.replace(/[^0-9.-]+/g, '')) || 0;
+    }
+    // Si el campo es 'checknumber', parseamos a entero
+    else if (campo === 'checknumber') {
+      valorA = parseInt(valorA, 10) || 0;
+      valorB = parseInt(valorB, 10) || 0;
     }
     // Si es string, comparamos alfabéticamente
     else if (typeof valorA === 'string' && typeof valorB === 'string') {
@@ -954,6 +961,7 @@ function ordenarLista(lista, campo, orden = 'asc') {
       : valorB - valorA;
   });
 }
+
 
 function groupByVendors(invoices) {
   tableBody.innerHTML = ""; // Limpiar contenido previo
