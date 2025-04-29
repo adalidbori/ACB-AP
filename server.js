@@ -927,6 +927,10 @@ app.get("/ready-to-pay", (req, res) => {
   res.sendFile(path.join(__dirname, "/ready-to-pay.html"));
 });
 
+app.get("/newindex", (req, res) => {
+  res.sendFile(path.join(__dirname, "/newindex.html"));
+});
+
 app.get("/paid", (req, res) => {
   res.sendFile(path.join(__dirname, "/paid.html"));
 });

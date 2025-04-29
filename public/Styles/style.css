@@ -335,6 +335,32 @@ td {
   font-weight: bold;
 }
 
+.btn-outline-orange {
+  background-color: transparent;
+  color: #f97316;
+  border: 1px solid #f97316;
+}
+
+.btn-outline-orange:hover {
+  background-color: #f97316;
+  color: white;
+  transition: background-color 0.2s ease;
+}
+
+.btn-orange-gradient {
+  background: linear-gradient(to right, #f97316, #f3a042); /* mismo degradado */
+  color: white !important;
+  font-weight: bold;
+  border: 1px solid #f97316;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.btn-orange-gradient:hover {
+  background: linear-gradient(to right, #f3a042, #f97316); /* invertir degradado al hacer hover */
+  color: white !important;
+}
+
+
 
 
 
