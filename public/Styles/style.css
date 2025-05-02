@@ -19,18 +19,6 @@ html, body {
   height: 100%;
   overflow: auto; /* scroll interno */
 }
-/* Document Viewer: idéntico patrón de flex y scroll */
-.document-viewer {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-.viewer-content {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: auto;
-}
-
 .dashboard-card {
   border-radius: 10px;
   border: none;
@@ -149,24 +137,36 @@ html, body {
 }
 
 /* Document viewer */
-.document-viewer {
+
+.viewer-content {
+  flex: 1 1 auto;
+  min-height: 0;                /* imprescindible en contenedores flex con scroll */
+  overflow: auto;
+  padding: 0;
+}
+.col-md-5 {
   height: 100%;
+}
+
+.document-viewer {
   display: flex;
   flex-direction: column;
+  flex: 1;                      /* crece para llenar el padre */
+  margin: 0;
+}
+.col-md-5 > .content-section {
+  padding: 0;                   /* quita ese espacio arriba */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin: 0;
 }
 
 .viewer-toolbar {
-  padding: 10px;
+  margin: 0;
+  padding: 10px;                /* si quieres un poco de espacio interno */
   background-color: #f1f3f5;
   border-bottom: 1px solid #dee2e6;
-}
-
-.viewer-content {
-  flex: 1;
-  overflow: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .viewer-content iframe {
