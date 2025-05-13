@@ -360,7 +360,7 @@ async function showNotesModal(invoiceId, invoiceNumber) {
 async function downloadSelectedFiles() {
   const checkboxes = document.querySelectorAll('.row-checkbox:checked');
   if (checkboxes.length === 0) {
-    alert('At least one row most be selected.');
+    alert('At least one row must be selected.');
     return;
   }
 
@@ -370,10 +370,10 @@ async function downloadSelectedFiles() {
     const fileURL = await getSASUrl(checkbox.dataset.fileurl);
     const fileType = checkbox.dataset.filetype;
     const row = checkbox.closest('tr');
-    const docName = row.querySelector('[data-field="docName"]').textContent.trim();
+    const docName = row.dataset.timestampName;
     const vendor = row.querySelector('[data-field="vendor"]').textContent.trim();
     const extension = obtenerExtension(fileType);
-    const fileName = `${docName}${extension}`;
+    const fileName = `${docName.split('.')[0]}${extension}`;
 
     if (!filesByVendor[vendor]) {
       filesByVendor[vendor] = [];
@@ -381,28 +381,50 @@ async function downloadSelectedFiles() {
     filesByVendor[vendor].push({ fileURL, fileName });
   }
 
-  // Crear y descargar un ZIP por cada proveedor
+  // Para cada proveedor, descargar individual o en ZIP según cantidad
   for (const [vendor, files] of Object.entries(filesByVendor)) {
-    const zip = new JSZip();
-    for (const { fileURL, fileName } of files) {
+    if (files.length === 1) {
+      // Solo un archivo para este proveedor: descarga directa
+      const { fileURL, fileName } = files[0];
       try {
         const response = await fetch(fileURL, { mode: 'cors' });
-        if (!response.ok) throw new Error(`Error al descargar ${fileName}`);
+        if (!response.ok) throw new Error(`Error downloading ${fileName}`);
         const blob = await response.blob();
-        zip.file(fileName, blob);
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        link.click();
       } catch (error) {
-        console.error(`No se pudo agregar el archivo ${fileName} al ZIP:`, error);
+        console.error(`No se pudo descargar el archivo ${fileName}:`, error);
+      }
+    } else {
+      // Múltiples archivos para este proveedor: generar ZIP
+      const zip = new JSZip();
+      for (const { fileURL, fileName } of files) {
+        try {
+          const response = await fetch(fileURL, { mode: 'cors' });
+          if (!response.ok) throw new Error(`Error downloading ${fileName}`);
+          const blob = await response.blob();
+          zip.file(fileName, blob);
+        } catch (error) {
+          console.error(`No se pudo agregar el archivo ${fileName} al ZIP:`, error);
+        }
+      }
+
+      try {
+        const zipContent = await zip.generateAsync({ type: 'blob' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(zipContent);
+        link.download = `${vendor}.zip`;
+        link.click();
+      } catch (error) {
+        console.error(`No se pudo generar el ZIP para ${vendor}:`, error);
       }
     }
-
-    // Generar el contenido del ZIP y descargarlo
-    const zipContent = await zip.generateAsync({ type: 'blob' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(zipContent);
-    link.download = `${vendor}.zip`;
-    link.click();
   }
 }
+
+
 
 
 function obtenerExtension(fileType) {
@@ -475,7 +497,7 @@ async function getDuplicatedByInvoiceNumber(texto) {
       tr.dataset.url = invoice.fileURL;
 
 
-      console.log("El vendor es: " + invoice.vendor);
+      console.log("El vendor es: " + invoice.fileType);
       tr.innerHTML = `
           <td>
             <a class="dragout" href='#'
