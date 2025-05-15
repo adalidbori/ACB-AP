@@ -6,7 +6,7 @@ function clearFilter() {
   document.getElementById('filter-vendor').value = '';
   document.getElementById('filter-invoiceNumber').value = '';
   document.getElementById('filter-invoiceDate').value = '';
-  
+
   // Llamar a loadInvoices para recargar las facturas sin ningún filtro aplicado
   loadInvoices();
 }
@@ -34,7 +34,7 @@ async function loadInvoices() {
   }
 }
 
-function fillTableLocal(invoiceList){
+function fillTableLocal(invoiceList) {
   // Recorrer cada grupo y agregar las filas en la tabla
   for (const vendor in invoiceList) {
     // Crear fila de cabecera para cada vendor
@@ -79,6 +79,7 @@ function fillTableLocal(invoiceList){
       console.log('vendor checkbox');
       updateVendorHeaderTotal(currentVendor);
       actualizarTotalSiNoHayCheckboxMarcado();
+      updateTotalSelected();
     });
 
     tableBody.appendChild(headerRow);
@@ -90,6 +91,8 @@ function fillTableLocal(invoiceList){
       tr.dataset.vendor = invoice.vendor;
       tr.dataset.id = invoice.ID;
       tr.dataset.url = invoice.fileURL;
+      tr.dataset.timestampName = invoice.timestampName;
+      tr.dataset.checknumber = invoice.checknumber;
       tr.innerHTML = `
           <td>
             <input type="checkbox" class="row-checkbox" data-fileurl="${invoice.fileURL}" data-filetype="${invoice.fileType}">
@@ -102,9 +105,9 @@ function fillTableLocal(invoiceList){
               data-filetype="${invoice.fileType}">
               <div data-field="fileType">
                 ${invoice.fileType === 'application/pdf'
-            ? '<img src="/Styles/pdf.svg" alt="Icono PDF">'
-            : '<img src="/Styles/image.svg" alt="Icono imagen">'
-          }
+          ? '<img src="/Styles/pdf.svg" alt="Icono PDF">'
+          : '<img src="/Styles/image.svg" alt="Icono imagen">'
+        }
               </div>
             </a>
           </td>
@@ -160,6 +163,7 @@ function fillTableLocal(invoiceList){
         const currentVendor = this.closest('tr').dataset.vendor;
         updateVendorHeaderTotal(currentVendor);
         actualizarTotalSiNoHayCheckboxMarcado();
+        updateTotalSelected();
       });
 
       tableBody.appendChild(tr);
@@ -237,7 +241,6 @@ function fillTableLocal(invoiceList){
         }
       });
     }
-
 
     function updateVendorHeaderTotal(vendor) {
       let sum = 0;
@@ -351,6 +354,75 @@ function sortTableByColumn(colID, order) {
   const tableResult = groupByVendors(aux);
   fillTableLocal(tableResult);
   // Aquí irá la lógica de extracción de filas, comparación y re-inserción
+}
+
+async function sendEmailToTruvis() {
+  const checkNumbers = new Set();
+  showSpinner();
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  const invoices = [];
+  checkboxes.forEach(chk => {
+    if (chk.checked) {
+      const row = chk.closest('tr');
+      const url = row.dataset.url;
+      const docName = row.dataset.timestampName;
+      const checkNumber = row.dataset.checknumber;
+      if (url && docName && checkNumber) {
+        invoices.push({ url, docName });
+        checkNumbers.add(checkNumber);
+      }
+    }
+  });
+  if (invoices.length === 0) {
+    showMessage('Select at least one invoice!', 'warning');
+    hideSpinner();
+    return;
+  }
+  console.log(checkNumbers)
+  if (checkNumbers.size > 1) {
+    showMessage('All the invoice must have the same check number!', 'warning');
+    hideSpinner();
+    return;
+  }
+  const [subject] = checkNumbers;
+  try {
+    const sendEmailresponse = await fetch(`http://${window.miVariable}:3000/send-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject, invoices }) // Enviar el número, no el string
+    });
+    const result = await sendEmailresponse.json();
+    if (result.ok) {
+      showMessage(`Data sync to Truvis!`, 'success');
+      hideSpinner();
+      loadInvoices();
+    } else {
+      showMessage(`Error syncing to Truvis: ${result.error}`, 'error');
+      hideSpinner();
+    }
+
+  } catch (error) {
+    console.error("Error sending the files to Truvis", error);
+  }
+}
+
+function showSpinner() {
+  document.getElementById('spinnerOverlay').style.visibility = 'visible';
+}
+
+function hideSpinner() {
+  document.getElementById('spinnerOverlay').style.visibility = 'hidden';
+}
+function showMessage(msg, type = 'success') {
+  const el = document.getElementById('emailStatus');
+  el.textContent = msg;
+  el.style.backgroundColor = type === 'success' ? '#28a745' : '#dc3545';
+  el.style.display = 'block';
+
+  // Oculta después de 4s
+  setTimeout(() => {
+    el.style.display = 'none';
+  }, 4000);
 }
 
 

@@ -371,6 +371,7 @@ async function downloadSelectedFiles() {
     const fileType = checkbox.dataset.filetype;
     const row = checkbox.closest('tr');
     const docName = row.dataset.timestampName;
+    console.log(docName);
     const vendor = row.querySelector('[data-field="vendor"]').textContent.trim();
     const extension = obtenerExtension(fileType);
     const fileName = `${docName.split('.')[0]}${extension}`;
@@ -744,6 +745,7 @@ function fillTable(invoiceList) {
       console.log('vendor checkbox');
       updateVendorHeaderTotal(currentVendor);
       actualizarTotalSiNoHayCheckboxMarcado();
+      updateTotalSelected();
     });
 
     tableBody.appendChild(headerRow);
@@ -823,6 +825,7 @@ function fillTable(invoiceList) {
         const currentVendor = this.closest('tr').dataset.vendor;
         updateVendorHeaderTotal(currentVendor);
         actualizarTotalSiNoHayCheckboxMarcado();
+        updateTotalSelected();
       });
 
       tableBody.appendChild(tr);
@@ -1025,4 +1028,20 @@ function groupByVendors(invoices) {
   totalSpan.textContent = totalOwe;
   console.log("Total Adeudado General:", totalOwe);
   return groupedInvoices;
+}
+
+function updateTotalSelected() {
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  let count = 0;
+
+  checkboxes.forEach(checkbox => {
+    if (checkbox.checked) {
+      count++;
+    }
+  });
+
+  const selectedSpan = document.querySelector('.items-selected');
+  if (selectedSpan) {
+    selectedSpan.textContent = count;
+  }
 }

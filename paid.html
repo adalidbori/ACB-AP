@@ -13,6 +13,7 @@
 
     <link rel="stylesheet" href="/Styles/style.css">
     <link rel="stylesheet" href="/Styles/bell.css">
+    <link href="/Styles/spinner.css" rel="stylesheet" />
     <link rel="stylesheet" href="/Styles/navigation.css">
 </head>
 
@@ -23,10 +24,14 @@
         <div class="tabs-container" style="display: flex; align-items: center;">
             <ul class="tab-list" role="tablist"
                 style="display: flex; gap: 10px; margin: 0; padding: 0; list-style: none;">
-                <li role="tab" aria-selected="false" class="tab" data-tab="in-progress"><i class="bi bi-clock-history"> </i>In Progress</li>
-                <li role="tab" aria-selected="false" class="tab" data-tab="waiting-pproval"><i class="bi bi-hourglass-split"></i> Waiting Approval</li>
-                <li role="tab" aria-selected="false" class="tab" data-tab="ready-to-pay"><i class="bi bi-currency-dollar"></i> Ready to pay</li>
-                <li role="tab" aria-selected="true" class="tab active" data-tab="paid"><i class="bi bi-check"></i> Paid</li>
+                <li role="tab" aria-selected="false" class="tab" data-tab="in-progress"><i class="bi bi-clock-history">
+                    </i>In Progress</li>
+                <li role="tab" aria-selected="false" class="tab" data-tab="waiting-pproval"><i
+                        class="bi bi-hourglass-split"></i> Waiting Approval</li>
+                <li role="tab" aria-selected="false" class="tab" data-tab="ready-to-pay"><i
+                        class="bi bi-currency-dollar"></i> Ready to pay</li>
+                <li role="tab" aria-selected="true" class="tab active" data-tab="paid"><i class="bi bi-check"></i> Paid
+                </li>
             </ul>
 
             <div id="drop-area"
@@ -55,6 +60,10 @@
                                     style="outline: none; padding: 0 2px; background-color: #f0f8ff;"></span>
                             </i>
                         </h4>
+                        <h6>Selected:
+                            <span class="items-selected"
+                                style="outline: none; padding: 0 2px; background-color: #f0f8ff;">0</span>
+                        </h6>
                         <div class="d-flex gap-2">
                             <!-- Example single danger button -->
                             <div class="btn-group">
@@ -66,6 +75,7 @@
                                     <li><a class="dropdown-item" href="#" onclick="downloadSelectedFiles()">Download</a>
                                     </li>
                                     <li><a class="dropdown-item" href="#" onclick="editVendor()">Edit Vendor</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="sendEmailToTruvis()">Resubmit</a></li>
                                 </ul>
                             </div>
 
@@ -104,6 +114,7 @@
                                         id="clear-filters-btn">Clear Filters</button>
                                     <button class="btn btn-sm btn-secondary" onclick="loadInvoices()"
                                         id="apply-filters-btn">Apply Filters</button>
+                                    
                                 </div>
                             </div>
                         </div>
@@ -262,6 +273,21 @@
                 </div>
             </div>
         </div>
+    </div>
+    <div id="emailStatus" style="
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 50%; 
+            transform: translateX(-50%);
+            padding: .75rem 1.25rem;
+            border-radius: .25rem;
+            color: #fff;
+            font-weight: bold;
+            z-index: 1000;
+            "></div>
+    <div id="spinnerOverlay" class="spinner-overlay">
+        <div class="spinner"></div>
     </div>
     <script src="/Js/index.js"></script>
     <script src="/Js/paid.js"></script>
