@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/Styles/login.css">
+    <title>A Customs Brokerage - Login</title>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-form">
+            <!-- Logo -->
+            <div class="logo">
+                <div class="logo-circle">
+                    <div class="logo-text">A CUSTOMS BROKERAGE</div>
+                    <div class="logo-est">EST. 1979</div>
+                </div>
+            </div>
+
+            <!-- Welcome Text -->
+            <h1 class="welcome-title">Welcome to</h1>
+            <p class="welcome-subtitle">Enter your email and password to access the platform.</p>
+
+            <!-- Login Form -->
+            <form>
+                <!-- Email Field -->
+                <div class="form-group">
+                    <label for="email" class="form-label">Email</label>
+                    <div class="input-container">
+                        <input 
+                            type="email" 
+                            id="email" 
+                            class="form-input"
+                            placeholder="user@domain.com"
+                        >
+                        <button type="button" class="clear-btn" onclick="clearField('email')">×</button>
+                    </div>
+                </div>
+
+                <!-- Password Field -->
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="input-container">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            class="form-input"
+                            placeholder="••••••••"
+                        >
+                        <button type="button" class="clear-btn" onclick="clearField('password')">×</button>
+                    </div>
+                </div>
+
+                <!-- Form Options -->
+                <div class="form-options">
+                    <div class="remember-me">
+                        <input type="checkbox" id="remember" class="remember-checkbox">
+                        <label for="remember" class="remember-label">Remember me</label>
+                    </div>
+                    <a href="/forgot-password" class="forgot-password">Forgot password?</a>
+                </div>
+
+                <!-- Login Button -->
+                <button type="submit" class="login-btn">Log in</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function clearField(fieldId) {
+            document.getElementById(fieldId).value = '';
+        }
+
+        // Prevent form submission for demo
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Login functionality would be implemented here');
+        });
+    </script>
+</body>
+</html>

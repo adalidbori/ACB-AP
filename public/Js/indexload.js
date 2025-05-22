@@ -19,14 +19,22 @@ dropArea.addEventListener("drop", (event) => {
   dropArea.style.backgroundColor = "#f9f9f9";
   const files = event.dataTransfer.files;
   for (const file of files) {
-    if (file.type === "application/pdf" || file.type === "image/png" || file.type === "image/jpeg") {
+    console.log(file.type);
+    if (
+      file.type === "application/pdf" ||
+      file.type === "image/png" ||
+      file.type === "image/jpeg" ||
+      file.type === "application/msword" ||
+      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
       showTemporaryRow();
       uploadFile(file);
     } else {
-      alert("The file types allowed are PDF, PNG and JPG.");
+      alert("The file types allowed are PDF, PNG, JPG, and Word documents.");
     }
   }
 });
+
 
 // Función para llamar a la API de ChatGPT utilizando el JSON body proporcionado
 async function callChatGPT(texto) {

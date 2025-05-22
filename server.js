@@ -923,6 +923,14 @@ app.get("/waiting-approval", (req, res) => {
   res.sendFile(path.join(__dirname, "waiting-approval.html"));
 });
 
+app.get("/login", (req, res) => {
+  res.sendFile(path.join(__dirname, "login.html"));
+});
+
+app.get("/forgot-password", (req, res) => {
+  res.sendFile(path.join(__dirname, "forgot-password.html"));
+});
+
 app.get("/ready-to-pay", (req, res) => {
   res.sendFile(path.join(__dirname, "/ready-to-pay.html"));
 });
