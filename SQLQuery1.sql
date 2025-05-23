@@ -179,12 +179,13 @@ INSERT INTO Role (RoleName) VALUES ('User');
 INSERT INTO Role (RoleName) VALUES ('Manager');
 
 -- Insertar datos de ejemplo en Company
-INSERT INTO Company (CompanyName) VALUES ('ACB');
+INSERT INTO Company (CompanyName) VALUES ('Microsoft');
 
 -- Insertar usuario de ejemplo
 INSERT INTO UserTable (FirstName, LastName, WorkEmail, Phone, PasswordHash, CompanyID, RoleID)
 VALUES 
-('Adalid', 'Bori', 'adalid@acb-us.com', '123-456-7890', '$2a$10$XEDCaTNVrQRZ/erKDsCnmejguLYd.a7zdWq09Qy4f9g0zeCcCR..u', 1, 1);
+('Adalid', 'Bori', 'adalid@microsoft.com', '123-456-7890', '$2a$10$XEDCaTNVrQRZ/erKDsCnmejguLYd.a7zdWq09Qy4f9g0zeCcCR..u', 3, 1);
+
 
 
 
