@@ -1045,3 +1045,18 @@ function updateTotalSelected() {
     selectedSpan.textContent = count;
   }
 }
+
+function logoutUser() {
+  fetch("/logout", {
+    method: "POST",
+    credentials: "include", // si usas cookies
+  })
+    .then(res => res.json())
+    .then(data => {
+      console.log(data);
+      // Redirigir si es necesario
+      window.location.href = "/login";
+    })
+    .catch(error => console.error("Error:", error));
+
+}

@@ -13,6 +13,7 @@ function clearFilter() {
 
 //Cargar elementos pending to review de la base de datos
 async function loadInvoices() {
+  
   try {
     const vendor = document.getElementById('filter-vendor').value;
     const invoiceNumber = document.getElementById('filter-invoiceNumber').value;

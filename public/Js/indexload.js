@@ -168,7 +168,7 @@ async function insertDocumentIntoDatabase(docName, timestampName, fileType, file
     const response = await fetch(`http://${window.miVariable}:3000/insertDocumentIntoDatabase`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         docName: docName,

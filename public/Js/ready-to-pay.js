@@ -12,6 +12,7 @@ function clearFilter() {
 }
 
 async function loadInvoices() {
+  const token = localStorage.getItem('token');
   try {
     const vendor = document.getElementById('filter-vendor').value;
     const invoiceNumber = document.getElementById('filter-invoiceNumber').value;

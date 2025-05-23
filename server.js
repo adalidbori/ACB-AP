@@ -2,13 +2,16 @@ const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
 const path = require("path");
-const Tesseract = require("tesseract.js");
-const pdfParse = require("pdf-parse");
 const fs = require("fs");
 const fetch = require("node-fetch"); // Asegúrate de instalar node-fetch versión 2: npm install node-fetch@2
 const sql = require('mssql');
 const pdf4me = require('pdf4me')
 const https = require('https');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const cookieParser = require("cookie-parser");
+
+
 
 require("dotenv").config();
 const nodemailer = require('nodemailer');
@@ -23,6 +26,7 @@ const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const EMAIL_TO = process.env.EMAIL_TO;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const connection = {
   user: USER,
@@ -76,6 +80,7 @@ const port = 3000;
 
 // Configuración de CORS y parsers
 app.use(cors());
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -436,7 +441,8 @@ app.post("/insert", async (req, res) => {
 });
 
 // Insert SQL Request
-app.post("/insertDocumentIntoDatabase", async (req, res) => {
+app.post("/insertDocumentIntoDatabase", authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID; // viene del token
   try {
     const pool = await testConnection();
     const { docName, timestampName, fileURL, fileType } = req.body;
@@ -453,12 +459,13 @@ app.post("/insertDocumentIntoDatabase", async (req, res) => {
       .input('invoiceTotal', sql.NVarChar(50), '')         // Valor vacío
       .input('invoiceDate', sql.NVarChar(50), '')          // Valor vacío
       .input('dueDate', sql.NVarChar(50), '')              // Valor vacío
+      .input('CompanyID', sql.Int, CompanyID)
       .query(`
       INSERT INTO Invoices 
-        (docName, timestampName, invoiceStatus, fileURL, fileType, vendor, referenceNumber, invoiceTotal, invoiceDate, dueDate, invoiceNumber, checknumber)
+        (docName, timestampName, invoiceStatus, fileURL, fileType, vendor, referenceNumber, invoiceTotal, invoiceDate, dueDate, invoiceNumber, checknumber, CompanyID)
       OUTPUT INSERTED.ID
       VALUES 
-        (@docName, @timestampName, 1, @fileURL, @fileType, @vendor, @referenceNumber, @invoiceTotal, @invoiceDate, @dueDate, @invoiceNumber, @checknumber)
+        (@docName, @timestampName, 1, @fileURL, @fileType, @vendor, @referenceNumber, @invoiceTotal, @invoiceDate, @dueDate, @invoiceNumber, @checknumber, @CompanyID)
   `);
 
     res.json({ message: "Registro insertado exitosamente", ID: result.recordset[0].ID });
@@ -525,7 +532,7 @@ app.post("/notes-upsert", async (req, res) => {
 
 
 //Get Notes Request
-app.get('/invoices/notes/:ID', async (req, res) => {
+app.get('/invoices/notes/:ID', authMiddleware, async (req, res) => {
   try {
     const { ID } = req.params;
     const pool = await testConnection();
@@ -540,13 +547,15 @@ app.get('/invoices/notes/:ID', async (req, res) => {
 });
 
 //Get Duplicated Invoices by InvoiceNumber
-app.post('/getDuplicatedByInvoiceNumber', async (req, res) => {
+app.post('/getDuplicatedByInvoiceNumber', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID; // viene del token
   try {
     const { texto } = req.body;
     const pool = await testConnection();
     const result = await pool.request()
       .input('ID', sql.NVarChar(100), texto)
-      .query("SELECT * FROM Invoices WHERE invoiceNumber = @ID and invoiceStatus != 5 and invoiceStatus != 6"); // Si el status de es archivada (status 5)
+      .input('CompanyID', sql.Int, CompanyID)
+      .query("SELECT * FROM Invoices WHERE invoiceNumber = @ID and invoiceStatus != 5 and invoiceStatus != 6 and CompanyID = @CompanyID"); // Si el status de es archivada (status 5)
     res.json(result.recordset);
   } catch (error) {
     console.error("Error al obtener las notas:", error);
@@ -554,16 +563,19 @@ app.post('/getDuplicatedByInvoiceNumber', async (req, res) => {
   }
 });
 
-app.get('/getDuplicatedInvoices', async (req, res) => {
+app.get('/getDuplicatedInvoices', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID; // viene del token
   try {
     const pool = await testConnection();
 
     // Ejecuta la consulta para obtener los invoiceNumber duplicados
     const result = await pool.request()
+      .input('CompanyID', sql.Int, CompanyID)
       .query(`
         SELECT invoiceNumber, COUNT(*) AS occurrences
         FROM Invoices
         WHERE invoiceStatus IN (1, 2, 3, 4)
+        AND CompanyID = @CompanyID
         GROUP BY invoiceNumber
         HAVING COUNT(*) > 1;
       `);
@@ -578,7 +590,9 @@ app.get('/getDuplicatedInvoices', async (req, res) => {
 
 
 // Get Invoices SQL Request
-app.get('/invoices/status/:invoiceStatus', async (req, res) => {
+app.get('/invoices/status/:invoiceStatus', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID; // viene del token
+
   try {
     const { invoiceStatus } = req.params;
     // Recibimos parámetros opcionales vía query string:
@@ -587,11 +601,12 @@ app.get('/invoices/status/:invoiceStatus', async (req, res) => {
     const pool = await testConnection();
 
     // Consulta base
-    let query = "SELECT * FROM Invoices WHERE invoiceStatus = @invoiceStatus";
+    let query = "SELECT * FROM Invoices WHERE invoiceStatus = @invoiceStatus and CompanyID = @CompanyID";
 
     // Preparar la request y asignar los parámetros
     const request = pool.request();
     request.input('invoiceStatus', sql.Int, invoiceStatus);
+    request.input('CompanyID', sql.Int, CompanyID);
 
     // Agregar filtros si se han proporcionado y asignar comodines en el parámetro
     if (vendor && vendor.trim() !== "") {
@@ -910,16 +925,87 @@ app.post('/send-email', async (req, res) => {
   }
 });
 
+// Middleware de autenticación
+function authMiddleware(req, res, next) {
+  const token = req.cookies.token;
+  if (!token) return res.redirect("/login");
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(403).send("Token inválido");
+  }
+}
+
+// Login
+app.post('/auth', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const pool = await testConnection();
+
+    const query = `
+      SELECT ID, FirstName, WorkEmail, PasswordHash, CompanyID, RoleID
+      FROM UserTable
+      WHERE WorkEmail = @email
+    `;
+
+    const request = pool.request();
+    request.input('email', sql.NVarChar(100), email);
+
+    const result = await request.query(query);
+
+    if (result.recordset.length === 0) {
+      console.log("Invalid Email");
+      return res.status(401).json({ message: "Invalid Email" });
+
+    }
+
+    const user = result.recordset[0];
+
+    const isPasswordValid = await bcrypt.compare(password, user.PasswordHash);
+    if (!isPasswordValid) {
+      console.log("Invalid Pss");
+      return res.status(401).json({ message: "Invalid Pss" });
+    } else {
+      console.log("Valid Pss");
+    }
+
+    // Generar el JWT con userId y CompanyID
+    const token = jwt.sign(
+      { UserID: user.ID, CompanyID: user.CompanyID },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    // Enviar token y datos básicos del usuario
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true, // Solo con HTTPS. Quita esto si estás en localhost sin HTTPS.
+      sameSite: "Strict", // Protege contra CSRF
+      maxAge: 3600000, // 1 hora
+    });
+
+    res.json({ message: "Login exitoso" });
+
+  } catch (error) {
+    console.error("Error en el login:", error);
+    res.status(500).json({ error: "Error al intentar iniciar sesión" });
+  }
+});
+
 
 // Servir archivos estáticos (para ver los archivos subidos)
 app.use("/uploads", express.static(uploadDir));
 
 // Servir el index.html como homepage
-app.get("/", (req, res) => {
+app.get("/", authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.get("/waiting-approval", (req, res) => {
+app.get("/waiting-approval", authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, "waiting-approval.html"));
 });
 
@@ -927,25 +1013,31 @@ app.get("/login", (req, res) => {
   res.sendFile(path.join(__dirname, "login.html"));
 });
 
+app.post("/logout", (req, res) => {
+  res.clearCookie("token");
+  res.json({ message: "Logout exitoso" });
+});
+
+
 app.get("/forgot-password", (req, res) => {
   res.sendFile(path.join(__dirname, "forgot-password.html"));
 });
 
-app.get("/ready-to-pay", (req, res) => {
+app.get("/ready-to-pay", authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, "/ready-to-pay.html"));
 });
 
-app.get("/newindex", (req, res) => {
+app.get("/newindex", authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, "/newindex.html"));
 });
 
-app.get("/paid", (req, res) => {
+app.get("/paid", authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, "/paid.html"));
 });
 
 // Middleware para manejar 404
 app.use((req, res, next) => {
-  res.status(404).send("Lo siento, no se pudo encontrar esa ruta.");
+  res.redirect('/login');  // redirige a la página de login si la ruta no existe
 });
 
 // Iniciar el servidor

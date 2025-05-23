@@ -7,7 +7,7 @@
     <title>Account Payable</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
-
+    
     <!-- Bootstrap 5 JS (no requiere jQuery) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -21,22 +21,30 @@
     <div class="container-fluid p-2">
 
         <!-- Top Cards -->
-        <div class="tabs-container" style="display: flex; align-items: center;">
-            <ul class="tab-list" role="tablist"
-                style="display: flex; gap: 10px; margin: 0; padding: 0; list-style: none;">
-                <li role="tab" aria-selected="false" class="tab" data-tab="in-progress"><i class="bi bi-clock-history">
-                    </i>In Progress</li>
-                <li role="tab" aria-selected="false" class="tab" data-tab="waiting-pproval"><i
-                        class="bi bi-hourglass-split"></i> Waiting Approval</li>
-                <li role="tab" aria-selected="true" class="tab active" data-tab="ready-to-pay"><i
-                        class="bi bi-currency-dollar"></i> Ready to pay</li>
-                <li role="tab" aria-selected="false" class="tab" data-tab="paid"><i class="bi bi-check"></i> Paid</li>
-            </ul>
+        <div class="tabs-container" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center;">
+                <ul class="tab-list" role="tablist"
+                    style="display: flex; gap: 10px; margin: 0; padding: 0; list-style: none;">
+                    <li role="tab" aria-selected="true" class="tab active" data-tab="in-progress"><i
+                            class="bi bi-clock-history"> </i>In Progress</li>
+                    <li role="tab" aria-selected="false" class="tab" data-tab="waiting-pproval"><i
+                            class="bi bi-hourglass-split"></i> Waiting Approval</li>
+                    <li role="tab" aria-selected="false" class="tab" data-tab="ready-to-pay"><i
+                            class="bi bi-currency-dollar"></i> Ready to pay</li>
+                    <li role="tab" aria-selected="false" class="tab" data-tab="paid"><i class="bi bi-check"></i> Paid
+                    </li>
+                </ul>
 
-            <div id="drop-area"
-                style="margin-left: 24px; border: 2px dashed #ccc; padding: 6px 12px; font-size: 21px; height: 100%; visibility: hidden; align-items: center;">
-                <p style="margin: 0;">Drop the file here!</p>
+                <div id="drop-area"
+                    style="margin-left: 24px; border: 2px dashed #ccc; padding: 6px 12px; font-size: 21px; height: 100%; display: flex; align-items: center;">
+                    <p style="margin: 0;">Drop the file here!</p>
+                </div>
             </div>
+
+            <!-- Logout button -->
+            <button class="btn btn-outline-danger btn-sm" onclick="logoutUser()" title="Logout">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
         </div>
         <div id="notification-banner" style="display: none;" class="notification-banner warning">
             <div class="notification-content">
