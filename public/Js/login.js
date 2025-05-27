@@ -38,3 +38,7 @@ function showMessage(msg, type = 'success') {
         el.style.display = 'none';
     }, 4000);
 }
+
+function clearField(fieldId) {
+    document.getElementById(fieldId).value = '';
+}
