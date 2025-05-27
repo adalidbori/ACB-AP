@@ -4,6 +4,11 @@ window.miVariable = "localhost";
 // Función para obtener los invoices y llenar la tabla
 let invoices = [];
 
+document.getElementById("openSettings").addEventListener("click", function () {
+    const targetUrl = "/user-management";
+    window.location.href = targetUrl;
+});
+
 async function updateElement(invoiceId, rowData) {
   // Lista de campos permitidos (deben coincidir con lo que espera el servidor)
   const allowedFields = ['docName', 'invoiceNumber', 'referenceNumber', 'vendor', 'invoiceTotal', 'invoiceDate', 'dueDate'];

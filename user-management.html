@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid rgba(0, 0, 0, 0.125);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+
+        .role-badge {
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            border: 1px solid #dee2e6;
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+
+        .search-input {
+            padding-left: 35px;
+        }
+
+        .table-actions {
+            white-space: nowrap;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tab-content {
+            margin-top: 1.5rem;
+        }
+
+        .signup-form-container {
+            display: flex;
+            justify-content: center;
+        }
+
+        .signup-card {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        @media (max-width: 768px) {
+            .table-responsive {
+                font-size: 0.875rem;
+            }
+
+            .btn-sm {
+                padding: 0.125rem 0.25rem;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-container">
+        <h1 class="text-center mb-4 fw-bold">User Management System</h1>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs nav-fill" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="signup-tab" data-bs-toggle="tab" data-bs-target="#signup"
+                    type="button" role="tab">
+                    <i class="fas fa-user-plus me-2"></i>User Signup
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin" type="button"
+                    role="tab">
+                    <i class="fas fa-users-cog me-2"></i>Admin Panel
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="mainTabContent">
+            <!-- Signup Form Tab -->
+            <div class="tab-pane fade show active" id="signup" role="tabpanel">
+                <div class="signup-form-container">
+                    <div class="card signup-card">
+                        <div class="card-header">
+                            <h3 class="card-title mb-1">Create Account</h3>
+                            <p class="text-muted mb-0">Fill in the information below to create a new user account.</p>
+                        </div>
+                        <div class="card-body">
+                            <form id="signupForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="firstName" class="form-label">First Name *</label>
+                                        <input type="text" class="form-control" id="firstName" placeholder="John"
+                                            required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="lastName" class="form-label">Last Name *</label>
+                                        <input type="text" class="form-control" id="lastName" placeholder="Doe"
+                                            required>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email *</label>
+                                    <input type="email" class="form-control" id="email"
+                                        placeholder="john.doe@example.com" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="role" class="form-label">Role *</label>
+                                    <select class="form-select" id="role" required>
+                                        <option value="">Select a role</option>
+                                        <option value="User">User</option>
+                                        <option value="Admin">Admin</option>
+                                        <option value="Manager">Manager</option>
+                                    </select>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100" id="submitBtn">
+                                    <span id="submitText">Create Account</span>
+                                    <span id="submitSpinner"
+                                        class="spinner-border spinner-border-sm ms-2 d-none"></span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Panel Tab -->
+            <div class="tab-pane fade" id="admin" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title mb-1">
+                            <i class="fas fa-users me-2"></i>User Management
+                        </h3>
+                        <p class="text-muted mb-0">Manage all users in the system. You can view, edit, and delete user
+                            accounts.</p>
+                    </div>
+                    <div class="card-body">
+                        <!-- Search Bar -->
+                        <div class="search-container">
+                            <div class="position-relative" style="max-width: 400px;">
+                                <i class="fas fa-search search-icon"></i>
+                                <input type="text" class="form-control search-input" id="searchInput"
+                                    placeholder="Search users by name, email, or role...">
+                            </div>
+                        </div>
+
+                        <!-- Users Table -->
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody">
+                                    <!-- Users will be populated here by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <input type="hidden" id="editUserId">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="editFirstName" class="form-label">First Name</label>
+                                <input type="text" class="form-control" id="editFirstName" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editLastName" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="editLastName" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="editEmail" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editRole" class="form-label">Role</label>
+                            <select class="form-select" id="editRole" required>
+                                <option value="User">User</option>
+                                <option value="Admin">Admin</option>
+                                <option value="Manager">Manager</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editStatus" class="form-label">Status</label>
+                            <select class="form-select" id="editStatus" required>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveUserBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this user account?</p>
+                    <p class="text-muted">This action cannot be undone. This will permanently delete the user account
+                        for <strong id="deleteUserName"></strong>.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // User data storage
+        let users = [
+            {
+                id: '1',
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john.doe@example.com',
+                role: 'User',
+                status: 'active',
+                createdAt: '2024-01-15'
+            },
+            {
+                id: '2',
+                firstName: 'Jane',
+                lastName: 'Smith',
+                email: 'jane.smith@example.com',
+                role: 'Admin',
+                status: 'active',
+                createdAt: '2024-01-10'
+            },
+            {
+                id: '3',
+                firstName: 'Bob',
+                lastName: 'Johnson',
+                email: 'bob.johnson@example.com',
+                role: 'User',
+                status: 'inactive',
+                createdAt: '2024-01-05'
+            }
+        ];
+
+        let currentEditingUserId = null;
+        let currentDeletingUserId = null;
+
+        // Utility functions
+        function generateId() {
+            return Math.random().toString(36).substr(2, 9);
+        }
+
+        function getCurrentDate() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function showToast(message, type = 'success') {
+            const toastContainer = document.querySelector('.toast-container');
+            const toastId = 'toast-' + Date.now();
+
+            const toastHtml = `
+                <div class="toast fade-in" id="${toastId}" role="alert">
+                    <div class="toast-header">
+                        <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'exclamation-circle text-danger'} me-2"></i>
+                        <strong class="me-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+
+            // Remove toast element after it's hidden
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        }
+
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // Render functions
+        function renderUsers(usersToRender = users) {
+            const tbody = document.getElementById('usersTableBody');
+
+            if (usersToRender.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="fas fa-users fa-2x mb-2 d-block"></i>
+                            No users found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = usersToRender.map(user => `
+                <tr>
+                    <td class="fw-medium">${user.firstName} ${user.lastName}</td>
+                    <td>${user.email}</td>
+                    <td><span class="role-badge">${user.role}</span></td>
+                    <td><span class="status-badge status-${user.status}">${user.status.charAt(0).toUpperCase() + user.status.slice(1)}</span></td>
+                    <td>${user.createdAt}</td>
+                    <td class="text-end table-actions">
+                        <button class="btn btn-outline-primary btn-sm me-1" onclick="editUser('${user.id}')" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteUser('${user.id}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // User management functions
+        function addUser(userData) {
+            const newUser = {
+                ...userData,
+                id: generateId(),
+                createdAt: getCurrentDate()
+            };
+            users.push(newUser);
+            renderUsers();
+            return newUser;
+        }
+
+        function updateUser(id, updates) {
+            const userIndex = users.findIndex(user => user.id === id);
+            if (userIndex !== -1) {
+                users[userIndex] = { ...users[userIndex], ...updates };
+                renderUsers();
+                return users[userIndex];
+            }
+            return null;
+        }
+
+        function removeUser(id) {
+            users = users.filter(user => user.id !== id);
+            renderUsers();
+        }
+
+        function findUser(id) {
+            return users.find(user => user.id === id);
+        }
+
+        // Event handlers
+        function handleSignupSubmit(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const submitSpinner = document.getElementById('submitSpinner');
+
+            // Get form data
+            const formData = {
+                firstName: document.getElementById('firstName').value.trim(),
+                lastName: document.getElementById('lastName').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                role: document.getElementById('role').value,
+                status: 'active'
+            };
+
+            // Validation
+            if (!formData.firstName || !formData.lastName || !formData.email || !formData.role) {
+                showToast('Please fill in all required fields.', 'error');
+                return;
+            }
+
+            if (!validateEmail(formData.email)) {
+                showToast('Please enter a valid email address.', 'error');
+                return;
+            }
+
+            // Check if email already exists
+            if (users.some(user => user.email.toLowerCase() === formData.email.toLowerCase())) {
+                showToast('A user with this email already exists.', 'error');
+                return;
+            }
+
+            // Show loading state
+            submitBtn.disabled = true;
+            submitText.textContent = 'Creating Account...';
+            submitSpinner.classList.remove('d-none');
+
+            // Simulate API call
+            setTimeout(() => {
+                try {
+                    addUser(formData);
+                    showToast('User account created successfully!');
+
+                    // Reset form
+                    document.getElementById('signupForm').reset();
+                } catch (error) {
+                    showToast('Failed to create user account.', 'error');
+                } finally {
+                    // Reset button state
+                    submitBtn.disabled = false;
+                    submitText.textContent = 'Create Account';
+                    submitSpinner.classList.add('d-none');
+                }
+            }, 1000);
+        }
+
+        function handleSearch() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filteredUsers = users.filter(user =>
+                user.firstName.toLowerCase().includes(searchTerm) ||
+                user.lastName.toLowerCase().includes(searchTerm) ||
+                user.email.toLowerCase().includes(searchTerm) ||
+                user.role.toLowerCase().includes(searchTerm)
+            );
+            renderUsers(filteredUsers);
+        }
+
+        function editUser(id) {
+            const user = findUser(id);
+            if (!user) return;
+
+            currentEditingUserId = id;
+
+            // Populate form
+            document.getElementById('editUserId').value = user.id;
+            document.getElementById('editFirstName').value = user.firstName;
+            document.getElementById('editLastName').value = user.lastName;
+            document.getElementById('editEmail').value = user.email;
+            document.getElementById('editRole').value = user.role;
+            document.getElementById('editStatus').value = user.status;
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+            modal.show();
+        }
+
+        function saveUser() {
+            if (!currentEditingUserId) return;
+
+            const updates = {
+                firstName: document.getElementById('editFirstName').value.trim(),
+                lastName: document.getElementById('editLastName').value.trim(),
+                email: document.getElementById('editEmail').value.trim(),
+                role: document.getElementById('editRole').value,
+                status: document.getElementById('editStatus').value
+            };
+
+            // Validation
+            if (!updates.firstName || !updates.lastName || !updates.email || !updates.role) {
+                showToast('Please fill in all required fields.', 'error');
+                return;
+            }
+
+            if (!validateEmail(updates.email)) {
+                showToast('Please enter a valid email address.', 'error');
+                return;
+            }
+
+            // Check if email already exists (excluding current user)
+            if (users.some(user => user.id !== currentEditingUserId && user.email.toLowerCase() === updates.email.toLowerCase())) {
+                showToast('A user with this email already exists.', 'error');
+                return;
+            }
+
+            updateUser(currentEditingUserId, updates);
+            showToast('User updated successfully!');
+
+            // Hide modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+            modal.hide();
+
+            currentEditingUserId = null;
+        }
+
+        function deleteUser(id) {
+            const user = findUser(id);
+            if (!user) return;
+
+            currentDeletingUserId = id;
+            document.getElementById('deleteUserName').textContent = `${user.firstName} ${user.lastName}`;
+
+            const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+            modal.show();
+        }
+
+        function confirmDelete() {
+            if (!currentDeletingUserId) return;
+
+            removeUser(currentDeletingUserId);
+            showToast('User deleted successfully!');
+
+            // Hide modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteUserModal'));
+            modal.hide();
+
+            currentDeletingUserId = null;
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initial render
+            renderUsers();
+
+            // Form submissions
+            document.getElementById('signupForm').addEventListener('submit', handleSignupSubmit);
+            document.getElementById('saveUserBtn').addEventListener('click', saveUser);
+            document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
+
+            // Search functionality
+            document.getElementById('searchInput').addEventListener('input', handleSearch);
+
+            // Tab change handler to refresh admin panel
+            document.getElementById('admin-tab').addEventListener('shown.bs.tab', function () {
+                renderUsers();
+                document.getElementById('searchInput').value = '';
+            });
+        });
+    </script>
+</body>
+
+</html>

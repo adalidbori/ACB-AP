@@ -40,9 +40,16 @@
             </div>
 
             <!-- Logout button -->
-            <button class="btn btn-outline-danger btn-sm" onclick="logoutUser()" title="Logout">
-                <i class="bi bi-box-arrow-right"></i> Logout
-            </button>
+            <div>
+                <button id="openSettings" class="btn btn-outline-secondary btn-sm" title="Configuraciones">
+                    <i class="bi bi-gear-fill"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="logoutUser()" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+            </div>
+
+
         </div>
 
         <div id="notification-banner" style="display: none;" class="notification-banner warning">

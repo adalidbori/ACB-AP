@@ -644,11 +644,11 @@ app.get('/invoices/status/:invoiceStatus', authMiddleware, async (req, res) => {
 
 
 app.get('/invoices/status/:invoiceStatus', authMiddleware, async (req, res) => {
-   const CompanyID = req.user.CompanyID; // viene del token
+  const CompanyID = req.user.CompanyID; // viene del token
   try {
     const pool = await testConnection();
     const result = await pool.request()
-    .input('CompanyID', sql.Int, CompanyID)
+      .input('CompanyID', sql.Int, CompanyID)
       .query(`
         SELECT invoiceNumber, COUNT(*) AS occurrences
         FROM Invoices
@@ -672,7 +672,7 @@ app.get('/getCheckNumber', authMiddleware, async (req, res) => {
 
     // Ejecuta la consulta para obtener los invoiceNumber duplicados
     const result = await pool.request()
-    .input('CompanyID', sql.Int, CompanyID)
+      .input('CompanyID', sql.Int, CompanyID)
       .query(`
         select top 1 * from checks_db WHERE CompanyID = @CompanyID order by ID DESC
       `);
@@ -801,8 +801,8 @@ app.put('/editCheckNumber', authMiddleware, async (req, res) => {
 
     // Verificar si existen registros en checks_db
     const checkDbResult = await pool.request()
-    .input('CompanyID', sql.Int, CompanyID)
-    .query(`SELECT COUNT(*) AS RecordCount FROM checks_db WHERE CompanyID = @CompanyID`);
+      .input('CompanyID', sql.Int, CompanyID)
+      .query(`SELECT COUNT(*) AS RecordCount FROM checks_db WHERE CompanyID = @CompanyID`);
     const recordCount = checkDbResult.recordset[0].RecordCount;
 
     if (recordCount > 0) {
@@ -978,6 +978,29 @@ function authMiddleware(req, res, next) {
   }
 }
 
+function authorizeRole(requiredRole) {
+  return (req, res, next) => {
+    const token = req.cookies.token;
+    if (!token) {
+      return res.status(401).send("No se proporcionó token.");
+    }
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      console.log(decoded.Role);
+      if (decoded.Role !== requiredRole) {
+        return res.status(403).send("Acceso denegado. No tienes permisos.");
+      }
+
+      req.user = decoded; // Opcional: guardar datos del usuario en req
+      next();
+    } catch (error) {
+      return res.status(401).send("Token inválido.");
+    }
+  };
+}
+
+
 // Login
 app.post('/auth', async (req, res) => {
   try {
@@ -1014,7 +1037,7 @@ app.post('/auth', async (req, res) => {
 
     // Generar el JWT con userId y CompanyID
     const token = jwt.sign(
-      { UserID: user.ID, CompanyID: user.CompanyID },
+      { UserID: user.ID, CompanyID: user.CompanyID, Role: user.RoleID },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -1077,6 +1100,10 @@ app.get("/paid", authMiddleware, (req, res) => {
 // Middleware para manejar 404
 app.use((req, res, next) => {
   res.redirect('/login');  // redirige a la página de login si la ruta no existe
+});
+
+app.get("/user-management", authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, "user-management.html"));
 });
 
 // Iniciar el servidor
