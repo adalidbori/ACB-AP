@@ -2,6 +2,49 @@
 CREATE DATABASE accountpayable;
 GO
 
+-- Crear tabla Company
+CREATE TABLE Company (
+    ID INT IDENTITY(1,1) PRIMARY KEY,
+    CompanyName NVARCHAR(255) NOT NULL,
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- Crear tabla Role
+CREATE TABLE Role (
+    ID INT IDENTITY(1,1) PRIMARY KEY,
+    RoleName NVARCHAR(100) NOT NULL UNIQUE,
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- Crear tabla UserTable
+CREATE TABLE UserTable (
+    ID INT IDENTITY(1,1) PRIMARY KEY,
+    FirstName NVARCHAR(100) NOT NULL,
+    LastName NVARCHAR(100) NOT NULL,
+    WorkEmail NVARCHAR(255) NOT NULL UNIQUE,
+    Phone NVARCHAR(20),
+    PasswordHash NVARCHAR(255) NOT NULL,
+    CompanyID INT NOT NULL,
+    RoleID INT NOT NULL,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (CompanyID) REFERENCES Company(ID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (RoleID) REFERENCES Role(ID) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE checks_db (
+    ID INT IDENTITY(1,1) PRIMARY KEY,
+    check_number INT NOT NULL,
+	CompanyID INT NOT NULL UNIQUE,
+    [Timestamp] DATETIME DEFAULT GETDATE() 
+	FOREIGN KEY (CompanyID) REFERENCES Company(ID) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+
+CREATE TABLE InvoiceStatus(
+	ID INT IDENTITY(1,1) PRIMARY KEY,
+	invoiceStatusName NVARCHAR(50),
+	invoiceStatusCode int);
+go
 
 -- Crear la tabla (por ejemplo, Invoices)
 CREATE TABLE Invoices (
@@ -45,7 +88,6 @@ BEGIN
 END;
 GO
 
-
 CREATE TABLE Notes (
     ID INT IDENTITY(1,1) PRIMARY KEY,       -- ID autoincremental
 	invoiceID INT,
@@ -55,123 +97,6 @@ CREATE TABLE Notes (
 	FOREIGN KEY (invoiceID) REFERENCES Invoices(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 GO
-
-CREATE TABLE checks_db (
-    ID INT IDENTITY(1,1) PRIMARY KEY,
-    check_number INT NOT NULL,
-    [Timestamp] DATETIME DEFAULT GETDATE() 
-);
-
-
-CREATE TABLE InvoiceStatus(
-	ID INT IDENTITY(1,1) PRIMARY KEY,
-	invoiceStatusName NVARCHAR(50),
-	invoiceStatusCode int);
-go
-INSERT INTO checks_db (check_number)
-VALUES  (1);
-go
-
-select top 1 * from checks_db order by ID DESC
-go
-
-update checks_db set check_number = 3
-go
-
-delete from checks_db
-go
-
-
-
--- Insertar usuario de ejemplo
-INSERT INTO InvoiceStatus (invoiceStatusName, invoiceStatusCode)
-VALUES  ('Pending to Review', 1);
-INSERT INTO InvoiceStatus (invoiceStatusName, invoiceStatusCode)
-VALUES  ('Waiting Approval', 2);
-INSERT INTO InvoiceStatus (invoiceStatusName, invoiceStatusCode)
-VALUES  ('Ready to pay', 3);
-INSERT INTO InvoiceStatus (invoiceStatusName, invoiceStatusCode)
-VALUES  ('Paid', 4);
-INSERT INTO InvoiceStatus (invoiceStatusName, invoiceStatusCode)
-VALUES  ('Archived', 5);
-INSERT INTO InvoiceStatus (invoiceStatusName, invoiceStatusCode)
-VALUES  ('Deleted', 6);
-
-select * from InvoiceStatus
-go
-
-update Invoices set invoiceStatus = 4 where ID = 1
-go
-
-SELECT invoiceNumber, COUNT(*) AS occurrences
-FROM Invoices
-WHERE invoiceStatus IN (1, 2, 3, 4)
-  AND invoiceNumber <> ''
-GROUP BY invoiceNumber
-HAVING COUNT(*) > 1;
-GO
-
-select * from Notes
-go
-
-select * from Invoices
-go
-
-
-delete from InvoiceStatus
-go
-
-delete from Notes
-go
-
-truncate table Invoices
-go
-
-DROP TABLE Invoices;
-go
-
-DROP TABLE Notes;
-go
-
-MERGE INTO Notes AS target
-USING (SELECT 1 AS invoiceID, 'test' AS content, 3 AS userID) AS source
-ON target.invoiceID = source.invoiceID
-WHEN MATCHED THEN
-    UPDATE SET content = source.content
-WHEN NOT MATCHED THEN
-    INSERT (invoiceID, content, userID)
-    VALUES (source.invoiceID, source.content, source.userID);
-GO
-
-
--- Crear tabla Company
-CREATE TABLE Company (
-    ID INT IDENTITY(1,1) PRIMARY KEY,
-    CompanyName NVARCHAR(255) NOT NULL,
-    CreatedAt DATETIME DEFAULT GETDATE()
-);
-
--- Crear tabla Role
-CREATE TABLE Role (
-    ID INT IDENTITY(1,1) PRIMARY KEY,
-    RoleName NVARCHAR(100) NOT NULL UNIQUE,
-    CreatedAt DATETIME DEFAULT GETDATE()
-);
-
--- Crear tabla UserTable
-CREATE TABLE UserTable (
-    ID INT IDENTITY(1,1) PRIMARY KEY,
-    FirstName NVARCHAR(100) NOT NULL,
-    LastName NVARCHAR(100) NOT NULL,
-    WorkEmail NVARCHAR(255) NOT NULL UNIQUE,
-    Phone NVARCHAR(20),
-    PasswordHash NVARCHAR(255) NOT NULL,
-    CompanyID INT NOT NULL,
-    RoleID INT NOT NULL,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (CompanyID) REFERENCES Company(ID) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (RoleID) REFERENCES Role(ID) ON DELETE CASCADE ON UPDATE CASCADE
-);
 
 -- Insertar datos iniciales para Role
 INSERT INTO Role (RoleName) VALUES ('Admin');
@@ -184,9 +109,8 @@ INSERT INTO Company (CompanyName) VALUES ('Microsoft');
 -- Insertar usuario de ejemplo
 INSERT INTO UserTable (FirstName, LastName, WorkEmail, Phone, PasswordHash, CompanyID, RoleID)
 VALUES 
-('Adalid', 'Bori', 'adalid@microsoft.com', '123-456-7890', '$2a$10$XEDCaTNVrQRZ/erKDsCnmejguLYd.a7zdWq09Qy4f9g0zeCcCR..u', 3, 1);
-
-
+('Adalid', 'Bori', 'adalid@microsoft.com', '123-456-7890', '$2a$10$XEDCaTNVrQRZ/erKDsCnmejguLYd.a7zdWq09Qy4f9g0zeCcCR..u', 4, 1);
+go
 
 
 

@@ -406,7 +406,8 @@ app.post("/chatgpt", async (req, res) => {
 });
 
 // Insert SQL Request
-app.post("/insert", async (req, res) => {
+app.post("/insert", authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID; // viene del token
   try {
     const pool = await testConnection();
     const { docName, timestampName, vendor, referenceNumber, invoiceNumber, invoiceStatus, vendorAddress, invoiceDate, dueDate, fileURL, fileType, invoiceTotal } = req.body;
@@ -425,12 +426,13 @@ app.post("/insert", async (req, res) => {
       .input('fileURL', sql.NVarChar(255), fileURL)
       .input('fileType', sql.NVarChar(50), fileType)
       .input('invoiceTotal', sql.NVarChar(50), invoiceTotal)
+      .input('CompanyID', sql.Int, CompanyID)
       .query(`
         INSERT INTO Invoices 
-          (docName, timestampName, vendor, referenceNumber, invoiceNumber, invoiceStatus, vendorAddress, invoiceDate, dueDate, fileURL, fileType, invoiceTotal, checknumber)
+          (docName, timestampName, vendor, referenceNumber, invoiceNumber, invoiceStatus, vendorAddress, invoiceDate, dueDate, fileURL, fileType, invoiceTotal, checknumber, CompanyID)
         OUTPUT INSERTED.ID insertedId
         VALUES 
-          (@docName, @timestampName, @vendor, @referenceNumber, @invoiceNumber, @invoiceStatus, @vendorAddress, @invoiceDate, @dueDate, @fileURL, @fileType, @invoiceTotal, @checknumber)
+          (@docName, @timestampName, @vendor, @referenceNumber, @invoiceNumber, @invoiceStatus, @vendorAddress, @invoiceDate, @dueDate, @fileURL, @fileType, @invoiceTotal, @checknumber, @CompanyID)
       `);
 
     res.json({ message: "Registro insertado exitosamente", invoiceId: result.recordset[0].insertedId });
@@ -477,7 +479,7 @@ app.post("/insertDocumentIntoDatabase", authMiddleware, async (req, res) => {
 
 
 // Insert SQL Request
-app.post("/company/insert/:CompanyName", async (req, res) => {
+/* app.post("/company/insert/:CompanyName", async (req, res) => {
   try {
     const { CompanyName } = req.params;
     const pool = await testConnection();
@@ -496,10 +498,11 @@ app.post("/company/insert/:CompanyName", async (req, res) => {
     console.error("Error al insertar registro:", error);
     res.status(500).json({ error: "Error al insertar registro" });
   }
-});
+}); */
 
 // Insert Update Notes Request
-app.post("/notes-upsert", async (req, res) => {
+app.post("/notes-upsert", authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID; // viene del token
   try {
     const pool = await testConnection();
     const { invoiceID, content, userID } = req.body;
@@ -507,19 +510,25 @@ app.post("/notes-upsert", async (req, res) => {
 
     const query = `
       MERGE INTO Notes AS target
-      USING (SELECT @invoiceID AS invoiceID) AS source
+      USING (
+          SELECT i.ID AS invoiceID
+          FROM Invoices i
+          WHERE i.ID = @invoiceID AND i.CompanyID = @CompanyID
+      ) AS source
       ON target.invoiceID = source.invoiceID
       WHEN MATCHED THEN
         UPDATE SET content = @content
       WHEN NOT MATCHED THEN
         INSERT (invoiceID, content, userID)
         VALUES (@invoiceID, @content, @userID);
+
     `;
     for (const id of idsArray) {
       await pool.request()
         .input('invoiceID', sql.Int, id)
         .input('content', sql.NVarChar(sql.MAX), content)
         .input('userID', sql.Int, userID)
+        .input('CompanyID', sql.Int, CompanyID)
         .query(query);
     }
 
@@ -533,12 +542,14 @@ app.post("/notes-upsert", async (req, res) => {
 
 //Get Notes Request
 app.get('/invoices/notes/:ID', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID;
   try {
     const { ID } = req.params;
     const pool = await testConnection();
     const result = await pool.request()
       .input('ID', sql.Int, ID)
-      .query("SELECT * FROM Notes WHERE invoiceID = @ID"); // Usar invoiceID para la relación
+      .input('CompanyID', sql.Int, CompanyID)
+      .query("SELECT n.* FROM Notes n INNER JOIN Invoices i ON n.invoiceID = i.ID WHERE n.invoiceID = @ID AND i.CompanyID = @CompanyID;"); // Usar invoiceID para la relación
     res.json(result.recordset);
   } catch (error) {
     console.error("Error al obtener las notas:", error);
@@ -630,14 +641,18 @@ app.get('/invoices/status/:invoiceStatus', authMiddleware, async (req, res) => {
     res.status(500).json({ error: "Error al obtener los invoices" });
   }
 });
-app.get('/invoices/status/:invoiceStatus', async (req, res) => {
+
+
+app.get('/invoices/status/:invoiceStatus', authMiddleware, async (req, res) => {
+   const CompanyID = req.user.CompanyID; // viene del token
   try {
     const pool = await testConnection();
     const result = await pool.request()
+    .input('CompanyID', sql.Int, CompanyID)
       .query(`
         SELECT invoiceNumber, COUNT(*) AS occurrences
         FROM Invoices
-        WHERE invoiceStatus IN (1, 2, 3, 4) AND invoiceNumber <> ''
+        WHERE invoiceStatus IN (1, 2, 3, 4) AND invoiceNumber <> '' AND CompanyID = @CompanyID
         GROUP BY invoiceNumber
         HAVING COUNT(*) > 1;
       `);
@@ -650,14 +665,16 @@ app.get('/invoices/status/:invoiceStatus', async (req, res) => {
 
 
 // Get Duplicated Invoices SQL Request
-app.get('/getCheckNumber', async (req, res) => {
+app.get('/getCheckNumber', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID;
   try {
     const pool = await testConnection();
 
     // Ejecuta la consulta para obtener los invoiceNumber duplicados
     const result = await pool.request()
+    .input('CompanyID', sql.Int, CompanyID)
       .query(`
-        select top 1 * from checks_db order by ID DESC
+        select top 1 * from checks_db WHERE CompanyID = @CompanyID order by ID DESC
       `);
     // Enviar el primer registro (o null si no hay resultados)
     const record = result.recordset.length > 0 ? result.recordset[0] : null;
@@ -670,7 +687,8 @@ app.get('/getCheckNumber', async (req, res) => {
 
 
 // Edit vendors
-app.put('/editVendors', async (req, res) => {
+app.put('/editVendors', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID;
   try {
     const { idsToEdit, valor } = req.body;
 
@@ -688,7 +706,8 @@ app.put('/editVendors', async (req, res) => {
     const idsParam = idsArray.join(',');
     await pool.request()
       .input('valor', sql.VarChar, valor)
-      .query(`UPDATE Invoices SET vendor = @valor WHERE ID IN (${idsParam})`);
+      .input('CompanyID', sql.Int, CompanyID)
+      .query(`UPDATE Invoices SET vendor = @valor WHERE ID IN (${idsParam})  AND CompanyID = @CompanyID`);
 
     res.status(200).json({ success: true, updated: idsArray.length });
   } catch (error) {
@@ -698,7 +717,8 @@ app.put('/editVendors', async (req, res) => {
 });
 
 //Edit check number on PAID screen
-app.put('/editCheckNumberOnPaid', async (req, res) => {
+app.put('/editCheckNumberOnPaid', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID;
   try {
     const { idsToEdit, valor } = req.body;
 
@@ -725,16 +745,21 @@ app.put('/editCheckNumberOnPaid', async (req, res) => {
       const idsParam = idsArray.join(',');
       await pool.request()
         .input('valor', sql.VarChar, valor)
-        .query(`UPDATE Invoices SET checknumber = @valor WHERE ID IN (${idsParam})`);
+        .input('CompanyID', sql.Int, CompanyID)
+        .query(`UPDATE Invoices SET checknumber = @valor WHERE ID IN (${idsParam}) AND CompanyID = @CompanyID`);
 
       // Actualizar el número de cheque en checks_db
       await pool.request()
         .input('valor', sql.Int, numero) // Usar Int para el número
+        .input('CompanyID', sql.Int, CompanyID)
         .query(`
-          IF EXISTS (SELECT 1 FROM checks_db)
-            UPDATE checks_db SET check_number = @valor
+          IF EXISTS (SELECT 1 FROM checks_db WHERE CompanyID = @CompanyID)
+              UPDATE checks_db 
+              SET check_number = @valor 
+              WHERE CompanyID = @CompanyID;
           ELSE
-            INSERT INTO checks_db (check_number) VALUES (@valor)
+              INSERT INTO checks_db (check_number, CompanyID) 
+              VALUES (@valor, @CompanyID);
         `);
 
       res.status(200).json({ success: true, updated: idsArray.length });
@@ -752,7 +777,8 @@ app.put('/editCheckNumberOnPaid', async (req, res) => {
 
 
 // Edit Status to Paid and add check number
-app.put('/editCheckNumber', async (req, res) => {
+app.put('/editCheckNumber', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID;
   try {
     const { idsToEdit, valor } = req.body;
 
@@ -770,22 +796,27 @@ app.put('/editCheckNumber', async (req, res) => {
     const idsParam = idsArray.join(',');
     await pool.request()
       .input('valor', sql.VarChar, valor)
-      .query(`UPDATE Invoices SET checknumber = @valor, invoiceStatus = 4 WHERE ID IN (${idsParam})`);
+      .input('CompanyID', sql.Int, CompanyID)
+      .query(`UPDATE Invoices SET checknumber = @valor, invoiceStatus = 4 WHERE ID IN (${idsParam}) AND CompanyID = @CompanyID`);
 
     // Verificar si existen registros en checks_db
-    const checkDbResult = await pool.request().query(`SELECT COUNT(*) AS RecordCount FROM checks_db`);
+    const checkDbResult = await pool.request()
+    .input('CompanyID', sql.Int, CompanyID)
+    .query(`SELECT COUNT(*) AS RecordCount FROM checks_db WHERE CompanyID = @CompanyID`);
     const recordCount = checkDbResult.recordset[0].RecordCount;
 
     if (recordCount > 0) {
       // Actualizar todos los registros en checks_db
       await pool.request()
         .input('valor', sql.VarChar, valor)
-        .query(`UPDATE checks_db SET check_number = @valor`);
+        .input('CompanyID', sql.Int, CompanyID)
+        .query(`UPDATE checks_db SET check_number = @valor WHERE CompanyID = @CompanyID`);
     } else {
       // Insertar un nuevo registro en checks_db
       await pool.request()
         .input('valor', sql.VarChar, valor)
-        .query(`INSERT INTO checks_db (check_number) VALUES (@valor)`); // Ajusta los nombres de las columnas según tu tabla
+        .input('CompanyID', sql.Int, CompanyID)
+        .query(`INSERT INTO checks_db (check_number, CompanyID) VALUES (@valor, @CompanyID);`); // Ajusta los nombres de las columnas según tu tabla
     }
 
     res.status(200).json({ success: true, updated: idsArray.length });
@@ -797,7 +828,8 @@ app.put('/editCheckNumber', async (req, res) => {
 
 
 // Remove Invoices
-app.delete('/invoices', async (req, res) => {
+app.delete('/invoices', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID;
   try {
     const { ids } = req.body;
     if (!ids) {
@@ -809,7 +841,8 @@ app.delete('/invoices', async (req, res) => {
     for (const id of idsArray) {
       await pool.request()
         .input('id', sql.Int, id)
-        .query('DELETE FROM Invoices WHERE ID = @id');
+        .input('CompanyID', sql.Int, CompanyID)
+        .query('DELETE FROM Invoices WHERE ID = @id AND CompanyID = @CompanyID');
     }
 
     res.json({ message: "Registros eliminados exitosamente" });
@@ -819,7 +852,8 @@ app.delete('/invoices', async (req, res) => {
   }
 });
 
-app.put('/invoices/update/:invoiceStatus', async (req, res) => {
+app.put('/invoices/update/:invoiceStatus', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID;
   try {
     const { invoiceStatus } = req.params;
     const { ids } = req.body;
@@ -829,10 +863,11 @@ app.put('/invoices/update/:invoiceStatus', async (req, res) => {
 
     const pool = await testConnection();
     const idsList = ids.map(id => Number(id)).join(',');
-    const query = `UPDATE Invoices SET invoiceStatus = @invoiceStatus WHERE ID IN (${idsList})`;
+    const query = `UPDATE Invoices SET invoiceStatus = @invoiceStatus WHERE ID IN (${idsList}) AND CompanyID = @CompanyID`;
 
     await pool.request()
       .input('invoiceStatus', sql.Int, invoiceStatus)
+      .input('CompanyID', sql.Int, CompanyID)
       .query(query);
 
     res.json({ message: "Registros actualizados correctamente" });
@@ -843,7 +878,8 @@ app.put('/invoices/update/:invoiceStatus', async (req, res) => {
 });
 
 // Update Invoice
-app.put('/invoices/:id', async (req, res) => {
+app.put('/invoices/:id', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID;
   try {
     const { id } = req.params;
     const { field, value } = req.body;
@@ -852,10 +888,11 @@ app.put('/invoices/:id', async (req, res) => {
       return res.status(400).json({ error: "Campo no permitido" });
     }
     const pool = await testConnection();
-    const query = `UPDATE Invoices SET ${field} = @value WHERE ID = @id`;
+    const query = `UPDATE Invoices SET ${field} = @value WHERE ID = @id AND CompanyID = @CompanyID`;
     await pool.request()
       .input('value', sql.NVarChar, value)
       .input('id', sql.Int, id)
+      .input('CompanyID', sql.Int, CompanyID)
       .query(query);
     res.json({ message: "Registro actualizado correctamente" });
   } catch (error) {
@@ -865,7 +902,8 @@ app.put('/invoices/:id', async (req, res) => {
 });
 
 //Primera actualizacion despues de subir el documento e ingresar primeros datos a la base de datos
-app.put('/invoiceFirstUpdate', async (req, res) => {
+app.put('/invoiceFirstUpdate', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID;
   try {
     const pool = await testConnection();
     const { invoiceID, vendor, referenceNumber, invoiceNumber, vendorAddress, invoiceDate, dueDate, invoiceTotal } = req.body;
@@ -880,6 +918,7 @@ app.put('/invoiceFirstUpdate', async (req, res) => {
       .input('checknumber', sql.NVarChar(50), '')
       .input('invoiceTotal', sql.NVarChar(50), invoiceTotal)
       .input('invoiceID', sql.Int, invoiceID)
+      .input('CompanyID', sql.Int, CompanyID)
       .query(`
     UPDATE Invoices
     SET vendor = @vendor,
@@ -890,7 +929,7 @@ app.put('/invoiceFirstUpdate', async (req, res) => {
         dueDate = @dueDate,
         invoiceTotal = @invoiceTotal,
         checknumber = @checknumber
-    WHERE ID = @invoiceID
+    WHERE ID = @invoiceID AND CompanyID = @CompanyID
   `);
 
 
@@ -998,7 +1037,7 @@ app.post('/auth', async (req, res) => {
 
 
 // Servir archivos estáticos (para ver los archivos subidos)
-app.use("/uploads", express.static(uploadDir));
+app.use("/uploads", authMiddleware, express.static(uploadDir));
 
 // Servir el index.html como homepage
 app.get("/", authMiddleware, (req, res) => {

@@ -107,7 +107,7 @@ async function uploadFile(file) {
     timestampName = data.filename;
     console.log(data);
 
-    invoiceID = await insertDocumentIntoDatabase(file.name, timestampName, file.type, data.url)
+    invoiceID = await insertDocumentIntoDatabase(file.name, timestampName, file.type, data.url);
 
     // Obtenemos el texto extraído del archivo
     const operationn = await operationLocation(data.url); // Obtener el operationLocation
@@ -355,9 +355,6 @@ async function loadInvoices() {
     const vendor = document.getElementById('filter-vendor').value;
     const invoiceNumber = document.getElementById('filter-invoiceNumber').value;
     const invoiceDate = document.getElementById('filter-invoiceDate').value;
-    console.log("Vendor: " + vendor);
-    console.log("invoiceNumber: " + invoiceNumber);
-    console.log("invoiceDate: " + invoiceDate);
     const params = new URLSearchParams({
       vendor,
       invoiceNumber,
