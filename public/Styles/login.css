@@ -13,7 +13,7 @@ body {
 .login-container {
     width: 100%;
     height: 100vh;
-    background-image: url('/uploads/bg-image-1.png');
+    background-image: url('bg-image-1.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
