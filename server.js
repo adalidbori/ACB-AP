@@ -978,17 +978,34 @@ app.post('/send-email', async (req, res) => {
   }
 });
 
-app.post('/saveInvitation', authMiddleware, authorizeRole(1), (req, res) => {
+app.post('/saveInvitation', authMiddleware, authorizeRole(1), async (req, res) => {
   const { WorkEmail, CompanyID, RoleID } = req.body;
+  try {
+    const token = jwt.sign(
+      { WorkEmail, CompanyID, RoleID },
+      JWT_SECRET,
+      { expiresIn: '10d' }
+    );
 
-  console.log('Datos recibidos:');
-  console.log('Email:', WorkEmail);
-  console.log('Company ID:', CompanyID);
-  console.log('Role ID:', RoleID);
+    const pool = await testConnection();
 
-  // Aquí podrías insertar en base de datos, enviar correo, etc.
-  res.status(200).json({ message: 'Invitación recibida correctamente' });
+    await pool.request()
+      .input('WorkEmail', sql.NVarChar(255), WorkEmail)
+      .input('CompanyID', sql.Int, CompanyID)
+      .input('RoleID', sql.Int, RoleID)
+      .input('Token', sql.NVarChar(255), token)
+      .query(`
+        INSERT INTO UserInvitation (WorkEmail, CompanyID, RoleID, Token, ExpiresAt)
+        VALUES (@WorkEmail, @CompanyID, @RoleID, @Token, DATEADD(DAY, 10, GETDATE()))
+      `);
+
+    res.status(200).json({ message: 'Invitación registrada exitosamente', token });
+  } catch (error) {
+    console.error('Error al guardar la invitación:', error);
+    res.status(500).json({ message: 'Error al registrar la invitación', error: error.message });
+  }
 });
+
 
 // Middleware de autenticación
 function authMiddleware(req, res, next) {
