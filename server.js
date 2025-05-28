@@ -557,6 +557,20 @@ app.get('/invoices/notes/:ID', authMiddleware, async (req, res) => {
   }
 });
 
+
+//Get Companies for the dropdown in send invitation (Admin panel)
+app.get('/companies', authMiddleware, authorizeRole(1), async (req, res) => {
+  try {
+    const pool = await testConnection();
+    const result = await pool.request()
+      .query("select * from Company"); // Usar invoiceID para la relación
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error al obtener las compañias:", error);
+    res.status(500).json({ error: "Error al obtener las compañias" });
+  }
+});
+
 //Get Duplicated Invoices by InvoiceNumber
 app.post('/getDuplicatedByInvoiceNumber', authMiddleware, async (req, res) => {
   const CompanyID = req.user.CompanyID; // viene del token
@@ -964,6 +978,18 @@ app.post('/send-email', async (req, res) => {
   }
 });
 
+app.post('/saveInvitation', authMiddleware, authorizeRole(1), (req, res) => {
+  const { WorkEmail, CompanyID, RoleID } = req.body;
+
+  console.log('Datos recibidos:');
+  console.log('Email:', WorkEmail);
+  console.log('Company ID:', CompanyID);
+  console.log('Role ID:', RoleID);
+
+  // Aquí podrías insertar en base de datos, enviar correo, etc.
+  res.status(200).json({ message: 'Invitación recibida correctamente' });
+});
+
 // Middleware de autenticación
 function authMiddleware(req, res, next) {
   const token = req.cookies.token;
@@ -987,7 +1013,6 @@ function authorizeRole(requiredRole) {
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
-      console.log(decoded.Role);
       if (decoded.Role !== requiredRole) {
         return res.status(403).send("Acceso denegado. No tienes permisos.");
       }
@@ -1097,13 +1122,13 @@ app.get("/paid", authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, "/paid.html"));
 });
 
+app.get("/user-management", authMiddleware, authorizeRole(1), (req, res) => {
+  res.sendFile(path.join(__dirname, "user-management.html"));
+});
+
 // Middleware para manejar 404
 app.use((req, res, next) => {
   res.redirect('/login');  // redirige a la página de login si la ruta no existe
-});
-
-app.get("/user-management", authMiddleware, (req, res) => {
-  res.sendFile(path.join(__dirname, "user-management.html"));
 });
 
 // Iniciar el servidor
