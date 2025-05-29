@@ -32,6 +32,11 @@ CREATE TABLE UserTable (
 );
 go
 
+ALTER TABLE UserTable 
+ADD Active BIT DEFAULT 1 NOT NULL; 
+GO
+
+
 -- Crear tabla UserTable
 CREATE TABLE UserInvitation (
     ID INT IDENTITY(1,1) PRIMARY KEY,
@@ -39,6 +44,7 @@ CREATE TABLE UserInvitation (
 	CompanyID INT NOT NULL,
     RoleID INT NOT NULL,
 	Token NVARCHAR(255) NOT NULL UNIQUE,
+	Used BIT NOT NULL DEFAULT 0,
 	CreatedAt DATETIME DEFAULT GETDATE(),
 	ExpiresAt DATETIME
 );
@@ -118,12 +124,5 @@ INSERT INTO Role (RoleName) VALUES ('Manager');
 
 -- Insertar datos de ejemplo en Company
 INSERT INTO Company (CompanyName) VALUES ('Microsoft');
-
--- Insertar usuario de ejemplo
-INSERT INTO UserTable (FirstName, LastName, WorkEmail, Phone, PasswordHash, CompanyID, RoleID)
-VALUES 
-('Adalid', 'Bori', 'adalid@microsoft.com', '123-456-7890', '$2a$10$XEDCaTNVrQRZ/erKDsCnmejguLYd.a7zdWq09Qy4f9g0zeCcCR..u', 4, 1);
-go
-
 
 

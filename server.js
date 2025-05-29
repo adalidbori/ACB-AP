@@ -984,7 +984,7 @@ app.post('/saveInvitation', authMiddleware, authorizeRole(1), async (req, res) =
     const token = jwt.sign(
       { WorkEmail, CompanyID, RoleID },
       JWT_SECRET,
-      { expiresIn: '10d' }
+      { expiresIn: '5d' }
     );
 
     const pool = await testConnection();
@@ -996,8 +996,13 @@ app.post('/saveInvitation', authMiddleware, authorizeRole(1), async (req, res) =
       .input('Token', sql.NVarChar(255), token)
       .query(`
         INSERT INTO UserInvitation (WorkEmail, CompanyID, RoleID, Token, ExpiresAt)
-        VALUES (@WorkEmail, @CompanyID, @RoleID, @Token, DATEADD(DAY, 10, GETDATE()))
+        VALUES (@WorkEmail, @CompanyID, @RoleID, @Token, DATEADD(DAY, 5, GETDATE()))
       `);
+    const emailResult = await sendInvitationEmail(WorkEmail, token);
+    if (!emailResult.ok) {
+      return res.status(500).json({ message: 'Invitación registrada pero falló el envío de correo', error: emailResult.error });
+    }
+
 
     res.status(200).json({ message: 'Invitación registrada exitosamente', token });
   } catch (error) {
@@ -1005,6 +1010,108 @@ app.post('/saveInvitation', authMiddleware, authorizeRole(1), async (req, res) =
     res.status(500).json({ message: 'Error al registrar la invitación', error: error.message });
   }
 });
+
+app.post('/saveUser', verifyInvitationToken, async (req, res) => {
+  const { FirstName, LastName, Password, Phone, Token } = req.body;
+  const { CompanyID, RoleID, WorkEmail } = req.invite;
+
+  try {
+    // Procesar usuario
+    const passwordHash = await bcrypt.hash(Password, 10);
+    const pool = await testConnection();
+    await pool.request()
+      .input('FirstName', sql.NVarChar(100), FirstName)
+      .input('LastName', sql.NVarChar(100), LastName)
+      .input('WorkEmail', sql.NVarChar(255), WorkEmail)
+      .input('Phone', sql.NVarChar(20), Phone || null)
+      .input('PasswordHash', sql.NVarChar(255), passwordHash)
+      .input('CompanyID', sql.Int, CompanyID)
+      .input('RoleID', sql.Int, RoleID)
+      .query(`
+        INSERT INTO UserTable
+          (FirstName, LastName, WorkEmail, Phone, PasswordHash, CompanyID, RoleID)
+        VALUES
+          (@FirstName, @LastName, @WorkEmail, @Phone, @PasswordHash, @CompanyID, @RoleID)
+      `);
+
+    // 3) (Opcional) Marcar invitación como usada
+    await pool.request()
+      .input('inviteToken', sql.NVarChar(255), Token)
+      .query(`
+        DELETE UserInvitation WHERE Token = @inviteToken
+  `);
+
+    // Devuelve JSON
+    return res.status(200).json({ message: "Usuario guardado correctamente" });
+  } catch (error) {
+    console.error("Error al guardar el usuario:", error);
+    return res.status(500).json({ error: "Error al guardar el usuario" });
+  }
+});
+
+app.get('/getUsers', authMiddleware, authorizeRole(1), async (req, res) => {
+  try {
+
+    const pool = await testConnection();
+
+    // Consulta base
+    let query = `SELECT 
+                    u.ID,
+                    u.FirstName,
+                    u.LastName,
+                    u.WorkEmail,
+                    u.Phone,
+                    u.Active,
+                    r.RoleName AS RoleName,
+                    c.CompanyName AS CompanyName,
+                    FORMAT(u.CreatedAt, 'MM/dd/yyyy') AS CreatedAt
+                FROM 
+                    UserTable u
+                INNER JOIN 
+                    Role r ON u.RoleID = r.ID
+                INNER JOIN 
+                    Company c ON u.CompanyID = c.ID;
+                  `;
+
+    // Preparar la request y asignar los parámetros
+    const request = pool.request();
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error getting Users:", error);
+    res.status(500).json({ error: "Error getting Users:" });
+  }
+});
+
+
+async function sendInvitationEmail(WorkEmail, token) {
+  const inviteLink = `http://localhost:3000/complete-registration?token=${token}`;
+
+  const body = `
+    <h3>Has sido invitado a registrarte en AP</h3>
+    <p>Haz clic en el siguiente enlace para completar tu registro:</p>
+    <a href="${inviteLink}">${inviteLink}</a>
+    <p>Este enlace expirará en 5 días.</p>
+  `;
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"AP" <${SMTP_USER}>`,
+      to: WorkEmail, // destinatario
+      subject: 'Invitación para unirte a AP',
+      html: body,
+      // attachments: [...], // Opcional si necesitas adjuntar archivos
+    });
+
+    console.log('Mensaje enviado: %s', info.messageId);
+    return { ok: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error al enviar correo:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
 
 
 // Middleware de autenticación
@@ -1017,7 +1124,7 @@ function authMiddleware(req, res, next) {
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(403).send("Token inválido");
+    return res.redirect("/login");
   }
 }
 
@@ -1025,22 +1132,36 @@ function authorizeRole(requiredRole) {
   return (req, res, next) => {
     const token = req.cookies.token;
     if (!token) {
-      return res.status(401).send("No se proporcionó token.");
+      return res.status(401).send("You need a token!");
     }
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
       if (decoded.Role !== requiredRole) {
-        return res.status(403).send("Acceso denegado. No tienes permisos.");
+        return res.status(403).send("Access denied!");
       }
 
       req.user = decoded; // Opcional: guardar datos del usuario en req
       next();
     } catch (error) {
-      return res.status(401).send("Token inválido.");
+      return res.status(401).send("Invalid token!");
     }
   };
 }
+
+function verifyInvitationToken(req, res, next) {
+  const { Token } = req.body;
+  if (!Token) return res.status(400).send("You need a token!");
+
+  try {
+    const decoded = jwt.verify(Token, JWT_SECRET);
+    req.invite = decoded; // Puedes guardar los datos decodificados si los necesitas
+    next();
+  } catch (err) {
+    return res.status(403).send("Invalid token!");
+  }
+}
+
 
 
 // Login
@@ -1081,7 +1202,7 @@ app.post('/auth', async (req, res) => {
     const token = jwt.sign(
       { UserID: user.ID, CompanyID: user.CompanyID, Role: user.RoleID },
       JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: '4h' }
     );
 
     // Enviar token y datos básicos del usuario
@@ -1125,6 +1246,10 @@ app.post("/logout", (req, res) => {
 
 app.get("/forgot-password", (req, res) => {
   res.sendFile(path.join(__dirname, "forgot-password.html"));
+});
+
+app.get("/complete-registration", (req, res) => {
+  res.sendFile(path.join(__dirname, "complete-registration.html"));
 });
 
 app.get("/ready-to-pay", authMiddleware, (req, res) => {

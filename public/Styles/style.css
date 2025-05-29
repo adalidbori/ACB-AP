@@ -350,7 +350,6 @@ td {
 .btn-orange-gradient {
   background: linear-gradient(to right, #f97316, #f3a042); /* mismo degradado */
   color: white !important;
-  font-weight: bold;
   border: 1px solid #f97316;
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
 }
