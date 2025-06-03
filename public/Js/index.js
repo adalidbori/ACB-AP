@@ -263,16 +263,6 @@ async function updateStatus(invoiceStatus) {
     return;
   }
 
-  if (invoiceStatus === 6) {
-    console.log(urlsToDelete.length);
-    if (urlsToDelete.length === 0) {
-      alert("At least one URL most be selected.");
-      return;
-    } else {
-      eliminarBlobMultiInvoice(urlsToDelete);
-    }
-  }
-
   try {
     // Enviar petición Update al servidor con los IDs a actualizar
     const response = await fetch(`http://${window.miVariable}:3000/invoices/update/${invoiceStatus}`, {
