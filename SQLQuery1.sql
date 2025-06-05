@@ -125,4 +125,18 @@ INSERT INTO Role (RoleName) VALUES ('Manager');
 -- Insertar datos de ejemplo en Company
 INSERT INTO Company (CompanyName) VALUES ('Microsoft');
 
+SELECT 
+                ui.ID,
+                ui.WorkEmail,
+                c.CompanyName,
+                r.RoleName,
+                FORMAT(ui.CreatedAt, 'MM/dd/yyyy') AS CreatedAt,
+                FORMAT(ui.ExpiresAt, 'MM/dd/yyyy') AS ExpiresAt
+            FROM 
+                UserInvitation ui
+            INNER JOIN 
+                Company c ON ui.CompanyID = c.ID
+            INNER JOIN 
+                Role r ON ui.RoleID = r.ID
+
 
