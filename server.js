@@ -1084,6 +1084,88 @@ app.get('/getUsers', authMiddleware, authorizeRole(1), async (req, res) => {
   }
 });
 
+app.put('/updateUserStatus', authMiddleware, authorizeRole(1), async (req, res) => {
+  try {
+    const { userId, active } = req.body;
+
+    if (typeof userId !== 'number' || (active !== 0 && active !== 1)) {
+      return res.status(400).json({ error: "Invalid input. 'userId' must be a number and 'active' must be 0 or 1." });
+    }
+
+    const pool = await testConnection();
+    const request = pool.request();
+
+    request.input('userId', userId);
+    request.input('active', active); // 0 o 1 directamente
+
+    const updateQuery = `
+      UPDATE UserTable
+      SET Active = @active
+      WHERE ID = @userId
+    `;
+
+    const result = await request.query(updateQuery);
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ message: "User not found or no changes made." });
+    }
+
+    res.status(200).json({ message: "User status updated successfully." });
+  } catch (error) {
+    console.error("Error updating user status:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get('/getUserInvitations', authMiddleware, authorizeRole(1), async (req, res) => {
+  try {
+    const pool = await testConnection();
+
+    const query = `
+            SELECT 
+                ui.ID,
+                ui.WorkEmail,
+                c.CompanyName,
+                r.RoleName,
+                FORMAT(ui.CreatedAt, 'MM/dd/yyyy') AS CreatedAt,
+                FORMAT(ui.ExpiresAt, 'MM/dd/yyyy') AS ExpiresAt
+            FROM 
+                UserInvitation ui
+            INNER JOIN 
+                Company c ON ui.CompanyID = c.ID
+            INNER JOIN 
+                Role r ON ui.RoleID = r.ID
+        `;
+
+    const result = await pool.request().query(query);
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error fetching invitations:", error);
+    res.status(500).json({ error: "Failed to retrieve invitations" });
+  }
+});
+
+app.post('/checkEmailExists', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email is required' });
+  }
+
+  try {
+    const pool = await testConnection();
+    const result = await pool
+      .request()
+      .input('email', sql.NVarChar, email)
+      .query('SELECT COUNT(*) AS count FROM UserTable WHERE WorkEmail = @email');
+
+    const exists = result.recordset[0].count > 0;
+    res.json({ exists });
+  } catch (error) {
+    console.error('Error checking email existence:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 async function sendInvitationEmail(WorkEmail, token) {
   const inviteLink = `http://localhost:3000/complete-registration?token=${token}`;
@@ -1112,7 +1194,55 @@ async function sendInvitationEmail(WorkEmail, token) {
   }
 }
 
+app.post('/requestPasswordReset', async (req, res) => {
+  const { email } = req.body;
 
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email is required' });
+  }
+
+  try {
+    const pool = await testConnection();
+
+    // Verificar si el correo existe
+    const result = await pool
+      .request()
+      .input('email', sql.NVarChar, email)
+      .query('SELECT ID FROM UserTable WHERE WorkEmail = @email');
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ success: false, message: 'Email not found' });
+    }
+
+    const userId = result.recordset[0].ID;
+
+    // Crear el token JWT válido por 10 minutos
+    const token = jwt.sign(
+      { userId, email },
+      JWT_SECRET,
+      { expiresIn: '10m' }
+    );
+
+    // Enlace de reseteo
+    const resetUrl = `http://localhost:3000/reset-password?token=${token}`;
+
+    const info = await transporter.sendMail({
+      from: `"AP" <${SMTP_USER}>`,
+      to: email,         // puede ser un string o lista de correos
+      subject: "Reset AP Password",
+      html: `
+        <p>You requested a password reset.</p>
+        <p>Click the link below to reset your password. This link will expire in 10 minutes.</p>
+        <a href="${resetUrl}">${resetUrl}</a>
+      `
+    });
+    console.log('Mensaje enviado: %s', info.messageId);
+    return { ok: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 // Middleware de autenticación
 function authMiddleware(req, res, next) {
@@ -1174,7 +1304,7 @@ app.post('/auth', async (req, res) => {
     const query = `
       SELECT ID, FirstName, WorkEmail, PasswordHash, CompanyID, RoleID
       FROM UserTable
-      WHERE WorkEmail = @email
+      WHERE WorkEmail = @email and Active = 1
     `;
 
     const request = pool.request();
@@ -1183,8 +1313,7 @@ app.post('/auth', async (req, res) => {
     const result = await request.query(query);
 
     if (result.recordset.length === 0) {
-      console.log("Invalid Email");
-      return res.status(401).json({ message: "Invalid Email" });
+      return res.status(401).json({ message: "Invalid Email!" });
 
     }
 
@@ -1192,10 +1321,7 @@ app.post('/auth', async (req, res) => {
 
     const isPasswordValid = await bcrypt.compare(password, user.PasswordHash);
     if (!isPasswordValid) {
-      console.log("Invalid Pss");
-      return res.status(401).json({ message: "Invalid Pss" });
-    } else {
-      console.log("Valid Pss");
+      return res.status(401).json({ message: "Invalid Password!" });
     }
 
     // Generar el JWT con userId y CompanyID
@@ -1218,6 +1344,19 @@ app.post('/auth', async (req, res) => {
   } catch (error) {
     console.error("Error en el login:", error);
     res.status(500).json({ error: "Error al intentar iniciar sesión" });
+  }
+});
+
+app.get('/getCurrentUser', authMiddleware, (req, res) => {
+  const token = req.cookies.token;
+
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    res.json({ role: decoded.Role });
+  } catch (err) {
+    return res.status(403).json({ error: 'Invalid token' });
   }
 });
 

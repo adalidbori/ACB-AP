@@ -21,10 +21,38 @@ async function fetchUsers() {
         console.error('Error de red:', error);
     }
 }
+fetchUsers();
+async function updateUserStatus(userId, active) {
+    try {
+        const res = await fetch('http://localhost:3000/updateUserStatus', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: userId,
+                active: active // 0 o 1
+            })
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            console.error('Error al actualizar el estado del usuario:', err);
+            alert('Error al actualizar usuario');
+            return;
+        }
+
+        const result = await res.json();
+    } catch (error) {
+        console.error('Error de red al actualizar usuario:', error);
+    }
+}
+
 
 function populateUsersTable(users) {
     const tableBody = document.getElementById('usersTableBody');
     tableBody.innerHTML = '';
+
     users.forEach(user => {
         const isChecked = user.Active ? 'checked' : '';
         const row = `
@@ -35,7 +63,7 @@ function populateUsersTable(users) {
                 <td>${user.RoleName || ''}</td>
                 <td>
                     <label class="switch">
-                        <input type="checkbox" ${isChecked} >
+                        <input type="checkbox" class="user-status-checkbox" data-index="${user.ID}" ${isChecked}>
                         <span class="slider round"></span>
                     </label>
                 </td>
@@ -44,8 +72,18 @@ function populateUsersTable(users) {
         `;
         tableBody.insertAdjacentHTML('beforeend', row);
     });
+
+    // Agregar listeners después de insertar los checkboxes
+    const checkboxes = document.querySelectorAll('.user-status-checkbox');
+    checkboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', function () {
+            const userId = parseInt(this.dataset.index); // Asegurarse que sea número
+            const active = this.checked ? 1 : 0;
+            updateUserStatus(userId, active);
+        });
+    });
 }
-cargarCompanias();
+
 async function cargarCompanias() {
     try {
         const response = await fetch(`http://localhost:3000/companies`);
@@ -110,7 +148,6 @@ function validateEmail(email) {
 
 // Render functions
 function renderUsers() {
-    cargarCompanias();
     fetchUsers();
 }
 
@@ -152,11 +189,60 @@ function saveUser() {
     currentEditingUserId = null;
 }
 
+async function renderInvitations() {
+    try {
+        const res = await fetch('http://localhost:3000/getUserInvitations', {
+            method: 'GET'
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            console.error('Error al obtener invitaciones:', err);
+            alert('Error al obtener invitaciones');
+            return;
+        }
+
+        const invitations = await res.json();
+        populateInvitationsTable(invitations);
+    } catch (error) {
+        console.error('Error de red al obtener invitaciones:', error);
+    }
+}
+
+function populateInvitationsTable(invitations) {
+    const tbody = document.getElementById('invitationsTableBody');
+    tbody.innerHTML = '';
+
+    invitations.forEach(invite => {
+        const row = document.createElement('tr');
+
+        row.innerHTML = `
+            <td>${invite.WorkEmail}</td>
+            <td>${invite.CompanyName}</td>
+            <td>${invite.RoleName}</td>
+            <td>${invite.CreatedAt || ''}</td>
+            <td>${invite.ExpiresAt || ''}</td>
+        `;
+
+        tbody.appendChild(row);
+    });
+}
+
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function () {
 
     // Tab change handler to refresh admin panel
     document.getElementById('admin-tab').addEventListener('shown.bs.tab', function () {
         renderUsers();
+
     });
+    document.getElementById('invitations-tab').addEventListener('shown.bs.tab', function () {
+        renderInvitations();
+    });
+
+    document.getElementById('signup-tab').addEventListener('shown.bs.tab', function () {
+        cargarCompanias();
+    });
+
 });

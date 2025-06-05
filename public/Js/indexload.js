@@ -1,6 +1,29 @@
 
 document.addEventListener('DOMContentLoaded', loadInvoices);
+hideIcon();
+async function hideIcon() {
+  console.log("Hide Icon");
+  try {
+    const res = await fetch('/getCurrentUser', {
+      method: 'GET',
+      credentials: 'include', // Importante para enviar la cookie
+    });
 
+    if (!res.ok) throw new Error('Unauthorized');
+
+    const data = await res.json();
+
+    if (data.role === 1) {
+      const settingsBtn = document.getElementById('openSettings');
+      if (settingsBtn) settingsBtn.style.display = 'inline-block';
+    }
+  } catch (err) {
+    console.error('Error verifying role:', err);
+    // Por seguridad, ocultar también si hay error
+    const settingsBtn = document.getElementById('openSettings');
+    if (settingsBtn) settingsBtn.style.display = 'none';
+  }
+}
 
 /*Subir documentos*/
 const dropArea = document.getElementById("drop-area");

@@ -4,19 +4,18 @@ if (token) {
     console.log("complete registration: "+token)
 }
 
-// Validación de contraseñas
-document.getElementById('completeRegistrationForm').addEventListener('submit', function (e) {
+const form = document.getElementById('completeRegistrationForm');
+
+form.addEventListener('submit', async function (event) {
+    event.preventDefault(); // siempre prevenir envío por defecto
+
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
-    if (password !== confirmPassword) {
-        e.preventDefault();
-        alert("Passwords do not match.");
-    }
-});
 
-const form = document.getElementById('completeRegistrationForm');
-form.addEventListener('submit', async function (event) {
-    event.preventDefault();
+    if (password !== confirmPassword) {
+        alert("Passwords do not match.");
+        return; // detener el envío
+    }
 
     const formData = new FormData(form);
     const data = {
@@ -26,6 +25,7 @@ form.addEventListener('submit', async function (event) {
         Phone: formData.get('phone'),
         Token: token
     };
+
     try {
         const response = await fetch('http://localhost:3000/saveUser', {
             method: 'POST',
@@ -40,14 +40,11 @@ form.addEventListener('submit', async function (event) {
         if (response.ok) {
             form.reset(); // Limpia el formulario
         } else {
-            alert('Error: ' + result.message);
+            alert('Error: user already created!');
         }
     } catch (error) {
         alert('Error de red: ' + error.message);
-    } finally {
-        // Ocultar spinner
-        //submitText.classList.remove('d-none');
-        //submitSpinner.classList.add('d-none');
     }
 });
+
 
