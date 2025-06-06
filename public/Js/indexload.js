@@ -400,3 +400,38 @@ function sortTableByColumn(colID, order) {
   fillTable(tableResult);
   // Aquí irá la lógica de extracción de filas, comparación y re-inserción
 }
+
+async function uploadFileButton(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  // Declaramos las variables fuera del try para tener acceso a ellas en el catch
+  let data = null;
+  let timestampName = null;
+  let responseObject = null;
+  let invoiceID = null;
+
+  try {
+    const uploadResponse = await fetch(`http://${window.miVariable}:3000/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    data = await uploadResponse.json();
+    timestampName = data.filename;
+    console.log(data);
+    invoiceID = await insertDocumentIntoDatabase(file.name, timestampName, file.type, data.url);
+    loadInvoices();
+  } catch (error) {
+    console.error("Error en el proceso:", error);
+    loadInvoices();
+  }
+}
+
+function handleManualUpload(event) {
+  const files = event.target.files;
+  for (let file of files) {
+    //detectPdfFormat(file)
+    showTemporaryRow();
+    uploadFileButton(file);
+  }
+
+}
