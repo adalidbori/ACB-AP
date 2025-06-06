@@ -600,7 +600,9 @@ app.get('/getDuplicatedInvoices', authMiddleware, async (req, res) => {
         SELECT invoiceNumber, COUNT(*) AS occurrences
         FROM Invoices
         WHERE invoiceStatus IN (1, 2, 3, 4)
-        AND CompanyID = @CompanyID
+          AND CompanyID = @CompanyID
+          AND invoiceNumber IS NOT NULL
+          AND invoiceNumber <> ''
         GROUP BY invoiceNumber
         HAVING COUNT(*) > 1;
       `);
