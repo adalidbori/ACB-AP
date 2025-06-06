@@ -1391,6 +1391,10 @@ app.get("/complete-registration", (req, res) => {
   res.sendFile(path.join(__dirname, "complete-registration.html"));
 });
 
+app.get("/reset-password", (req, res) => {
+  res.sendFile(path.join(__dirname, "reset-password.html"));
+});
+
 app.get("/ready-to-pay", authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, "/ready-to-pay.html"));
 });

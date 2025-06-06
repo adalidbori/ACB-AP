@@ -1,4 +1,5 @@
 function clearField(fieldId) {
+    console.log(fieldId);
     document.getElementById(fieldId).value = '';
 }
 
@@ -29,16 +30,19 @@ async function checkIfEmailExists(email) {
             const resetData = await resetRes.json();
 
             if (resetData.ok) {
-                alert("Check your inbox for the reset link!");
+                //alert("Check your inbox for the reset link!");
+                clearField('reset-password-email');
             } else {
                 alert("Error sending reset email. Try again later.");
             }
         } else {
-            alert("Email not found in our records.");
+            //alert("Email not found in our records.");
+            clearField('reset-password-email');
         }
     } catch (err) {
         console.error('Error:', err);
         alert("Sorry, we can't proceed right now!");
     }
 }
+
 
