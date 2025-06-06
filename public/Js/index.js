@@ -9,6 +9,10 @@ document.getElementById("openSettings").addEventListener("click", function () {
   window.location.href = targetUrl;
 });
 
+
+
+
+
 async function updateElement(invoiceId, rowData) {
   // Lista de campos permitidos (deben coincidir con lo que espera el servidor)
   const allowedFields = ['docName', 'invoiceNumber', 'referenceNumber', 'vendor', 'invoiceTotal', 'invoiceDate', 'dueDate'];
@@ -694,160 +698,69 @@ function getInvoiceStatusText(status) {
   }
 }
 
-function fillTable(invoiceList) {
-  // Recorrer cada grupo y agregar las filas en la tabla
-  console.log(invoiceList);
-
-  // Ordenar los vendors alfabéticamente
+function fillTable(invoiceList, vendorState) {
+  // Limpiamos el cuerpo de la tabla antes de redibujar
+  tableBody.innerHTML = "";
+  
   const sortedVendors = Object.keys(invoiceList).sort((a, b) => a.localeCompare(b));
 
-  // Luego, iteramos sobre el array ordenado
   for (const vendor of sortedVendors) {
+    const sortedInvoices = invoiceList[vendor].invoices.sort((a, b) => new Date(a.invoiceDate) - new Date(b.invoiceDate));
+    const countText = sortedInvoices.length.toString();
 
-    // Ordenar las facturas dentro de cada vendor por fecha
-    const sortedInvoices = invoiceList[vendor].invoices.sort((a, b) => {
-      // Convierte las fechas a objetos Date para una comparación precisa
-      return new Date(a.invoiceDate) - new Date(b.invoiceDate);
-    });
-
-    // <<< NUEVO: Obtener la cantidad de facturas para este vendor
-    const invoiceCount = sortedInvoices.length;
-    // Opcional: Para que diga "1 factura" en singular y "X facturas" en plural
-    const countText = invoiceCount === 1 ? '1' : `${invoiceCount}`;
-
-
-    // Crear fila de cabecera para cada vendor
+    // --- Fila de Cabecera del Vendor ---
     const headerRow = document.createElement("tr");
     headerRow.classList.add("vendor-header");
     headerRow.dataset.vendor = vendor;
-
-    // <<< MODIFICADO: Añadir el contador (${countText}) al texto de la cabecera
     headerRow.innerHTML = `
       <td colspan="9" style="background:#f0f0f0;">
         <input type="checkbox" class="vendor-checkbox" data-vendor="${vendor}" style="margin-right: 10px; cursor: pointer;">
         <strong style="cursor: pointer;">${vendor} (${countText})</strong>
       </td>`;
-
-    // ---- Obtener referencias al área clickeable del nombre y al nuevo checkbox ----
-    const vendorNameStrong = headerRow.querySelector("strong");
-    const vendorCheckbox = headerRow.querySelector(".vendor-checkbox");
-
-    // ---- Evento de Clic para Contraer/Expandir (ahora en el nombre) ----
-    vendorNameStrong.addEventListener('click', function () {
-      const currentVendor = headerRow.dataset.vendor;
-      const invoiceRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${currentVendor}"]`);
-      invoiceRows.forEach(row => {
-        row.style.display = row.style.display === 'none' ? '' : 'none';
-      });
-    });
-
-    // ---- Evento de Cambio al Checkbox de Cabecera ----
-    vendorCheckbox.addEventListener('change', function (event) {
-      const isChecked = event.target.checked;
-      const currentVendor = event.target.dataset.vendor;
-      const invoiceCheckboxes = document.querySelectorAll(`tr.invoice-row[data-vendor="${currentVendor}"] .row-checkbox`);
-      invoiceCheckboxes.forEach(checkbox => {
-        checkbox.checked = isChecked;
-      });
-      console.log('vendor checkbox');
-      updateVendorHeaderTotal(currentVendor);
-      actualizarTotalSiNoHayCheckboxMarcado();
-      updateTotalSelected();
-    });
-
     tableBody.appendChild(headerRow);
 
-    // Agregar cada factura asociada al vendor, usando el array ya ordenado
+    // --- Filas de Facturas ---
     for (const invoice of sortedInvoices) {
       const tr = document.createElement("tr");
-      tr.style.display = 'none'; // Estado inicial comprimido
       tr.classList.add("invoice-row");
       tr.dataset.vendor = invoice.vendor;
       tr.dataset.id = invoice.ID;
       tr.dataset.url = invoice.fileURL;
       tr.dataset.timestampName = invoice.timestampName;
-      tr.innerHTML = `
-      <td>
-        <input type="checkbox" class="row-checkbox" data-fileurl="${invoice.fileURL}" data-filetype="${invoice.fileType}">
-      </td>
-      <td>
-        <a class="dragout" href='#'
-           onclick="openDocument('${invoice.fileURL}')"
-           draggable="true"
-           data-filename="${invoice.docName}"
-           data-filetype="${invoice.fileType}">
-          <div data-field="fileType">
-            ${invoice.fileType === 'application/pdf'
-          ? '<img src="/Styles/pdf.svg" alt="Icono PDF">'
-          : '<img src="/Styles/image.svg" alt="Icono imagen">'
-        }
-          </div>
-        </a>
-      </td>
-      <td><div class="editable-cell" data-field="docName" contenteditable="true" style="${invoice.docName ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.docName)}</div></td>
-      <td><div class="editable-cell" data-field="invoiceNumber" contenteditable="true" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceNumber}</div></td>
-      <td class="hidden-column"><div class="editable-cell" data-field="vendor" contenteditable="true" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${invoice.vendor}</div></td>
-      <td><div class="editable-cell" data-field="referenceNumber" contenteditable="true" style="${invoice.referenceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.referenceNumber}</div></td>
-      <td><div class="editable-cell" data-field="invoiceTotal" contenteditable="true" style="${invoice.invoiceTotal ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceTotal}</div></td>
-      <td><div class="editable-cell" data-field="invoiceDate" contenteditable="true" style="${invoice.invoiceDate ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceDate}</div></td>
-      <td><div class="editable-cell" data-field="dueDate" contenteditable="true" style="${invoice.dueDate ? '' : 'background-color: #f8d7da;'}">${invoice.dueDate}</div></td>
-      <td>
-        <div style="text-align: center;">
-          <div class="contenedor-icono">
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;" onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'>
-              <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
-            </svg>
-          </div>
-        </div>
-      </td>
-    `;
+      
+      if (expandedVendorsState.has(vendor)) {
+        tr.style.display = '';
+      } else {
+        tr.style.display = 'none';
+      }
 
-      // Manejo de edición de celdas
-      let shouldFireChange = false;
-      tr.addEventListener("input", function () {
-        shouldFireChange = true;
-      });
-      tr.addEventListener("keydown", function (e) {
-        if (e.key === 'Enter' && shouldFireChange) {
-          shouldFireChange = false;
-          const currentRow = this.closest('tr');
-          const rowData = {};
-          const cells = currentRow.querySelectorAll('.editable-cell[contenteditable="true"]');
-          cells.forEach(cell => {
-            const field = cell.dataset.field;
-            const value = cell.textContent.trim();
-            rowData[field] = value;
-          });
-          updateElement(currentRow.dataset.id, rowData);
-        }
-      });
-      // Evento del checkbox para mostrar documento
-      const checkbox = tr.querySelector('.row-checkbox');
-      checkbox.addEventListener('change', function () {
-        const isChecked = this.checked;
-        if (isChecked) {
-          showDocument(this.dataset.fileurl, this.dataset.filetype);
-        }
-        const currentVendor = this.closest('tr').dataset.vendor;
-        updateVendorHeaderTotal(currentVendor);
-        actualizarTotalSiNoHayCheckboxMarcado();
-        updateTotalSelected();
-      });
+      tr.innerHTML = `
+        <td><input type="checkbox" class="row-checkbox" data-fileurl="${invoice.fileURL}" data-filetype="${invoice.fileType}"></td>
+        <td><a class="dragout" href='#' onclick="openDocument('${invoice.fileURL}')" draggable="true" data-filename="${invoice.docName}" data-filetype="${invoice.fileType}"><div data-field="fileType">${invoice.fileType.includes('pdf') ? '<img src="/Styles/pdf.svg" alt="PDF">' : '<img src="/Styles/image.svg" alt="Imagen">'}</div></a></td>
+        <td><div class="editable-cell" data-field="docName" contenteditable="true" style="${invoice.docName ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.docName)}</div></td>
+        <td><div class="editable-cell" data-field="invoiceNumber" contenteditable="true" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceNumber}</div></td>
+        <td class="hidden-column"><div class="editable-cell" data-field="vendor" contenteditable="true" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${invoice.vendor}</div></td>
+        <td><div class="editable-cell" data-field="referenceNumber" contenteditable="true" style="${invoice.referenceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.referenceNumber}</div></td>
+        <td><div class="editable-cell" data-field="invoiceTotal" contenteditable="true" style="${invoice.invoiceTotal ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceTotal}</div></td>
+        <td><div class="editable-cell" data-field="invoiceDate" contenteditable="true" style="${invoice.invoiceDate ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceDate}</div></td>
+        <td><div class="editable-cell" data-field="dueDate" contenteditable="true" style="${invoice.dueDate ? '' : 'background-color: #f8d7da;'}">${invoice.dueDate}</div></td>
+        <td><div style="text-align: center;"><div class="contenedor-icono"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;" onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'><path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/></svg></div></div></td>
+      `;
       tableBody.appendChild(tr);
-      // Consultar si la factura tiene notas
+
+      // Listeners específicos para esta fila
+      addEventListenersToRow(tr);
+      
       getNotes(invoice.ID)
         .then(notesContent => {
-          const iconContainer = tr.querySelector('.contenedor-icono');
-          if (notesContent && notesContent.trim() !== '') {
-            iconContainer.classList.add("icon");
-          }
+            if (notesContent && notesContent.trim() !== '') {
+                tr.querySelector('.contenedor-icono').classList.add("icon");
+            }
         })
-        .catch(error => {
-          console.error("Error al obtener notas para la factura", invoice.ID, error);
-        });
+        .catch(error => console.error("Error al obtener notas:", invoice.ID, error));
     }
 
-    // Agregar fila con el total
+    // --- Fila de Total del Vendor ---
     const totalRow = document.createElement("tr");
     totalRow.dataset.totalbyvendor = true;
     totalRow.classList.add("vendor-total");
@@ -855,83 +768,159 @@ function fillTable(invoiceList) {
     totalRow.innerHTML = `
       <td colspan="4"></td>
       <td style="font-weight: bold; text-align: right;">Total:</td>
-      <td style="font-weight: bold; text-align: left;"><div data-field="invoiceTotal">
-        $${invoiceList[vendor].total.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}
-      </div>
-      </td>
-      <td></td>
-      <td></td>
-      <td></td>
+      <td style="font-weight: bold; text-align: left;"><div data-field="invoiceTotal">$${invoiceList[vendor].total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div></td>
+      <td colspan="4"></td>
     `;
     tableBody.appendChild(totalRow);
-    const checkboxes = document.querySelectorAll('.row-checkbox');
-    checkboxes.forEach(checkbox => {
-      checkbox.addEventListener('click', handleCheckboxClick);
-    });
   }
 
-  // Funciones auxiliares
-  function handleCheckboxClick(event) {
-    const allCheckboxes = document.querySelectorAll('.row-checkbox');
-    if (!event.ctrlKey) {
-      allCheckboxes.forEach(checkbox => {
-        if (checkbox !== event.target) checkbox.checked = false;
-      });
-      event.target.checked = true;
-    }
-  }
+  // <<< INICIO DE FUNCIONES AUXILIARES DENTRO DE fillTable >>>
+  // Ahora estas funciones tienen acceso a 'invoiceList'
 
-  function actualizarTotalSiNoHayCheckboxMarcado() {
-    const totalRows = document.querySelectorAll('tr[data-totalbyvendor="true"]');
-    totalRows.forEach(row => {
-      const vendor = row.dataset.vendor;
-      const checkboxMarcado = document.querySelector(`tr.invoice-row[data-vendor="${vendor}"] .row-checkbox:checked`);
-      if (!checkboxMarcado) {
-        const invoiceTotalDiv = row.querySelector('div[data-field="invoiceTotal"]');
-        if (invoiceTotalDiv) {
-          invoiceTotalDiv.textContent = "$" + invoiceList[vendor].total.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+  function addEventListenersToRow(tr) {
+      // Listener para expandir/contraer
+      const vendorNameStrong = document.querySelector(`tr.vendor-header[data-vendor="${tr.dataset.vendor}"] strong`);
+      if (vendorNameStrong && !vendorNameStrong.hasAttribute('data-listener-attached')) {
+        vendorNameStrong.setAttribute('data-listener-attached', 'true');
+        vendorNameStrong.addEventListener('click', function () {
+            const currentVendor = tr.dataset.vendor;
+            const invoiceRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${currentVendor}"]`);
+            const isCurrentlyCollapsed = invoiceRows.length > 0 && invoiceRows[0].style.display === 'none';
+            invoiceRows.forEach(row => { row.style.display = isCurrentlyCollapsed ? '' : 'none'; });
+            if (isCurrentlyCollapsed) expandedVendorsState.add(currentVendor);
+            else expandedVendorsState.delete(currentVendor);
+        });
+      }
+
+      // Listener para checkbox de cabecera
+      const vendorCheckbox = document.querySelector(`tr.vendor-header[data-vendor="${tr.dataset.vendor}"] .vendor-checkbox`);
+      if (vendorCheckbox && !vendorCheckbox.hasAttribute('data-listener-attached')) {
+          vendorCheckbox.setAttribute('data-listener-attached', 'true');
+          vendorCheckbox.addEventListener('change', function (event) {
+              const isChecked = event.target.checked;
+              const currentVendor = event.target.dataset.vendor;
+              document.querySelectorAll(`tr.invoice-row[data-vendor="${currentVendor}"] .row-checkbox`).forEach(cb => { cb.checked = isChecked; });
+              updateVendorHeaderTotal(currentVendor);
+              updateTotalSelected();
           });
-        }
       }
-    });
+
+      // Listeners para la fila de factura
+      let shouldFireChange = false;
+      tr.addEventListener("input", () => { shouldFireChange = true; });
+      tr.addEventListener("keydown", (e) => {
+          if (e.key === 'Enter' && shouldFireChange) {
+              e.preventDefault();
+              shouldFireChange = false;
+              const rowData = {};
+              tr.querySelectorAll('.editable-cell').forEach(cell => { rowData[cell.dataset.field] = cell.textContent.trim(); });
+              updateElement(tr.dataset.id, rowData);
+              e.target.blur();
+          }
+      });
+      tr.querySelector('.row-checkbox').addEventListener('click', handleCheckboxClick);
+      tr.querySelector('.row-checkbox').addEventListener('change', function () {
+          if (this.checked) {
+              showDocument(this.dataset.fileurl, this.dataset.filetype);
+          }
+          updateVendorHeaderTotal(this.closest('tr').dataset.vendor);
+          updateTotalSelected();
+      });
   }
 
+  // Función mejorada para actualizar el total del proveedor
   function updateVendorHeaderTotal(vendor) {
-    let sum = 0;
-    const vendorRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${vendor}"]`);
-    vendorRows.forEach(row => {
-      const checkbox = row.querySelector('.row-checkbox');
-      if (checkbox && checkbox.checked) {
-        const totalDiv = row.querySelector('div[data-field="invoiceTotal"]');
-        if (totalDiv) {
-          const text = totalDiv.textContent.trim();
-          const cleanedText = text.replace(/[^0-9.-]+/g, "");
-          const value = parseFloat(cleanedText);
-          if (!isNaN(value)) {
-            sum += value;
+      let sum = 0;
+      const vendorRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${vendor}"]`);
+      let hasChecked = false;
+
+      vendorRows.forEach(row => {
+          const checkbox = row.querySelector('.row-checkbox');
+          if (checkbox && checkbox.checked) {
+              hasChecked = true;
+              const totalDiv = row.querySelector('div[data-field="invoiceTotal"]');
+              if (totalDiv) {
+                  sum += parseInternationalCurrency(totalDiv.textContent);
+              }
           }
-        }
+      });
+
+      const totalRow = document.querySelector(`tr.vendor-total[data-vendor="${vendor}"]`);
+      if (totalRow) {
+          const totalCell = totalRow.querySelector('div[data-field="invoiceTotal"]');
+          let totalToShow;
+          if (hasChecked) {
+              totalToShow = sum;
+          } else {
+              // Si no hay ninguno chequeado, usa el total completo que viene de la data original.
+              // Ahora SÍ tiene acceso a invoiceList.
+              totalToShow = invoiceList[vendor].total;
+          }
+          totalCell.textContent = `$${totalToShow.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
       }
-    });
-    const totalRow = document.querySelector(`tr[data-vendor="${vendor}"][data-totalbyvendor="true"]`);
-    if (totalRow) {
-      const totalCell = totalRow.querySelector('div[data-field="invoiceTotal"]');
-      if (totalCell) {
-        totalCell.textContent = `$${sum.toLocaleString('en-US', {
+  }
+
+  // Función para manejar Ctrl+Click
+  function handleCheckboxClick(event) {
+      if (!event.ctrlKey) {
+          document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+              if (checkbox !== event.target) {
+                  checkbox.checked = false;
+              }
+          });
+      }
+  }
+  
+  // <<< FIN DE FUNCIONES AUXILIARES DENTRO DE fillTable >>>
+}
+// Nota: Las demás funciones como `updateVendorHeaderTotal`, `actualizarTotalSiNoHayCheckboxMarcado`, etc.,
+// deben existir fuera de `fillTable` para ser accesibles globalmente.
+
+function actualizarTotalSiNoHayCheckboxMarcado() {
+  const totalRows = document.querySelectorAll('tr[data-totalbyvendor="true"]');
+  totalRows.forEach(row => {
+    const vendor = row.dataset.vendor;
+    const checkboxMarcado = document.querySelector(`tr.invoice-row[data-vendor="${vendor}"] .row-checkbox:checked`);
+    if (!checkboxMarcado) {
+      const invoiceTotalDiv = row.querySelector('div[data-field="invoiceTotal"]');
+      if (invoiceTotalDiv) {
+        invoiceTotalDiv.textContent = "$" + invoiceList[vendor].total.toLocaleString('en-US', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
-        })}`;
+        });
       }
+    }
+  });
+}
+
+function updateVendorHeaderTotal(vendor) {
+  let sum = 0;
+  const vendorRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${vendor}"]`);
+  vendorRows.forEach(row => {
+    const checkbox = row.querySelector('.row-checkbox');
+    if (checkbox && checkbox.checked) {
+      const totalDiv = row.querySelector('div[data-field="invoiceTotal"]');
+      if (totalDiv) {
+        const text = totalDiv.textContent.trim();
+        const cleanedText = text.replace(/[^0-9.-]+/g, "");
+        const value = parseFloat(cleanedText);
+        if (!isNaN(value)) {
+          sum += value;
+        }
+      }
+    }
+  });
+  const totalRow = document.querySelector(`tr[data-vendor="${vendor}"][data-totalbyvendor="true"]`);
+  if (totalRow) {
+    const totalCell = totalRow.querySelector('div[data-field="invoiceTotal"]');
+    if (totalCell) {
+      totalCell.textContent = `$${sum.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}`;
     }
   }
 }
-
-
 
 function ordenarLista(lista, campo, orden = 'asc') {
   return lista.slice().sort((a, b) => {

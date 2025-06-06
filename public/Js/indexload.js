@@ -1,4 +1,4 @@
-
+const expandedVendorsState = new Set();
 document.addEventListener('DOMContentLoaded', loadInvoices);
 hideIcon();
 async function hideIcon() {
@@ -374,6 +374,7 @@ function clearFilter() {
 
 //Cargar elementos pending to review de la base de datos
 async function loadInvoices() {
+  
   try {
     const vendor = document.getElementById('filter-vendor').value;
     const invoiceNumber = document.getElementById('filter-invoiceNumber').value;
@@ -387,7 +388,7 @@ async function loadInvoices() {
     invoices = await response.json();
     console.log(invoices);
     const tableResult = groupByVendors(invoices);
-    fillTable(tableResult);
+    fillTable(tableResult, expandedVendorsState);
   } catch (error) {
     console.error("Error al obtener los invoices:", error);
   }
@@ -397,7 +398,7 @@ function sortTableByColumn(colID, order) {
   console.log(`Ordenando columna ${colID} en modo ${order}`);
   const aux = ordenarLista(invoices, colID, order);
   const tableResult = groupByVendors(aux);
-  fillTable(tableResult);
+  fillTable(tableResult, expandedVendorsState);
   // Aquí irá la lógica de extracción de filas, comparación y re-inserción
 }
 

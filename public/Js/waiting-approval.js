@@ -1,3 +1,4 @@
+const expandedVendorsState = new Set();
 document.addEventListener('DOMContentLoaded', loadInvoices);
 const tableBody = document.querySelector('tbody');
 
@@ -30,7 +31,7 @@ async function loadInvoices() {
     invoices = await response.json();
     console.log(invoices);
     const tableResult = groupByVendors(invoices);
-    fillTable(tableResult);
+    fillTable(tableResult, expandedVendorsState);
   } catch (error) {
     console.error("Error al obtener los invoices:", error);
   }
@@ -39,7 +40,7 @@ function sortTableByColumn(colID, order) {
   console.log(`Ordenando columna ${colID} en modo ${order}`);
   const aux = ordenarLista(invoices, colID, order);
   const tableResult = groupByVendors(aux);
-  fillTable(tableResult);
+  fillTable(tableResult, expandedVendorsState);
   // Aquí irá la lógica de extracción de filas, comparación y re-inserción
 }
 
