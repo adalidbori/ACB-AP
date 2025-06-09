@@ -30,7 +30,7 @@ const EMAIL_TO = process.env.EMAIL_TO;
 const JWT_SECRET = process.env.JWT_SECRET;
 const GEMINI_KEY = process.env.GEMINI_KEY;
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
+const genAI = new GoogleGenerativeAI(GEMINI_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
 
 
@@ -1415,7 +1415,6 @@ app.post('/analyze-invoice', authMiddleware, async (req, res) => {
   try {
     // Paso 1: Convertir la URL al formato que necesita Gemini
     const imagePart = await urlToGenerativePart(sasUrl);
-    console.log('Archivo convertido para la API.');
 
     // Paso 2: Definir el prompt con las instrucciones
     const prompt = `
