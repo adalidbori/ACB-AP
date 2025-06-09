@@ -1,5 +1,12 @@
 const expandedVendorsState = new Set();
-document.addEventListener('DOMContentLoaded', loadInvoices);
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Añade los listeners a los encabezados ESTÁTICOS de la tabla una vez.
+    initializeTableSorting();
+
+    // 2. Carga los datos iniciales de la tabla.
+    loadInvoices();
+});
+
 const tableBody = document.querySelector('tbody');
 
 function clearFilter() {

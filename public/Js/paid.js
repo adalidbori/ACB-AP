@@ -1,4 +1,10 @@
-document.addEventListener('DOMContentLoaded', loadInvoices);
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Añade los listeners a los encabezados ESTÁTICOS de la tabla una vez.
+    initializeTableSorting();
+
+    // 2. Carga los datos iniciales de la tabla.
+    loadInvoices();
+});
 const tableBody = document.querySelector('tbody');
 // Función para convertir un string en formato internacional a número
 function clearFilter() {
@@ -17,9 +23,6 @@ async function loadInvoices() {
     const vendor = document.getElementById('filter-vendor').value;
     const invoiceNumber = document.getElementById('filter-invoiceNumber').value;
     const invoiceDate = document.getElementById('filter-invoiceDate').value;
-    console.log("Vendor: " + vendor);
-    console.log("invoiceNumber: " + invoiceNumber);
-    console.log("invoiceDate: " + invoiceDate);
     const params = new URLSearchParams({
       vendor,
       invoiceNumber,

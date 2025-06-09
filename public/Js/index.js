@@ -1,5 +1,9 @@
 
 // Función para obtener los invoices y llenar la tabla
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Añade los listeners a los encabezados ESTÁTICOS de la tabla una vez.
+    initializeTableSorting();
+});
 let invoices = [];
 
 document.getElementById("openSettings").addEventListener("click", function () {
@@ -580,6 +584,38 @@ async function getDuplicatedByInvoiceNumber(texto) {
   });
 }
 
+function initializeTableSorting() {
+  const headers = document.querySelectorAll('.editable-table thead th');
+
+  // Si no hay encabezados, no hagas nada.
+  if (headers.length === 0) return;
+
+  headers.forEach((th, colIndex) => {
+    // Evita añadir el mismo listener múltiples veces
+    if (th.dataset.listenerAttached === 'true') return;
+
+    const title = th.textContent.trim();
+    if (!title) return;
+    th.dataset.order = 'none';
+    th.style.cursor = 'pointer';
+
+    th.addEventListener('click', () => {
+      const current = th.dataset.order;
+      const nextOrder = current === 'asc' ? 'desc' : 'asc';
+
+      th.dataset.order = nextOrder;
+
+      headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+      th.classList.add(nextOrder === 'asc' ? 'sort-asc' : 'sort-desc');
+
+      const field = th.id;
+      sortTableByColumn(field, nextOrder);
+    });
+
+    // Marca el encabezado para no volver a añadirle el listener
+    th.dataset.listenerAttached = 'true';
+  });
+}
 
 function generateNotificationLinks(invoiceNumbers) {
   if (invoiceNumbers.length > 0) {
@@ -640,41 +676,6 @@ async function eliminarBlobMultiInvoice(urls) {
   }
 }
 
-const headers = document.querySelectorAll('#editable-table thead th');
-headers.forEach((th, colIndex) => {
-  const title = th.textContent.trim();
-  if (!title) return;               // Saltamos celdas sin texto
-  th.dataset.order = 'none';        // Estado inicial
-
-  th.style.cursor = 'pointer';      // Cambiamos el cursor para indicar clickeable
-
-  th.addEventListener('click', () => {
-    // 1. Determinar nuevo estado
-    const current = th.dataset.order;
-    const nextOrder = current === 'asc'
-      ? 'desc'
-      : 'asc';
-
-    // 2. Guardar el nuevo estado en el atributo data-order
-    th.dataset.order = nextOrder;
-
-    // 3. (Opcional) Actualizar clases para iconos
-    headers.forEach(h => {
-      h.classList.remove('sort-asc', 'sort-desc');
-    });
-    th.classList.add(nextOrder === 'asc' ? 'sort-asc' : 'sort-desc');
-    const field = th.id;
-
-    // 4. Disparar tu función de ordenamiento, pasándole:
-    //    - el índice de columna (colIndex)
-    //    - la dirección (nextOrder)
-    sortTableByColumn(field, nextOrder);
-  });
-});
-
-
-
-
 setTimeout(() => {
   //generateNotificationLinks()
   getDuplicatedInvoices();
@@ -696,10 +697,10 @@ function getInvoiceStatusText(status) {
   }
 }
 
-function fillTable(invoiceList, vendorState) {
+function fillTable(invoiceList) {
   // Limpiamos el cuerpo de la tabla antes de redibujar
   tableBody.innerHTML = "";
-  
+
   const sortedVendors = Object.keys(invoiceList).sort((a, b) => a.localeCompare(b));
 
   for (const vendor of sortedVendors) {
@@ -712,8 +713,8 @@ function fillTable(invoiceList, vendorState) {
     headerRow.dataset.vendor = vendor;
     headerRow.innerHTML = `
       <td colspan="9" style="background:#f0f0f0;">
-        <input type="checkbox" class="vendor-checkbox" data-vendor="${vendor}" style="margin-right: 10px; cursor: pointer;">
-        <strong style="cursor: pointer;">${vendor} (${countText})</strong>
+          <input type="checkbox" class="vendor-checkbox" data-vendor="${vendor}" style="margin-right: 10px; cursor: pointer;">
+          <strong style="cursor: pointer;">${vendor}</strong> <span style="color: red; font-weight: normal;">(${countText})</span>
       </td>`;
     tableBody.appendChild(headerRow);
 
@@ -725,7 +726,7 @@ function fillTable(invoiceList, vendorState) {
       tr.dataset.id = invoice.ID;
       tr.dataset.url = invoice.fileURL;
       tr.dataset.timestampName = invoice.timestampName;
-      
+
       if (expandedVendorsState.has(vendor)) {
         tr.style.display = '';
       } else {
@@ -748,12 +749,12 @@ function fillTable(invoiceList, vendorState) {
 
       // Listeners específicos para esta fila
       addEventListenersToRow(tr);
-      
+
       getNotes(invoice.ID)
         .then(notesContent => {
-            if (notesContent && notesContent.trim() !== '') {
-                tr.querySelector('.contenedor-icono').classList.add("icon");
-            }
+          if (notesContent && notesContent.trim() !== '') {
+            tr.querySelector('.contenedor-icono').classList.add("icon");
+          }
         })
         .catch(error => console.error("Error al obtener notas:", invoice.ID, error));
     }
@@ -766,7 +767,7 @@ function fillTable(invoiceList, vendorState) {
     totalRow.innerHTML = `
       <td colspan="4"></td>
       <td style="font-weight: bold; text-align: right;">Total:</td>
-      <td style="font-weight: bold; text-align: left;"><div data-field="invoiceTotal">$${invoiceList[vendor].total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div></td>
+      <td style="font-weight: bold; text-align: left;"><div data-field="invoiceTotal">$${invoiceList[vendor].total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></td>
       <td colspan="4"></td>
     `;
     tableBody.appendChild(totalRow);
@@ -776,99 +777,99 @@ function fillTable(invoiceList, vendorState) {
   // Ahora estas funciones tienen acceso a 'invoiceList'
 
   function addEventListenersToRow(tr) {
-      // Listener para expandir/contraer
-      const vendorNameStrong = document.querySelector(`tr.vendor-header[data-vendor="${tr.dataset.vendor}"] strong`);
-      if (vendorNameStrong && !vendorNameStrong.hasAttribute('data-listener-attached')) {
-        vendorNameStrong.setAttribute('data-listener-attached', 'true');
-        vendorNameStrong.addEventListener('click', function () {
-            const currentVendor = tr.dataset.vendor;
-            const invoiceRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${currentVendor}"]`);
-            const isCurrentlyCollapsed = invoiceRows.length > 0 && invoiceRows[0].style.display === 'none';
-            invoiceRows.forEach(row => { row.style.display = isCurrentlyCollapsed ? '' : 'none'; });
-            if (isCurrentlyCollapsed) expandedVendorsState.add(currentVendor);
-            else expandedVendorsState.delete(currentVendor);
-        });
-      }
-
-      // Listener para checkbox de cabecera
-      const vendorCheckbox = document.querySelector(`tr.vendor-header[data-vendor="${tr.dataset.vendor}"] .vendor-checkbox`);
-      if (vendorCheckbox && !vendorCheckbox.hasAttribute('data-listener-attached')) {
-          vendorCheckbox.setAttribute('data-listener-attached', 'true');
-          vendorCheckbox.addEventListener('change', function (event) {
-              const isChecked = event.target.checked;
-              const currentVendor = event.target.dataset.vendor;
-              document.querySelectorAll(`tr.invoice-row[data-vendor="${currentVendor}"] .row-checkbox`).forEach(cb => { cb.checked = isChecked; });
-              updateVendorHeaderTotal(currentVendor);
-              updateTotalSelected();
-          });
-      }
-
-      // Listeners para la fila de factura
-      let shouldFireChange = false;
-      tr.addEventListener("input", () => { shouldFireChange = true; });
-      tr.addEventListener("keydown", (e) => {
-          if (e.key === 'Enter' && shouldFireChange) {
-              e.preventDefault();
-              shouldFireChange = false;
-              const rowData = {};
-              tr.querySelectorAll('.editable-cell').forEach(cell => { rowData[cell.dataset.field] = cell.textContent.trim(); });
-              updateElement(tr.dataset.id, rowData);
-              e.target.blur();
-          }
+    // Listener para expandir/contraer
+    const vendorNameStrong = document.querySelector(`tr.vendor-header[data-vendor="${tr.dataset.vendor}"] strong`);
+    if (vendorNameStrong && !vendorNameStrong.hasAttribute('data-listener-attached')) {
+      vendorNameStrong.setAttribute('data-listener-attached', 'true');
+      vendorNameStrong.addEventListener('click', function () {
+        const currentVendor = tr.dataset.vendor;
+        const invoiceRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${currentVendor}"]`);
+        const isCurrentlyCollapsed = invoiceRows.length > 0 && invoiceRows[0].style.display === 'none';
+        invoiceRows.forEach(row => { row.style.display = isCurrentlyCollapsed ? '' : 'none'; });
+        if (isCurrentlyCollapsed) expandedVendorsState.add(currentVendor);
+        else expandedVendorsState.delete(currentVendor);
       });
-      tr.querySelector('.row-checkbox').addEventListener('click', handleCheckboxClick);
-      tr.querySelector('.row-checkbox').addEventListener('change', function () {
-          if (this.checked) {
-              showDocument(this.dataset.fileurl, this.dataset.filetype);
-          }
-          updateVendorHeaderTotal(this.closest('tr').dataset.vendor);
-          updateTotalSelected();
+    }
+
+    // Listener para checkbox de cabecera
+    const vendorCheckbox = document.querySelector(`tr.vendor-header[data-vendor="${tr.dataset.vendor}"] .vendor-checkbox`);
+    if (vendorCheckbox && !vendorCheckbox.hasAttribute('data-listener-attached')) {
+      vendorCheckbox.setAttribute('data-listener-attached', 'true');
+      vendorCheckbox.addEventListener('change', function (event) {
+        const isChecked = event.target.checked;
+        const currentVendor = event.target.dataset.vendor;
+        document.querySelectorAll(`tr.invoice-row[data-vendor="${currentVendor}"] .row-checkbox`).forEach(cb => { cb.checked = isChecked; });
+        updateVendorHeaderTotal(currentVendor);
+        updateTotalSelected();
       });
+    }
+
+    // Listeners para la fila de factura
+    let shouldFireChange = false;
+    tr.addEventListener("input", () => { shouldFireChange = true; });
+    tr.addEventListener("keydown", (e) => {
+      if (e.key === 'Enter' && shouldFireChange) {
+        e.preventDefault();
+        shouldFireChange = false;
+        const rowData = {};
+        tr.querySelectorAll('.editable-cell').forEach(cell => { rowData[cell.dataset.field] = cell.textContent.trim(); });
+        updateElement(tr.dataset.id, rowData);
+        e.target.blur();
+      }
+    });
+    tr.querySelector('.row-checkbox').addEventListener('click', handleCheckboxClick);
+    tr.querySelector('.row-checkbox').addEventListener('change', function () {
+      if (this.checked) {
+        showDocument(this.dataset.fileurl, this.dataset.filetype);
+      }
+      updateVendorHeaderTotal(this.closest('tr').dataset.vendor);
+      updateTotalSelected();
+    });
   }
 
   // Función mejorada para actualizar el total del proveedor
   function updateVendorHeaderTotal(vendor) {
-      let sum = 0;
-      const vendorRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${vendor}"]`);
-      let hasChecked = false;
+    let sum = 0;
+    const vendorRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${vendor}"]`);
+    let hasChecked = false;
 
-      vendorRows.forEach(row => {
-          const checkbox = row.querySelector('.row-checkbox');
-          if (checkbox && checkbox.checked) {
-              hasChecked = true;
-              const totalDiv = row.querySelector('div[data-field="invoiceTotal"]');
-              if (totalDiv) {
-                  sum += parseInternationalCurrency(totalDiv.textContent);
-              }
-          }
-      });
-
-      const totalRow = document.querySelector(`tr.vendor-total[data-vendor="${vendor}"]`);
-      if (totalRow) {
-          const totalCell = totalRow.querySelector('div[data-field="invoiceTotal"]');
-          let totalToShow;
-          if (hasChecked) {
-              totalToShow = sum;
-          } else {
-              // Si no hay ninguno chequeado, usa el total completo que viene de la data original.
-              // Ahora SÍ tiene acceso a invoiceList.
-              totalToShow = invoiceList[vendor].total;
-          }
-          totalCell.textContent = `$${totalToShow.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    vendorRows.forEach(row => {
+      const checkbox = row.querySelector('.row-checkbox');
+      if (checkbox && checkbox.checked) {
+        hasChecked = true;
+        const totalDiv = row.querySelector('div[data-field="invoiceTotal"]');
+        if (totalDiv) {
+          sum += parseInternationalCurrency(totalDiv.textContent);
+        }
       }
+    });
+
+    const totalRow = document.querySelector(`tr.vendor-total[data-vendor="${vendor}"]`);
+    if (totalRow) {
+      const totalCell = totalRow.querySelector('div[data-field="invoiceTotal"]');
+      let totalToShow;
+      if (hasChecked) {
+        totalToShow = sum;
+      } else {
+        // Si no hay ninguno chequeado, usa el total completo que viene de la data original.
+        // Ahora SÍ tiene acceso a invoiceList.
+        totalToShow = invoiceList[vendor].total;
+      }
+      totalCell.textContent = `$${totalToShow.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
   }
 
   // Función para manejar Ctrl+Click
   function handleCheckboxClick(event) {
-      if (!event.ctrlKey) {
-          document.querySelectorAll('.row-checkbox').forEach(checkbox => {
-              if (checkbox !== event.target) {
-                  checkbox.checked = false;
-              }
-          });
-      }
+    if (!event.ctrlKey) {
+      document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+        if (checkbox !== event.target) {
+          checkbox.checked = false;
+        }
+      });
+    }
   }
-  
+
   // <<< FIN DE FUNCIONES AUXILIARES DENTRO DE fillTable >>>
 }
 // Nota: Las demás funciones como `updateVendorHeaderTotal`, `actualizarTotalSiNoHayCheckboxMarcado`, etc.,
