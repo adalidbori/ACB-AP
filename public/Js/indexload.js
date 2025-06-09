@@ -46,9 +46,7 @@ dropArea.addEventListener("drop", (event) => {
     if (
       file.type === "application/pdf" ||
       file.type === "image/png" ||
-      file.type === "image/jpeg" ||
-      file.type === "application/msword" ||
-      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      file.type === "image/jpeg"
     ) {
       showTemporaryRow();
       uploadFile(file);
@@ -58,23 +56,21 @@ dropArea.addEventListener("drop", (event) => {
   }
 });
 
-
-// Función para llamar a la API de ChatGPT utilizando el JSON body proporcionado
-async function callChatGPT(texto) {
+async function callGemini(url) {
   try {
-    const response = await fetch("/chatgpt", {
+    const response = await fetch("/analyze-invoice", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ text: texto })
+      body: JSON.stringify({ url })
     });
     const data = await response.json();
     if (data.error) {
       console.error("Error en la respuesta del servidor:", data.error);
       throw new Error(data.error);
     }
-    return data.response;
+    return data;
   } catch (error) {
     console.error("Error llamando al endpoint /chatgpt:", error);
     throw error;
@@ -83,7 +79,7 @@ async function callChatGPT(texto) {
 
 async function insertRecord(docName, timestampName, fileType, fileURL, chatGPTData) {
   try {
-    const response = await fetch(`http://${window.miVariable}:3000/insert`, {
+    const response = await fetch(`/insert`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -122,7 +118,7 @@ async function uploadFile(file) {
   let invoiceID = null;
 
   try {
-    const uploadResponse = await fetch(`http://${window.miVariable}:3000/upload`, {
+    const uploadResponse = await fetch(`/upload`, {
       method: "POST",
       body: formData,
     });
@@ -132,22 +128,15 @@ async function uploadFile(file) {
 
     invoiceID = await insertDocumentIntoDatabase(file.name, timestampName, file.type, data.url);
 
-    // Obtenemos el texto extraído del archivo
-    const operationn = await operationLocation(data.url); // Obtener el operationLocation
-    const textoJson = await getExtractedTextPost(operationn); // Obtener el JSON con los datos
-    const finalText = frmattingTexto(textoJson);
+    const response = await callGemini(data.url);
+    console.log(response);
 
-    // Llamamos a ChatGPT usando el texto extraído
-    const chatGPTResponse = await callChatGPT(finalText);
-    responseObject = extractJson(chatGPTResponse);
-    console.log(responseObject);
-
-    if (responseObject.invoices.length === 1) {
-      await updateRecord(invoiceID, responseObject.invoices[0]);
+    if (response.invoices.length === 1) {
+      await updateRecord(invoiceID, response.invoices[0]);
     } else {
       // setup the pdf4meClient
       const url = data.url;
-      const promises = responseObject.invoices.map(invoice => extractPages(url, invoice));
+      const promises = response.invoices.map(invoice => extractPages(url, invoice));
       await Promise.all(promises);
       eliminarBlobMultiInvoice(data.url);
       if (invoiceID) {
@@ -164,7 +153,7 @@ async function uploadFile(file) {
 
 async function updateRecord(invoiceID, invoice) {
   try {
-    const response = await fetch(`http://${window.miVariable}:3000/invoiceFirstUpdate`, {
+    const response = await fetch(`/invoiceFirstUpdate`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json"
@@ -188,7 +177,7 @@ async function updateRecord(invoiceID, invoice) {
 
 async function insertDocumentIntoDatabase(docName, timestampName, fileType, fileURL) {
   try {
-    const response = await fetch(`http://${window.miVariable}:3000/insertDocumentIntoDatabase`, {
+    const response = await fetch(`/insertDocumentIntoDatabase`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -235,7 +224,7 @@ function convertirRango(rango) {
 async function extractPages(url, invoice) {
   const range = convertirRango(invoice.pages);
   try {
-    const response = await fetch(`http://${window.miVariable}:3000/extractpdf`, {
+    const response = await fetch(`/extractpdf`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -255,7 +244,7 @@ async function extractPages(url, invoice) {
     // El tercer parámetro es el nombre del archivo
     formData.append("file", pdfBlob, "extractedPdf.pdf");
 
-    const uploadResponse = await fetch(`http://${window.miVariable}:3000/upload`, {
+    const uploadResponse = await fetch(`/upload`, {
       method: "POST",
       body: formData,
     });
@@ -301,50 +290,6 @@ function frmattingTexto(textoJson) {
   return extractedText;
 }
 
-async function operationLocation(url) {
-
-  const filePath = url;
-  try {
-    const response = await fetch(`http://${window.miVariable}:3000/get-operationLocation`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ filePath }),
-    });
-    const data = await response.json();
-    if (data.error) {
-      throw new Error(`Error: ${data.error}`);
-    }
-    return data.operationLocation;
-  } catch (error) {
-    console.error('Error al realizar la solicitud:', error);
-    throw error;
-  }
-}
-
-async function getExtractedTextPost(operationLocationUrl) {
-
-  try {
-    const response = await fetch(`http://${window.miVariable}:3000/extract-text`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ operationLocation: operationLocationUrl })
-    });
-    const data = await response.json();
-    console.log(data);
-    if (data.error) {
-      throw new Error(`Error: ${data.error}`);
-    }
-    return data.results;
-  } catch (error) {
-    console.error('Error al obtener el resultado:', error);
-    throw error;
-  }
-}
-
 function showTemporaryRow() {
   const tempRow = document.createElement("tr");
   tempRow.id = "tempRow"; // Asigna un ID para poder eliminarla luego
@@ -384,7 +329,7 @@ async function loadInvoices() {
       invoiceNumber,
       invoiceDate
     });
-    const response = await fetch(`http://${window.miVariable}:3000/invoices/status/1?${params.toString()}`);
+    const response = await fetch(`/invoices/status/1?${params.toString()}`);
     invoices = await response.json();
     console.log(invoices);
     const tableResult = groupByVendors(invoices);
@@ -412,7 +357,7 @@ async function uploadFileButton(file) {
   let invoiceID = null;
 
   try {
-    const uploadResponse = await fetch(`http://${window.miVariable}:3000/upload`, {
+    const uploadResponse = await fetch(`/upload`, {
       method: "POST",
       body: formData,
     });

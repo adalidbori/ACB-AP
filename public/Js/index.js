@@ -1,6 +1,4 @@
 
-window.miVariable = "localhost";
-
 // Función para obtener los invoices y llenar la tabla
 let invoices = [];
 
@@ -22,7 +20,7 @@ async function updateElement(invoiceId, rowData) {
     if (allowedFields.includes(field)) {
       const value = rowData[field];
       try {
-        const response = await fetch(`http://${window.miVariable}:3000/invoices/${invoiceId}`, {
+        const response = await fetch(`/invoices/${invoiceId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ field, value })
@@ -39,7 +37,7 @@ async function updateElement(invoiceId, rowData) {
 async function getSASUrl(documentUrl) {
   try {
     // Realiza la solicitud POST al servidor
-    const response = await fetch(`http://${window.miVariable}:3000/open-document`, {
+    const response = await fetch(`/open-document`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: documentUrl }) // Envía la URL del documento en el cuerpo de la solicitud
@@ -182,7 +180,7 @@ function editVendor() {
       alert("The field cannot be empty.");
     } else {
       try {
-        const response = await fetch(`http://${window.miVariable}:3000/editVendors`, {
+        const response = await fetch(`/editVendors`, {
           method: "PUT", // Se cambia a PUT
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ idsToEdit, valor })
@@ -214,7 +212,7 @@ function editVendor() {
 async function deleteInvoiceByID(invoiceID) {
   try {
     // Enviar petición DELETE al servidor con los IDs a eliminar
-    const response = await fetch(`http://${window.miVariable}:3000/invoices`, {
+    const response = await fetch(`/invoices`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: invoiceID })
@@ -269,7 +267,7 @@ async function updateStatus(invoiceStatus) {
 
   try {
     // Enviar petición Update al servidor con los IDs a actualizar
-    const response = await fetch(`http://${window.miVariable}:3000/invoices/update/${invoiceStatus}`, {
+    const response = await fetch(`/invoices/update/${invoiceStatus}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: idsToChange })
@@ -293,7 +291,7 @@ async function updateStatus(invoiceStatus) {
 
 async function getNotes(invoiceId) {
   try {
-    const response = await fetch(`http://${window.miVariable}:3000/invoices/notes/${invoiceId}`);
+    const response = await fetch(`/invoices/notes/${invoiceId}`);
     const data = await response.json();
     // Suponiendo que 'data' es un arreglo de notas
     if (data.length > 0) {
@@ -312,7 +310,7 @@ async function getNotes(invoiceId) {
 async function insertUpdateNotes(invoiceID, content) {
   const formattedContent = content.replace(/\r?\n/g, '\r\n');
   try {
-    const response = await fetch(`http://${window.miVariable}:3000/notes-upsert`, {
+    const response = await fetch(`/notes-upsert`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -479,7 +477,7 @@ async function getDuplicatedByInvoiceNumber(texto) {
   const tableBody = document.querySelector("#duplicated-table tbody");
   const modalEl = document.getElementById('duplicatedElementsbyIDModal');
   try {
-    const response = await fetch(`http://${window.miVariable}:3000/getDuplicatedByInvoiceNumber`, {
+    const response = await fetch(`/getDuplicatedByInvoiceNumber`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -612,7 +610,7 @@ function generateNotificationLinks(invoiceNumbers) {
 
 async function getDuplicatedInvoices() {
   try {
-    const response = await fetch(`http://${window.miVariable}:3000/getDuplicatedInvoices`);
+    const response = await fetch(`/getDuplicatedInvoices`);
 
     if (!response.ok) {
       throw new Error('Error en la respuesta: ' + response.status);
@@ -629,7 +627,7 @@ async function getDuplicatedInvoices() {
 async function eliminarBlobMultiInvoice(urls) {
   try {
     // Enviar petición DELETE para Azure
-    const response = await fetch(`http://${window.miVariable}:3000/eliminar-blob`, {
+    const response = await fetch(`/eliminar-blob`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ urls })

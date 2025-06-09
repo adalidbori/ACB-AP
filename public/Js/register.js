@@ -48,7 +48,7 @@ document.getElementById('register-form').addEventListener('submit', function(eve
 
 async function insertCompany(CompanyName) {
     try {
-      const response = await fetch(`http://${window.miVariable}:3000/company/insert/${CompanyName}`, {
+      const response = await fetch(`/company/insert/${CompanyName}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

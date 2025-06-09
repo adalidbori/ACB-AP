@@ -3,7 +3,7 @@
 async function fetchUsers() {
     console.log("Click")
     try {
-        const res = await fetch('http://localhost:3000/getUsers', {
+        const res = await fetch('/getUsers', {
             method: 'GET',
         });
 
@@ -24,7 +24,7 @@ async function fetchUsers() {
 fetchUsers();
 async function updateUserStatus(userId, active) {
     try {
-        const res = await fetch('http://localhost:3000/updateUserStatus', {
+        const res = await fetch('/updateUserStatus', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ function populateUsersTable(users) {
 
 async function cargarCompanias() {
     try {
-        const response = await fetch(`http://localhost:3000/companies`);
+        const response = await fetch(`/companies`);
         companies = await response.json();
         const select = document.getElementById('companyId');
         select.innerHTML = '<option value="">Select a company</option>';
@@ -117,7 +117,7 @@ form.addEventListener('submit', async function (event) {
         RoleID: formData.get('roleId'),
     };
     try {
-        const response = await fetch('http://localhost:3000/saveInvitation', {
+        const response = await fetch('/saveInvitation', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -191,7 +191,7 @@ function saveUser() {
 
 async function renderInvitations() {
     try {
-        const res = await fetch('http://localhost:3000/getUserInvitations', {
+        const res = await fetch('/getUserInvitations', {
             method: 'GET'
         });
 

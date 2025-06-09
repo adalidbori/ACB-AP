@@ -27,7 +27,7 @@ form.addEventListener('submit', async function (event) {
     };
 
     try {
-        const response = await fetch('http://localhost:3000/saveUser', {
+        const response = await fetch('/saveUser', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

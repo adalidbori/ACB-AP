@@ -10,6 +10,7 @@ const https = require('https');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const cookieParser = require("cookie-parser");
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 
 
@@ -27,6 +28,11 @@ const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const EMAIL_TO = process.env.EMAIL_TO;
 const JWT_SECRET = process.env.JWT_SECRET;
+const GEMINI_KEY = process.env.GEMINI_KEY;
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
+const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
+
 
 const connection = {
   user: USER,
@@ -404,6 +410,8 @@ app.post("/chatgpt", async (req, res) => {
     res.status(500).json({ error: "Error calling ChatGPT API." });
   }
 });
+
+
 
 // Insert SQL Request
 app.post("/insert", authMiddleware, async (req, res) => {
@@ -1330,7 +1338,7 @@ app.post('/auth', async (req, res) => {
     const token = jwt.sign(
       { UserID: user.ID, CompanyID: user.CompanyID, Role: user.RoleID },
       JWT_SECRET,
-      { expiresIn: '4h' }
+      { expiresIn: '8h' }
     );
 
     // Enviar token y datos básicos del usuario
@@ -1359,6 +1367,116 @@ app.get('/getCurrentUser', authMiddleware, (req, res) => {
     res.json({ role: decoded.Role });
   } catch (err) {
     return res.status(403).json({ error: 'Invalid token' });
+  }
+});
+
+async function urlToGenerativePart(url) {
+  console.log(`Descargando archivo desde: ${url}`);
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Error al descargar el archivo: ${response.statusText}`);
+  }
+
+  // Obtener el buffer del archivo y el tipo MIME
+  const buffer = await response.buffer();
+  const mimeType = response.headers.get('content-type');
+
+  // Devolver el objeto en el formato que espera la API de Gemini
+  return {
+    inlineData: {
+      data: buffer.toString('base64'),
+      mimeType,
+    },
+  };
+}
+
+function cleanResponse(responseText) {
+  // Busca un bloque de código JSON y extrae su contenido.
+  const match = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+
+  // Si encuentra un bloque, devuelve el contenido limpio. Si no, devuelve el texto original.
+  // Esto lo hace seguro: si la IA ya devuelve el JSON puro, no lo romperá.
+  return match ? match[1].trim() : responseText.trim();
+}
+
+//CAll to Gemini 2.5 flash preview
+// 4. Crear el endpoint de la API
+app.post('/analyze-invoice', authMiddleware, async (req, res) => {
+  // Obtener la URL del archivo desde los query parameters de la petición
+  const { url } = req.body;
+
+  if (!url) {
+    return res.status(400).json({ error: 'Falta el parámetro "url" en la consulta.' });
+  }
+
+   const sasUrl = generateSasUrlForBlob(url);
+
+  try {
+    // Paso 1: Convertir la URL al formato que necesita Gemini
+    const imagePart = await urlToGenerativePart(sasUrl);
+    console.log('Archivo convertido para la API.');
+
+    // Paso 2: Definir el prompt con las instrucciones
+    const prompt = `
+        You are a specialized data extraction AI. Your sole function is to analyze the provided document file (PDF or PNG) and return a single, valid JSON object. Your response must contain only the raw JSON and no other text, explanations, or markdown formatting.
+
+        The JSON object must conform to the following structure:
+
+        JSON
+
+        {
+          "invoices": [
+            {
+              "vendor_name": "value",
+              "reference_number": "value",
+              "invoice_date": "value",
+              "vendor_address": "value",
+              "invoice_number": "value",
+              "invoice_due_date": "value",
+              "invoice_total": "value",
+              "pages": "value"
+            }
+          ]
+        }
+        Adhere to these strict processing rules:
+
+        Page Grouping: The document may contain multiple invoice "packages." An invoice package includes the primary invoice page and all subsequent pages that act as its backup or supporting documentation (e.g., receipts, proofs of delivery) until the next primary invoice page is detected. You must identify these distinct groups. For example, if a 10-page document contains an invoice on page 1 with backups on pages 2-5, and a second invoice on page 6 with backups on pages 7-10, you will create two objects in the invoices array. The first object will have "pages": "1-5" and the second will have "pages": "6-10".
+
+        Multiple Invoices: If you identify multiple distinct invoice packages as described above, create a separate JSON object for each one within the invoices array.
+
+        Data Formatting:
+        Dates (invoice_date, invoice_due_date): Must be formatted as MM/DD/YYYY. Interpret various date formats from the document and convert them to this specific format.
+        Total (invoice_total): Must be a string containing only numbers and a period . as the decimal separator. Remove all currency symbols (e.g., $) and thousand separators (e.g., ,). For example, "$1,300.54" must be returned as "1300.54".
+        Pages (pages): Must always be a string representing a range in the format "start_page-end_page". If an invoice package is only a single page (e.g., page 1), it must be returned as "1-1". A multi-page invoice from page 2 to 4 would be "2-4".
+
+        Field Extraction:
+        If any field's value cannot be extracted, return it as an empty string "".
+        reference_number: Extract any value labeled as "Reference Number," "File Number," "Manifest," or similar references.
+        Exclusion Rule: The entity "A Customs Brokerage" (or its variations like "A Customs Brokerage Inc") is always the buyer. It must never be extracted as the vendor_name.
+
+        Output Formatting Rule:
+        - Your response MUST be a raw string containing only the JSON object.
+        - The response MUST NOT contain any text, explanations, or introductions.
+        - CRITICAL: DO NOT include the markdown fences \`\`\`json or \`\`\`. The response must begin with the character '{' and end with the character '}'.
+    `;
+
+    // Paso 3: Enviar la petición al modelo de Gemini
+    console.log('Enviando petición a Gemini...');
+    const result = await model.generateContent([prompt, imagePart]);
+    const responseText = result.response.text();
+    console.log(cleanResponse(responseText));
+    // Limpiar la respuesta para asegurar que sea un JSON válido
+    const cleanedJsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    // Paso 4: Devolver la respuesta JSON al cliente
+    console.log('Respuesta recibida y enviada al cliente.');
+    res.setHeader('Content-Type', 'application/json');
+    res.send(cleanedJsonString);
+
+  } catch (error) {
+    console.error('Ha ocurrido un error:', error);
+    res.status(500).json({ error: 'No se pudo procesar el archivo.', details: error.message });
   }
 });
 

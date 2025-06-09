@@ -26,7 +26,7 @@ async function loadInvoices() {
       invoiceNumber,
       invoiceDate
     });
-    const response = await fetch(`http://${window.miVariable}:3000/invoices/status/3?${params.toString()}`);
+    const response = await fetch(`/invoices/status/3?${params.toString()}`);
     invoices = await response.json();
     console.log(invoices);
     const tableResult = groupByVendors(invoices);
@@ -59,7 +59,7 @@ async function updateToPaid(invoiceStatus) {
 
   async function getCheckNumber() {
     try {
-      const response = await fetch(`http://${window.miVariable}:3000/getCheckNumber`, {
+      const response = await fetch(`/getCheckNumber`, {
         method: "GET",
         headers: { "Content-Type": "application/json" }
       });
@@ -107,7 +107,7 @@ async function updateToPaid(invoiceStatus) {
 
     // Si pasa todas las validaciones, proceder con la solicitud
     try {
-      const response = await fetch(`http://${window.miVariable}:3000/editCheckNumber`, {
+      const response = await fetch(`/editCheckNumber`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idsToEdit, valor }) // Enviar el número, no el string
@@ -166,7 +166,7 @@ async function sendEmailToTruvis(checkNumber) {
   });
   try {
     const subject = checkNumber;
-    const sendEmailresponse = await fetch(`http://${window.miVariable}:3000/send-email`, {
+    const sendEmailresponse = await fetch(`/send-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ subject, invoices }) // Enviar el número, no el string

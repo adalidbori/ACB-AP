@@ -25,7 +25,7 @@ async function loadInvoices() {
       invoiceNumber,
       invoiceDate
     });
-    const response = await fetch(`http://${window.miVariable}:3000/invoices/status/4?${params.toString()}`);
+    const response = await fetch(`/invoices/status/4?${params.toString()}`);
     invoices = await response.json();
     console.log(invoices);
     const tableResult = groupByVendors(invoices);
@@ -321,7 +321,7 @@ function editCheckNumber() {
       alert("The field cannot be empty");
     } else {
       try {
-        const response = await fetch(`http://${window.miVariable}:3000/editCheckNumberOnPaid`, {
+        const response = await fetch(`/editCheckNumberOnPaid`, {
           method: "PUT", // Se cambia a PUT
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ idsToEdit, valor })
@@ -387,7 +387,7 @@ async function sendEmailToTruvis() {
   }
   const [subject] = checkNumbers;
   try {
-    const sendEmailresponse = await fetch(`http://${window.miVariable}:3000/send-email`, {
+    const sendEmailresponse = await fetch(`/send-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ subject, invoices }) // Enviar el número, no el string

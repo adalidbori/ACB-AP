@@ -3,7 +3,7 @@ async function login() {
         const email = document.getElementById('emailLogin').value;
         const password = document.getElementById('passLogin').value;
 
-        const res = await fetch('http://localhost:3000/auth', {
+        const res = await fetch('/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include', // 🔑 MUY IMPORTANTE para enviar/recibir cookies
@@ -15,7 +15,7 @@ async function login() {
         if (!res.ok) {
             showMessage(data.message || 'Invalid user or password!', 'error');
         } else {
-            window.location.href = 'http://localhost:3000/';
+            window.location.href = '/';
         }
 
     } catch (error) {

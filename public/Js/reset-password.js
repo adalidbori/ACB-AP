@@ -11,7 +11,7 @@ document.querySelector('form').addEventListener('submit', function (e) {
 
 async function checkIfEmailExists(email) {
     try {
-        const res = await fetch('http://localhost:3000/checkEmailExists', {
+        const res = await fetch('/checkEmailExists', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })
@@ -21,7 +21,7 @@ async function checkIfEmailExists(email) {
 
         if (data.exists) {
             // Ahora sí, llama a requestPasswordReset
-            const resetRes = await fetch('http://localhost:3000/requestPasswordReset', {
+            const resetRes = await fetch('/requestPasswordReset', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })

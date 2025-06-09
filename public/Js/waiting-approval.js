@@ -27,7 +27,7 @@ async function loadInvoices() {
       invoiceNumber,
       invoiceDate
     });
-    const response = await fetch(`http://${window.miVariable}:3000/invoices/status/2?${params.toString()}`);
+    const response = await fetch(`/invoices/status/2?${params.toString()}`);
     invoices = await response.json();
     console.log(invoices);
     const tableResult = groupByVendors(invoices);
