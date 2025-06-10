@@ -1155,25 +1155,47 @@ app.get('/getUserInvitations', authMiddleware, authorizeRole(1), async (req, res
   }
 });
 
-app.post('/checkEmailExists', async (req, res) => {
-  const { email } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ success: false, message: 'Email is required' });
+
+app.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  console.log(password);
+  if (!token || !password) {
+    return res.status(400).json({ success: false, message: 'Token and password are required.' });
   }
 
   try {
-    const pool = await testConnection();
-    const result = await pool
-      .request()
-      .input('email', sql.NVarChar, email)
-      .query('SELECT COUNT(*) AS count FROM UserTable WHERE WorkEmail = @email');
+    // 1. Verificar el JWT
+    // jwt.verify lanzará un error si el token es inválido o ha expirado
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const { userId } = decoded;
 
-    const exists = result.recordset[0].count > 0;
-    res.json({ exists });
+    // 2. Hashear la nueva contraseña
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // 3. Actualizar la contraseña en la base de datos
+    const pool = await testConnection();
+    await pool.request()
+      .input('hashedPassword', sql.NVarChar, hashedPassword)
+      .input('userId', sql.Int, userId) // Asumiendo que el ID del usuario es de tipo Int
+      .query('UPDATE UserTable SET PasswordHash = @hashedPassword WHERE ID = @userId');
+
+    // Es importante usar un nombre de columna como 'PasswordHash' para no guardar contraseñas en texto plano.
+    // Asegúrate que tu columna se llame así o ajústalo.
+
+    // 4. Enviar respuesta de éxito
+    res.status(200).json({ success: true, message: 'Password has been reset successfully.' });
+
   } catch (error) {
-    console.error('Error checking email existence:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    if (error instanceof jwt.JsonWebTokenError || error instanceof jwt.TokenExpiredError) {
+      // Si el error es por un token inválido o expirado
+      return res.status(400).json({ success: false, message: 'This reset link is invalid or has expired.' });
+    }
+
+    // Para cualquier otro error (base de datos, etc.)
+    console.error('Error resetting password:', error);
+    res.status(500).json({ success: false, message: 'An error occurred on the server.' });
   }
 });
 
@@ -1204,54 +1226,59 @@ async function sendInvitationEmail(WorkEmail, token) {
   }
 }
 
+// ELIMINA O COMENTA ESTA RUTA - YA NO ES NECESARIA Y ES INSEGURA
+/*
+app.post('/checkEmailExists', async (req, res) => {
+  // ...
+});
+*/
+
+// MODIFICA ESTA RUTA PARA EL NUEVO FLUJO
 app.post('/requestPasswordReset', async (req, res) => {
-  const { email } = req.body;
+    const { email } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ success: false, message: 'Email is required' });
-  }
-
-  try {
-    const pool = await testConnection();
-
-    // Verificar si el correo existe
-    const result = await pool
-      .request()
-      .input('email', sql.NVarChar, email)
-      .query('SELECT ID FROM UserTable WHERE WorkEmail = @email');
-
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ success: false, message: 'Email not found' });
+    // La validación básica sigue siendo importante
+    if (!email) {
+        return res.status(400).json({ success: false, message: 'Email is required' });
     }
 
-    const userId = result.recordset[0].ID;
+    try {
+        const pool = await testConnection();
+        const result = await pool
+            .request()
+            .input('email', sql.NVarChar, email)
+            .query('SELECT ID FROM UserTable WHERE WorkEmail = @email');
 
-    // Crear el token JWT válido por 10 minutos
-    const token = jwt.sign(
-      { userId, email },
-      JWT_SECRET,
-      { expiresIn: '10m' }
-    );
+        // *** LÓGICA CLAVE ***
+        // Si el usuario existe en la base de datos...
+        if (result.recordset.length > 0) {
+            const userId = result.recordset[0].ID;
 
-    // Enlace de reseteo
-    const resetUrl = `http://localhost:3000/reset-password?token=${token}`;
+            // ...procede a crear el token y enviar el correo como antes.
+            const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: '10m' });
+            const resetUrl = `http://localhost:3000/reset-password?token=${token}`;
 
-    const info = await transporter.sendMail({
-      from: `"AP" <${SMTP_USER}>`,
-      to: email,         // puede ser un string o lista de correos
-      subject: "Reset AP Password",
-      html: `
-        <p>You requested a password reset.</p>
-        <p>Click the link below to reset your password. This link will expire in 10 minutes.</p>
-        <a href="${resetUrl}">${resetUrl}</a>
-      `
-    });
-    console.log('Mensaje enviado: %s', info.messageId);
-    return { ok: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('Error sending password reset email:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
+            await transporter.sendMail({
+                from: `"AP" <${SMTP_USER}>`,
+                to: email,
+                subject: "Reset AP Password",
+                html: `<p>You requested a password reset. Click <a href="${resetUrl}">here</a> to reset your password.</p>`
+            });
+            console.log(`Reset email sent for existing user: ${email}`);
+        } else {
+            // Si el usuario NO existe, no hagas nada. Simplemente registra en el servidor para debugging.
+            console.log(`Password reset requested for non-existing email: ${email}. No action taken.`);
+        }
+
+        // *** RESPUESTA CLAVE ***
+        // Envía la misma respuesta exitosa en AMBOS casos (exista o no el email).
+        return res.status(200).json({ success: true, message: 'Request processed.' });
+
+    } catch (error) {
+        // Solo si hay un error real del servidor (ej. la base de datos se cayó), envía un error 500.
+        console.error('Error during password reset request:', error);
+        return res.status(500).json({ success: false, message: 'An internal server error occurred.' });
+    }
 });
 
 // Middleware de autenticación
@@ -1410,7 +1437,7 @@ app.post('/analyze-invoice', authMiddleware, async (req, res) => {
     return res.status(400).json({ error: 'Falta el parámetro "url" en la consulta.' });
   }
 
-   const sasUrl = generateSasUrlForBlob(url);
+  const sasUrl = generateSasUrlForBlob(url);
 
   try {
     // Paso 1: Convertir la URL al formato que necesita Gemini

@@ -1,48 +1,77 @@
-function clearField(fieldId) {
-    console.log(fieldId);
-    document.getElementById(fieldId).value = '';
-}
+document.addEventListener('DOMContentLoaded', () => {
+    const resetForm = document.getElementById('resetPasswordForm');
+    const messageArea = document.getElementById('message-area');
+    const completeResetBtn = document.getElementById('completeResetBtn');
 
-document.querySelector('form').addEventListener('submit', function (e) {
-    e.preventDefault();
-    const email = document.getElementById("reset-password-email").value;
-    checkIfEmailExists(email);
-});
+    // 1. Obtener el token de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
 
-async function checkIfEmailExists(email) {
-    try {
-        const res = await fetch('/checkEmailExists', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-        });
+    // Si no hay token, deshabilita el formulario
+    if (!token) {
+        messageArea.innerHTML = `<div class="alert alert-danger">Error: No reset token provided. Please request a new reset link.</div>`;
+        resetForm.querySelectorAll('input, button').forEach(el => el.disabled = true);
+        return;
+    }
 
-        const data = await res.json();
+    resetForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
 
-        if (data.exists) {
-            // Ahora sí, llama a requestPasswordReset
-            const resetRes = await fetch('/requestPasswordReset', {
+        // 2. Obtener valores y validar
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        // Limpiar mensajes anteriores
+        messageArea.innerHTML = '';
+
+        if (password.length < 8) {
+             messageArea.innerHTML = `<div class="alert alert-warning">Password must be at least 8 characters long.</div>`;
+             return;
+        }
+
+        if (password !== confirmPassword) {
+            messageArea.innerHTML = `<div class="alert alert-warning">Passwords do not match.</div>`;
+            return;
+        }
+
+        // Deshabilitar el botón para prevenir múltiples envíos
+        completeResetBtn.disabled = true;
+        completeResetBtn.textContent = 'Processing...';
+
+        try {
+            // 3. Enviar datos al servidor
+            const response = await fetch('/reset-password', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ token, password })
             });
 
-            const resetData = await resetRes.json();
+            const data = await response.json();
 
-            if (resetData.ok) {
-                //alert("Check your inbox for the reset link!");
-                clearField('reset-password-email');
+            if (!response.ok) {
+                // Muestra el mensaje de error del servidor (ej: token expirado)
+                messageArea.innerHTML = `<div class="alert alert-danger">${data.message || 'An unknown error occurred.'}</div>`;
             } else {
-                alert("Error sending reset email. Try again later.");
+                // 4. Manejar respuesta exitosa
+                messageArea.innerHTML = `<div class="alert alert-success">${data.message} You will be redirected to the login page shortly.</div>`;
+                resetForm.querySelectorAll('input, button').forEach(el => el.disabled = true);
+                
+                // Redirigir al login después de 3 segundos
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 3000);
             }
-        } else {
-            //alert("Email not found in our records.");
-            clearField('reset-password-email');
+        } catch (error) {
+            console.error('Reset password error:', error);
+            messageArea.innerHTML = `<div class="alert alert-danger">A network error occurred. Please try again.</div>`;
+        } finally {
+            // Reactivar el botón si no hubo redirección
+            if (!messageArea.querySelector('.alert-success')) {
+                completeResetBtn.disabled = false;
+                completeResetBtn.textContent = 'Complete Reset';
+            }
         }
-    } catch (err) {
-        console.error('Error:', err);
-        alert("Sorry, we can't proceed right now!");
-    }
-}
-
-
+    });
+});
