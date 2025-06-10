@@ -1,9 +1,4 @@
-html, body {
-  height: 100%;
-}
-/* Barras de notificación, drop-area, top cards, etc. permanecen iguales */
 
-/* Sección de contenido: flex vertical */
 .content-section {
   display: flex;
   flex-direction: column;
@@ -19,21 +14,7 @@ html, body {
   height: 100%;
   overflow: auto; /* scroll interno */
 }
-.dashboard-card {
-  border-radius: 10px;
-  border: none;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s;
-}
 
-.dashboard-card:hover {
-  transform: translateY(-5px);
-}
-
-.card-icon {
-  font-size: 2rem;
-  margin-bottom: 10px;
-}
 
 .content-section {
   background-color: white;
@@ -102,113 +83,11 @@ html, body {
   outline: 2px solid #4dabf7;
 }
 
-.dropdown-cell {
-  position: relative;
-}
-
-.dropdown-options {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 1000;
-  display: none;
-  min-width: 10rem;
-  padding: 0.5rem 0;
-  background-color: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 0.25rem;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.175);
-}
-
-.dropdown-option {
-  display: block;
-  width: 100%;
-  padding: 0.25rem 1.5rem;
-  clear: both;
-  text-align: inherit;
-  white-space: nowrap;
-  background-color: transparent;
-  border: 0;
-  cursor: pointer;
-}
-
 .dropdown-option:hover {
   background-color: #f8f9fa;
 }
 
-/* Document viewer */
-
-.viewer-content {
-  flex: 1 1 auto;
-  min-height: 0;                /* imprescindible en contenedores flex con scroll */
-  overflow: auto;
-  padding: 0;
-}
-.col-md-5 {
-  height: 100%;
-}
-
-.document-viewer {
-  display: flex;
-  flex-direction: column;
-  flex: 1;                      /* crece para llenar el padre */
-  margin: 0;
-}
-.col-md-5 > .content-section {
-  padding: 0;                   /* quita ese espacio arriba */
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  margin: 0;
-}
-
-.viewer-toolbar {
-  margin: 0;
-  padding: 10px;                /* si quieres un poco de espacio interno */
-  background-color: #f1f3f5;
-  border-bottom: 1px solid #dee2e6;
-}
-
-.viewer-content iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-.viewer-content img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.document-list {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.document-item {
-  cursor: pointer;
-  padding: 8px 12px;
-  border-bottom: 1px solid #dee2e6;
-}
-
-.document-item:hover {
-  background-color: #f8f9fa;
-}
-
-.document-item.active {
-  background-color: #e7f5ff;
-}
-
-#drop-area {
-  border: 2px dashed #ccc;
-  padding: 20px;
-  text-align: center;
-  margin: 20px;
-  background-color: #f9f9f9;
-}
-
-.contenedor-icono.has-notes {
+.contenedor-icono.icon {
   color: red;
 }
 
@@ -334,30 +213,275 @@ td {
   color: #014181;
   font-weight: bold;
 }
+:root {
+            --primary-color: #5A67D8;
+            /* Indigo */
+            --primary-rgb: 90, 103, 216;
+            --light-gray: #F7FAFC;
+            --border-color: #E2E8F0;
+            --text-color-dark: #2D3748;
+            --text-color-light: #718096;
+            --card-bg: #FFFFFF;
+            --shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            --border-radius: 0.5rem;
+        }
 
-.btn-outline-orange {
-  background-color: transparent;
-  color: #f97316;
-  border: 1px solid #f97316;
-}
+        /* Estructura base para layout adaptativo vertical */
+        html,
+        body {
+            height: 100%;
+        }
 
-.btn-outline-orange:hover {
-  background-color: #f97316;
-  color: white;
-  transition: background-color 0.2s ease;
-}
+        body {
+            background-color: var(--light-gray);
+            font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--text-color-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            display: flex;
+            flex-direction: column;
+        }
 
-.btn-orange-gradient {
-  background: linear-gradient(to right, #f97316, #f3a042); /* mismo degradado */
-  color: white !important;
-  border: 1px solid #f97316;
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-}
+        .container-fluid {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            min-height: 0;
+        }
 
-.btn-orange-gradient:hover {
-  background: linear-gradient(to right, #f3a042, #f97316); /* invertir degradado al hacer hover */
-  color: white !important;
-}
+        /* --- Cabecera y Pestañas --- */
+        .tabs-container {
+            padding-bottom: 0.5rem;
+            /* Cambio: Reducción del margen inferior */
+            margin-bottom: 0;
+            flex-shrink: 0;
+            /* Evita que la cabecera se encoja */
+        }
+
+        /* Fila principal de contenido para que ocupe el espacio vertical restante */
+        main.row {
+            flex-grow: 1;
+            min-height: 0;
+        }
+
+        main.row>div {
+            display: flex;
+            /* Asegura que la sección de contenido llene la columna */
+            flex-direction: column;
+        }
+
+
+        .tab-list {
+            list-style: none;
+            padding: 0.25rem;
+            margin: 0;
+            display: flex;
+            gap: 0.5rem;
+            background-color: var(--border-color);
+            border-radius: var(--border-radius);
+        }
+
+        .tab {
+            padding: 0.6rem 1rem;
+            cursor: pointer;
+            border-radius: 0.375rem;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: var(--text-color-light);
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab:hover {
+            color: var(--text-color-dark);
+        }
+
+        .tab.active {
+            color: var(--card-bg);
+            font-weight: 600;
+            background-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(var(--primary-rgb), 0.2);
+        }
+
+        #drop-area {
+            border: 2px dashed var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            transition: all 0.3s ease;
+            background-color: var(--card-bg);
+        }
+
+        #drop-area:hover,
+        #drop-area.dragover {
+            border-color: var(--primary-color);
+            background-color: rgba(var(--primary-rgb), 0.05);
+            transform: translateY(-2px);
+        }
+
+        #drop-area p {
+            margin: 0;
+            color: var(--text-color-light);
+            font-weight: 500;
+        }
+
+        /* --- Botones --- */
+        .btn {
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .dropdown-menu {
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+
+        /* --- Diseño de Tarjeta --- */
+        .content-section {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            min-height: 0;
+        }
+
+        h4,
+        h5,
+        h6 {
+            color: var(--text-color-dark);
+            font-weight: 600;
+        }
+
+        /* --- Filtros --- */
+        .filter-container .bg-light {
+            background-color: #F7FAFC !important;
+        }
+
+        .filter-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 1.5rem !important;
+        }
+
+
+        /* --- Tabla Moderna --- */
+        .table-container {
+            overflow-y: auto;
+            flex-grow: 1;
+            /* Permite que la tabla ocupe el espacio disponible */
+            min-height: 0;
+            /* Necesario para que el scroll funcione en un contenedor flex */
+        }
+
+        .editable-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .editable-table thead th {
+            background-color: var(--card-bg);
+            color: var(--text-color-light);
+            font-weight: 600;
+            text-align: left;
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .editable-table thead th:first-child {
+            border-top-left-radius: var(--border-radius);
+        }
+
+        .editable-table thead th:last-child {
+            border-top-right-radius: var(--border-radius);
+        }
+
+        .editable-table tbody tr {
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s ease;
+        }
+
+        .editable-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .editable-table tbody tr:hover,
+        .editable-table tbody tr.selected-row {
+            background-color: rgba(var(--primary-rgb), 0.07);
+        }
+
+        .editable-table tbody td {
+            padding: 0.5rem 1rem;
+            vertical-align: middle;
+            font-size: 0.85rem;
+        }
+
+        .hidden-column {
+            display: none;
+        }
+
+        /* --- Visor de Documentos --- */
+        .document-viewer {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .viewer-toolbar {
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .viewer-content {
+            flex-grow: 1;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .viewer-content>* {
+            width: 100%;
+            height: 100%;
+            border: none;
+            object-fit: contain;
+        }
+
+        .modal-content {
+            border-radius: var(--border-radius);
+            border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
 
 
 

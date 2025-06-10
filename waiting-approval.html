@@ -4,134 +4,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Payable</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
 
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Bootstrap 5 JS (no requiere jQuery) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+    <!-- Hojas de Estilo Originales -->
     <link rel="stylesheet" href="/Styles/style.css">
     <link rel="stylesheet" href="/Styles/bell.css">
-    <link rel="stylesheet" href="/Styles/navigation.css">
+    <!-- NUEVO CSS MODERNO (TEMA ÍNDIGO) -->
+    
+    <title>Account Payable</title>
 </head>
 
 <body>
-    <div class="container-fluid p-2">
-
-        <!-- Top Cards -->
-        <div class="tabs-container" style="display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center;">
-                <ul class="tab-list" role="tablist"
-                    style="display: flex; gap: 10px; margin: 0; padding: 0; list-style: none;">
+    <div class="container-fluid">
+        <!-- Cabecera y Navegación -->
+        <header class="tabs-container d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center flex-grow-1">
+                <!-- Pestañas de Navegación -->
+                <ul class="tab-list" role="tablist">
                     <li role="tab" aria-selected="false" class="tab" data-tab="in-progress"><i
-                            class="bi bi-clock-history"> </i>In Progress</li>
+                            class="bi bi-clock-history"></i>In Progress</li>
                     <li role="tab" aria-selected="true" class="tab active" data-tab="waiting-pproval"><i
-                            class="bi bi-hourglass-split"></i> Waiting Approval</li>
+                            class="bi bi-hourglass-split"></i>Waiting Approval</li>
                     <li role="tab" aria-selected="false" class="tab" data-tab="ready-to-pay"><i
-                            class="bi bi-currency-dollar"></i> Ready to pay</li>
-                    <li role="tab" aria-selected="false" class="tab" data-tab="paid"><i class="bi bi-check"></i> Paid
-                    </li>
+                            class="bi bi-currency-dollar"></i>Ready to pay</li>
+                    <li role="tab" aria-selected="false" class="tab" data-tab="paid"><i
+                            class="bi bi-check-circle-fill"></i>Paid</li>
                 </ul>
 
-                <div id="drop-area"
-                    style="margin-left: 24px; border: 2px dashed #ccc; padding: 6px 12px; font-size: 21px; height: 100%; display: flex; align-items: center; visibility: hidden">
-                    <p style="margin: 0;">Drop the file here!</p>
-                </div>
             </div>
 
-            <!-- Logout button -->
-            <button class="btn btn-outline-danger btn-sm" onclick="logoutUser()" title="Logout">
-                <i class="bi bi-box-arrow-right"></i> Logout
-            </button>
-        </div>
-        <div id="notification-banner" style="display: none;" class="notification-banner warning">
-            <div class="notification-content">
-                <span class="notification-icon">⚠️</span>
-                <span id="notification-message">Duplicate invoices detected!</span>
-                <span id="notification-links"> </span>
+            <!-- Botones de Usuario -->
+            <div class="d-flex align-items-center gap-2 ps-4">
+                <button id="openSettings" class="btn btn-outline-secondary btn-sm" title="Configuraciones"
+                    style="display:none">
+                    <i class="bi bi-gear-fill"></i>
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="logoutUser()" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
             </div>
-            <button class="notification-close" id="notification-close">&times;</button>
+        </header>
+
+        <!-- Banner de Notificación -->
+        <!-- CORRECCIÓN: Se cambió la clase de margen inferior de mb-4 a mb-3 para reducir el espacio -->
+        <div id="notification-banner" class="alert alert-warning justify-content-between align-items-center mb-3"
+            style="display: none;">
+            <div class="notification-content d-flex align-items-center">
+                <span class="notification-icon fs-5 me-3">⚠️</span>
+                <span id="notification-message">Duplicate invoices detected!</span>
+                <span id="notification-links" class="ms-3"></span>
+            </div>
+            <button class="notification-close btn-close" id="notification-close"></button>
         </div>
-        <!-- Main Content -->
-        <div class="row">
-            <!-- Left Side: Editable List -->
-            <div class="col-md-7 mb-4">
-                <div class="content-section p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h4>
-                            Waiting for Approval -
-                            <i>
-                                Total:
-                                <span class="total-span"
-                                    style="outline: none; padding: 0 2px; background-color: #f0f8ff;"></span>
-                            </i>
-                        </h4>
-                        <h6>Selected:
-                            <span class="items-selected"
-                                style="outline: none; padding: 0 2px; background-color: #f0f8ff;">0</span>
-                        </h6>
-                        <div class="d-flex gap-2">
-                            <div class="d-flex align-items-center">Send to:</div>
-                            <button type="button" onclick="updateStatus(1)" class="btn btn-outline-orange">In
-                                Progress</button>
-                            <button type="button" onclick="updateStatus(3)" class="btn btn-outline-orange">Ready to
-                                Pay</button>
+
+        <!-- Contenido Principal -->
+        <main class="row">
+            <!-- Columna Izquierda: Lista Editable -->
+            <div class="col-lg-7 col-md-12 mb-4">
+                <section class="content-section">
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-shrink-0">
+                        <div>
+                            <h4 class="mb-1">
+                                Waiting Approval
+                            </h4>
+                            <div class="d-flex align-items-center gap-3 text-muted">
+                                <span>Total: <span class="total-span badge bg-secondary fw-normal">0</span></span>
+                                <span>Selected: <span class="items-selected badge bg-primary fw-normal">0</span></span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" onclick="updateStatus(1)" class="btn btn-outline-primary btn-sm">
+                                In Progress
+                            </button>
+                            <button type="button" onclick="updateStatus(3)" class="btn btn-outline-primary btn-sm">
+                                Ready to pay
+                            </button>
                             <div class="btn-group">
-                                <button type="button" class="btn btn-orange-gradient dropdown-toggle"
+                                <button type="button" class="btn btn-secondary btn-sm dropdown-toggle"
                                     data-bs-toggle="dropdown" aria-expanded="false">
-                                    Action
+                                    More Actions
                                 </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#" onclick="downloadSelectedFiles()">Download</a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" onclick="downloadSelectedFiles()"><i
+                                                class="bi bi-download me-2"></i>Download</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="editVendor()"><i
+                                                class="bi bi-pencil-square me-2"></i>Edit Vendor</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="addNotesBulk()"><i
+                                                class="bi bi-card-text me-2"></i>Add Notes</a></li>
+                                    <li>
+                                        <hr class="dropdown-divider">
                                     </li>
-                                    <li><a class="dropdown-item" href="#" onclick="editVendor()">Edit Vendor</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="addNotesBulk()">Add Notes</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="updateStatus(6)">Delete</a></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="updateStatus(6)"><i
+                                                class="bi bi-trash me-2"></i>Delete</a></li>
                                 </ul>
                             </div>
-
                         </div>
                     </div>
 
-                    <div class="filter-container mb-3 d-none">
-                        <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded border"
+                    <!-- Filtros -->
+                    <div class="filter-container mb-3 d-none flex-shrink-0">
+                        <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded-top border"
                             id="filter-header">
-                            <h6 class="mb-0">Filters</h6>
-                            <button class="btn btn-sm btn-link p-0 filter-toggle" type="button"
+                            <h6 class="mb-0 ps-2">Filters</h6>
+                            <button class="btn btn-sm btn-link p-0 filter-toggle text-decoration-none" type="button"
                                 data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false"
                                 aria-controls="filterCollapse">
-                                <i class="filter-arrow">▼</i>
+                                <i class="filter-arrow bi bi-chevron-down"></i>
                             </button>
                         </div>
                         <div class="collapse" id="filterCollapse">
-                            <div class="filter-section p-3 bg-light rounded border-start border-end border-bottom">
+                            <div
+                                class="filter-section p-3 bg-light border-start border-end border-bottom rounded-bottom">
                                 <div class="row g-2">
                                     <div class="col-md-4">
-                                        <label for="filter-name" class="form-label small mb-1">Vendor</label>
+                                        <label for="filter-vendor" class="form-label small mb-1">Vendor</label>
                                         <input type="text" class="form-control form-control-sm" id="filter-vendor"
                                             placeholder="Filter by vendor...">
                                     </div>
                                     <div class="col-md-4">
-                                        <label for="filter-client" class="form-label small mb-1">Invoice #</label>
+                                        <label for="filter-invoiceNumber" class="form-label small mb-1">Invoice
+                                            #</label>
                                         <input type="text" class="form-control form-control-sm"
                                             id="filter-invoiceNumber" placeholder="Filter by invoice...">
                                     </div>
                                     <div class="col-md-4">
-                                        <label for="filter-deadline" class="form-label small mb-1">Date</label>
+                                        <label for="filter-invoiceDate" class="form-label small mb-1">Date</label>
                                         <input type="date" class="form-control form-control-sm" id="filter-invoiceDate">
                                     </div>
                                 </div>
-                                <div class="d-flex justify-content-end mt-2">
+                                <div class="d-flex justify-content-end mt-3">
                                     <button class="btn btn-sm btn-outline-secondary me-2" onclick="clearFilter()"
                                         id="clear-filters-btn">Clear Filters</button>
-                                    <button class="btn btn-sm btn-secondary" onclick="loadInvoices()"
+                                    <button class="btn btn-sm btn-primary" onclick="loadInvoices()"
                                         id="apply-filters-btn">Apply Filters</button>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+
+                    <!-- Tabla -->
                     <div class="table-container">
                         <div class="table-responsive">
                             <table class="editable-table w-100" id="editable-table">
@@ -141,8 +163,7 @@
                                         <th></th>
                                         <th>File name <i class="bi bi-filter"></i></th>
                                         <th id="invoiceNumber">Inv. No. <i class="bi bi-filter"></i></th>
-                                        <!-- Se oculta visualmente la columna Vendor -->
-                                        <th class="hidden-column">Vendor </th>
+                                        <th class="hidden-column">Vendor</th>
                                         <th id="referenceNumber">Reference <i class="bi bi-filter"></i></th>
                                         <th id="invoiceTotal">Total <i class="bi bi-filter"></i></th>
                                         <th id="invoiceDate">Date <i class="bi bi-filter"></i></th>
@@ -151,34 +172,29 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    <!-- El contenido se llenará con JavaScript -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
 
-            <!-- Right Side: Document Viewer -->
-            <div class="col-md-5 mb-4">
-                <div class="content-section">
+            <!-- Columna Derecha: Visor de Documentos -->
+            <div class="col-lg-5 col-md-12 mb-4">
+                <section class="content-section p-0 overflow-hidden">
                     <div class="document-viewer">
-                        <div class="viewer-toolbar d-flex justify-content-between align-items-center">
-                            <h4 class="mb-0">Document Viewer</h4>
-                            <div class="btn-group">
-                                <button class="btn btn-outline-secondary btn-sm" id="zoom-in-btn">Zoom In</button>
-                                <button class="btn btn-outline-secondary btn-sm" id="zoom-out-btn">Zoom Out</button>
-                            </div>
-                        </div>
                         <div class="viewer-content" id="viewer-content">
                             <div class="text-center text-muted">
-                                <h5>Select a document to view</h5>
-                                <p>Click on "Show Documents" to see available files</p>
+                                <i class="bi bi-file-earmark-text" style="font-size: 4rem;"></i>
+                                <h6 class="mt-3">Select a document to view</h6>
+                                <p class="small">The selected file will be displayed here.</p>
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
-        </div>
+        </main>
     </div>
 
     <!-- Modal de Notas -->
@@ -204,6 +220,7 @@
             </div>
         </div>
     </div>
+
     <!-- Modal de Edición de Vendor -->
     <div class="modal fade" id="editModalId" tabindex="-1" aria-labelledby="exampleModalLabel">
         <div class="modal-dialog">
@@ -262,7 +279,9 @@
             </div>
         </div>
     </div>
-    </div>
+
+    <!-- Scripts (sin cambios) -->
+    
     <script src="/Js/index.js"></script>
     <script src="/Js/waiting-approval.js"></script>
     <script src="/Js/dropdown.js"></script>
