@@ -600,22 +600,15 @@ app.get('/getDuplicatedInvoices', authMiddleware, async (req, res) => {
   const CompanyID = req.user.CompanyID; // viene del token
   try {
     const pool = await testConnection();
-
-    // Ejecuta la consulta para obtener los invoiceNumber duplicados
     const result = await pool.request()
       .input('CompanyID', sql.Int, CompanyID)
       .query(`
         SELECT invoiceNumber, COUNT(*) AS occurrences
         FROM Invoices
-        WHERE invoiceStatus IN (1, 2, 3, 4)
-          AND CompanyID = @CompanyID
-          AND invoiceNumber IS NOT NULL
-          AND invoiceNumber <> ''
+        WHERE invoiceStatus IN (1, 2, 3, 4) AND invoiceNumber <> '' AND CompanyID = @CompanyID
         GROUP BY invoiceNumber
         HAVING COUNT(*) > 1;
       `);
-
-    // Retorna el resultado en formato JSON
     res.json(result.recordset);
   } catch (error) {
     console.error("Error al obtener los invoices:", error);
@@ -666,7 +659,7 @@ app.get('/invoices/status/:invoiceStatus', authMiddleware, async (req, res) => {
   }
 });
 
-
+/*
 app.get('/invoices/status/:invoiceStatus', authMiddleware, async (req, res) => {
   const CompanyID = req.user.CompanyID; // viene del token
   try {
@@ -686,6 +679,7 @@ app.get('/invoices/status/:invoiceStatus', authMiddleware, async (req, res) => {
     res.status(500).json({ error: "Error al obtener los invoices" });
   }
 });
+*/
 
 
 // Get Duplicated Invoices SQL Request
@@ -1235,50 +1229,50 @@ app.post('/checkEmailExists', async (req, res) => {
 
 // MODIFICA ESTA RUTA PARA EL NUEVO FLUJO
 app.post('/requestPasswordReset', async (req, res) => {
-    const { email } = req.body;
+  const { email } = req.body;
 
-    // La validación básica sigue siendo importante
-    if (!email) {
-        return res.status(400).json({ success: false, message: 'Email is required' });
+  // La validación básica sigue siendo importante
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email is required' });
+  }
+
+  try {
+    const pool = await testConnection();
+    const result = await pool
+      .request()
+      .input('email', sql.NVarChar, email)
+      .query('SELECT ID FROM UserTable WHERE WorkEmail = @email');
+
+    // *** LÓGICA CLAVE ***
+    // Si el usuario existe en la base de datos...
+    if (result.recordset.length > 0) {
+      const userId = result.recordset[0].ID;
+
+      // ...procede a crear el token y enviar el correo como antes.
+      const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: '10m' });
+      const resetUrl = `http://localhost:3000/reset-password?token=${token}`;
+
+      await transporter.sendMail({
+        from: `"AP" <${SMTP_USER}>`,
+        to: email,
+        subject: "Reset AP Password",
+        html: `<p>You requested a password reset. Click <a href="${resetUrl}">here</a> to reset your password.</p>`
+      });
+      console.log(`Reset email sent for existing user: ${email}`);
+    } else {
+      // Si el usuario NO existe, no hagas nada. Simplemente registra en el servidor para debugging.
+      console.log(`Password reset requested for non-existing email: ${email}. No action taken.`);
     }
 
-    try {
-        const pool = await testConnection();
-        const result = await pool
-            .request()
-            .input('email', sql.NVarChar, email)
-            .query('SELECT ID FROM UserTable WHERE WorkEmail = @email');
+    // *** RESPUESTA CLAVE ***
+    // Envía la misma respuesta exitosa en AMBOS casos (exista o no el email).
+    return res.status(200).json({ success: true, message: 'Request processed.' });
 
-        // *** LÓGICA CLAVE ***
-        // Si el usuario existe en la base de datos...
-        if (result.recordset.length > 0) {
-            const userId = result.recordset[0].ID;
-
-            // ...procede a crear el token y enviar el correo como antes.
-            const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: '10m' });
-            const resetUrl = `http://localhost:3000/reset-password?token=${token}`;
-
-            await transporter.sendMail({
-                from: `"AP" <${SMTP_USER}>`,
-                to: email,
-                subject: "Reset AP Password",
-                html: `<p>You requested a password reset. Click <a href="${resetUrl}">here</a> to reset your password.</p>`
-            });
-            console.log(`Reset email sent for existing user: ${email}`);
-        } else {
-            // Si el usuario NO existe, no hagas nada. Simplemente registra en el servidor para debugging.
-            console.log(`Password reset requested for non-existing email: ${email}. No action taken.`);
-        }
-
-        // *** RESPUESTA CLAVE ***
-        // Envía la misma respuesta exitosa en AMBOS casos (exista o no el email).
-        return res.status(200).json({ success: true, message: 'Request processed.' });
-
-    } catch (error) {
-        // Solo si hay un error real del servidor (ej. la base de datos se cayó), envía un error 500.
-        console.error('Error during password reset request:', error);
-        return res.status(500).json({ success: false, message: 'An internal server error occurred.' });
-    }
+  } catch (error) {
+    // Solo si hay un error real del servidor (ej. la base de datos se cayó), envía un error 500.
+    console.error('Error during password reset request:', error);
+    return res.status(500).json({ success: false, message: 'An internal server error occurred.' });
+  }
 });
 
 // Middleware de autenticación
@@ -1350,7 +1344,7 @@ app.post('/auth', async (req, res) => {
     const result = await request.query(query);
 
     if (result.recordset.length === 0) {
-      return res.status(401).json({ message: "Invalid Email!" });
+      return res.status(401).json({ message: "Invalid Credentials!" });
 
     }
 
@@ -1358,7 +1352,7 @@ app.post('/auth', async (req, res) => {
 
     const isPasswordValid = await bcrypt.compare(password, user.PasswordHash);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid Password!" });
+      return res.status(401).json({ message: "Invalid Credentials!" });
     }
 
     // Generar el JWT con userId y CompanyID
@@ -1507,12 +1501,115 @@ app.post('/analyze-invoice', authMiddleware, async (req, res) => {
 });
 
 
+// Endpoint para obtener las métricas del dashboard
+app.get('/dashboard-metrics', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID;
+
+  // La consulta SQL que proporcionaste, adaptada para usar el CompanyID del usuario
+  const query = `
+        SELECT 
+            -- Tarjeta 1: Total a Pagar (Total Outstanding)
+            (SELECT ISNULL(SUM(CAST(invoiceTotal AS MONEY)), 0) FROM Invoices WHERE invoiceStatus IN (1, 2, 3) AND CompanyID = @CompanyID) AS TotalOutstanding,
+
+            -- Tarjeta 2: Facturas Pendientes (Pending Invoices)
+            (SELECT COUNT(ID) FROM Invoices WHERE invoiceStatus IN (1, 2, 3) AND CompanyID = @CompanyID) AS PendingInvoices,
+
+            -- Tarjeta 3: Pagado este Mes (Paid this Month)
+            (SELECT ISNULL(SUM(CAST(invoiceTotal AS MONEY)), 0) FROM Invoices WHERE invoiceStatus = 4 AND MONTH(LastModified) = MONTH(GETDATE()) AND YEAR(LastModified) = YEAR(GETDATE()) AND CompanyID = @CompanyID) AS PaidThisMonth,
+
+            -- Tarjeta 4: Facturas Atrasadas (Overdue Invoices)
+            (SELECT COUNT(ID) FROM Invoices WHERE invoiceStatus IN (1, 2, 3) AND CAST(dueDate AS DATE) < GETDATE() AND CompanyID = @CompanyID) AS OverdueInvoices;
+    `;
+
+  try {
+    const pool = await testConnection();
+    const result = await pool.request()
+      .input('CompanyID', sql.Int, CompanyID)
+      .query(query);
+
+    // Devolvemos el primer (y único) registro del resultado
+    const metrics = result.recordset.length > 0 ? result.recordset[0] : null;
+    res.json(metrics);
+
+  } catch (error) {
+    console.error("Error al obtener las métricas del dashboard:", error);
+    res.status(500).json({ error: "Error interno del servidor al obtener las métricas." });
+  }
+});
+
+app.get('/invoices-processed-chart', authMiddleware, async (req, res) => {
+    const CompanyID = req.user.CompanyID;
+    // Esta consulta cuenta las facturas que se consideran "terminadas" (pagadas o eliminadas)
+    const query = `
+        SELECT 
+            FORMAT(LastModified, 'yyyy-MM') AS PaidMonth,
+            COUNT(ID) AS NumberOfInvoices
+        FROM 
+            Invoices
+        WHERE 
+            (invoiceStatus = 4 OR invoiceStatus = 6) -- Se usa paréntesis para la lógica correcta
+            AND YEAR(LastModified) = YEAR(GETDATE())
+            AND CompanyID = @CompanyID
+        GROUP BY 
+            FORMAT(LastModified, 'yyyy-MM')
+        ORDER BY 
+            PaidMonth;
+    `;
+
+    try {
+        const pool = await testConnection();
+        const result = await pool.request()
+            .input('CompanyID', sql.Int, CompanyID)
+            .query(query);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error("Error al obtener los datos para el gráfico de facturas:", error);
+        res.status(500).json({ error: "Error interno del servidor." });
+    }
+});
+
+// Endpoint para los datos del gráfico de pagos mensuales
+app.get('/monthly-paid-chart', authMiddleware, async (req, res) => {
+    const CompanyID = req.user.CompanyID;
+    // CORRECCIÓN: Esta consulta ahora solo suma las facturas con estado 4 (Paid) para precisión.
+    const query = `
+        SELECT 
+            FORMAT(LastModified, 'yyyy-MM') AS PaymentMonth,
+            SUM(CAST(invoiceTotal AS MONEY)) AS TotalPaid
+        FROM 
+            Invoices
+        WHERE 
+            invoiceStatus = 4 
+            AND YEAR(LastModified) = YEAR(GETDATE())
+            AND CompanyID = @CompanyID
+        GROUP BY 
+            FORMAT(LastModified, 'yyyy-MM')
+        ORDER BY 
+            PaymentMonth;
+    `;
+    
+    try {
+        const pool = await testConnection();
+        const result = await pool.request()
+            .input('CompanyID', sql.Int, CompanyID)
+            .query(query);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error("Error al obtener los datos para el gráfico de pagos:", error);
+        res.status(500).json({ error: "Error interno del servidor." });
+    }
+});
+
 // Servir archivos estáticos (para ver los archivos subidos)
 app.use("/uploads", authMiddleware, express.static(uploadDir));
 
 // Servir el index.html como homepage
 app.get("/", authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
+});
+
+app.get("/dashboard", authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, "dashboard.html"));
 });
 
 app.get("/waiting-approval", authMiddleware, (req, res) => {

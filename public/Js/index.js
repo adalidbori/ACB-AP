@@ -1,8 +1,16 @@
 
 // Función para obtener los invoices y llenar la tabla
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Añade los listeners a los encabezados ESTÁTICOS de la tabla una vez.
-    initializeTableSorting();
+  // 1. Añade los listeners a los encabezados ESTÁTICOS de la tabla una vez.
+  initializeTableSorting();
+  setTimeout(() => {
+    //generateNotificationLinks()
+    console.log("Time Out");
+    getDuplicatedInvoices();
+
+  }, 5000);
+
+  closeDuplicateBanner();
 });
 let invoices = [];
 
@@ -233,7 +241,6 @@ async function updateStatus(invoiceStatus) {
   // Recopilar los IDs de las filas seleccionadas
   const checkboxes = document.querySelectorAll('.row-checkbox');
   const idsToChange = [];
-  const urlsToDelete = [];
 
   if (invoiceStatus === 6) {
 
@@ -244,9 +251,6 @@ async function updateStatus(invoiceStatus) {
         const url = row.dataset.url;
         if (id) {
           idsToChange.push(parseInt(id, 10));
-        }
-        if (url) {
-          urlsToDelete.push(url);
         }
       }
     });
@@ -447,15 +451,16 @@ function parseInternationalCurrency(amountStr) {
   return parseFloat(amountStr) || 0;
 }
 
-// Notification banner functionality
-const notificationBanner = document.getElementById('notification-banner');
-const notificationMessage = document.getElementById('notification-message');
-const notificationClose = document.getElementById('notification-close');
+function closeDuplicateBanner() {
+  // Notification banner functionality
+  const notificationBanner = document.getElementById('notification-banner');
+  const notificationClose = document.getElementById('notification-close');
 
-// Close notification banner
-notificationClose.addEventListener('click', function () {
-  notificationBanner.style.display = 'none';
-});
+  // Close notification banner
+  notificationClose.addEventListener('click', function () {
+    notificationBanner.style.display = 'none';
+  });
+}
 
 // Filter collapse functionality
 const filterHeader = document.getElementById('filter-header');
@@ -654,6 +659,7 @@ async function getDuplicatedInvoices() {
 
     const data = await response.json();
     const invoiceNumbers = data.map(item => item.invoiceNumber);
+    console.log(invoiceNumbers);
     generateNotificationLinks(invoiceNumbers);
   } catch (error) {
     console.error('Error fetching duplicated invoices:', error);
@@ -676,11 +682,7 @@ async function eliminarBlobMultiInvoice(urls) {
   }
 }
 
-setTimeout(() => {
-  //generateNotificationLinks()
-  getDuplicatedInvoices();
 
-}, 5000);
 
 function getInvoiceStatusText(status) {
   switch (status) {

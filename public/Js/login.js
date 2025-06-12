@@ -13,7 +13,7 @@ async function login() {
         const data = await res.json();
 
         if (!res.ok) {
-            showMessage(data.message || 'Invalid user or password!', 'error');
+            showMessage(data.message || 'Invalid Credentials!', 'error');
         } else {
             window.location.href = '/';
         }
