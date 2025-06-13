@@ -4,11 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Cuentas por Pagar</title>
+    <title>PayGuard</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
+    <link rel="icon" type="image/png" href="/Styles/favicon.png">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
@@ -25,6 +25,13 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+
+        .header-logo img {
+            height: 80px;
+            /* Define la altura y el ancho se ajustará automáticamente */
+            width: auto;
+            padding-top: 1rem;
+        }
     </style>
 </head>
 
@@ -33,8 +40,12 @@
     <div class="flex h-screen">
         <!-- Barra lateral (Sidebar) -->
         <aside class="w-64 bg-white shadow-md flex flex-col">
-            <div class="p-6 text-center">
-                <h1 class="text-2xl font-bold text-indigo-600">Klaro Pay</h1>
+            <div class="header-logo">
+                <h1>
+                    <a href="/dashboard">
+                        <img src="/Styles/logo1.png" alt="PayGuard Logo">
+                    </a>
+                </h1>
             </div>
             <nav class="flex-grow p-4">
                 <a href="#" class="flex items-center p-3 my-2 text-slate-700 bg-indigo-100 rounded-lg font-bold">
@@ -73,7 +84,7 @@
                         </div>
                         <div class="ml-4 min-w-0">
                             <p class="text-sm text-slate-500 truncate">Total Outstanding</p>
-                            <p id="totalOutstanding" class="text-xl lg:text-2xl font-bold break-words">$125,430.50</p>
+                            <p id="totalOutstanding" class="text-xl lg:text-2xl font-bold break-words"></p>
                         </div>
                     </div>
                 </div>
@@ -85,7 +96,7 @@
                         </div>
                         <div class="ml-4 min-w-0">
                             <p class="text-sm text-slate-500 truncate">Pending Invoices</p>
-                            <p id="pendingInvoices" class="text-xl lg:text-2xl font-bold break-words">82</p>
+                            <p id="pendingInvoices" class="text-xl lg:text-2xl font-bold break-words"></p>
                         </div>
                     </div>
                 </div>
@@ -97,7 +108,7 @@
                         </div>
                         <div class="ml-4 min-w-0">
                             <p class="text-sm text-slate-500 truncate">Paid this Month</p>
-                            <p id="paidThisMonth" class="text-xl lg:text-2xl font-bold break-words">$45,210.00</p>
+                            <p id="paidThisMonth" class="text-xl lg:text-2xl font-bold break-words"></p>
                         </div>
                     </div>
                 </div>
@@ -109,7 +120,7 @@
                         </div>
                         <div class="ml-4 min-w-0">
                             <p class="text-sm text-slate-500 truncate">Overdue Invoices</p>
-                            <p id="overdueInvoices" class="text-xl lg:text-2xl font-bold break-words">12</p>
+                            <p id="overdueInvoices" class="text-xl lg:text-2xl font-bold break-words"></p>
                         </div>
                     </div>
                 </div>
@@ -125,7 +136,7 @@
                             class="bi bi-info-circle-fill text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"></i>
                     </div>
                     <p id="spend-help-text" class="hidden text-sm text-slate-600 bg-slate-50 p-3 rounded-lg mb-4">
-                        Este gráfico muestra la suma total de dinero pagado en facturas cada mes.
+                        This chart displays the total amount paid on invoices per month.
                     </p>
                     <div class="h-80">
                         <canvas id="paymentsChart"></canvas>
@@ -140,8 +151,7 @@
                             class="bi bi-info-circle-fill text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"></i>
                     </div>
                     <p id="volume-help-text" class="hidden text-sm text-slate-600 bg-slate-50 p-3 rounded-lg mb-4">
-                        Este gráfico muestra el número total de facturas que han sido completamente procesadas (pagadas
-                        o archivadas) cada mes.
+                        This chart displays the total number of fully processed invoices per month.
                     </p>
                     <div class="h-80">
                         <canvas id="invoicesChart"></canvas>
