@@ -618,53 +618,53 @@ app.get('/getDuplicatedInvoices', authMiddleware, async (req, res) => {
 
 
 app.get('/invoices/status/:invoiceStatus', authMiddleware, async (req, res) => {
-    const CompanyID = req.user.CompanyID;
+  const CompanyID = req.user.CompanyID;
 
-    try {
-        const { invoiceStatus } = req.params;
-        const { vendor, invoiceNumber, invoiceDate } = req.query;
+  try {
+    const { invoiceStatus } = req.params;
+    const { vendor, invoiceNumber, invoiceDate } = req.query;
 
-        const pool = await testConnection();
-        const request = pool.request();
+    const pool = await testConnection();
+    const request = pool.request();
 
-        // --- INICIO DE LA LÓGICA CORREGIDA ---
+    // --- INICIO DE LA LÓGICA CORREGIDA ---
 
-        // 1. Empezamos con la consulta base, que siempre se aplicará.
-        let query = `SELECT * FROM Invoices WHERE CompanyID = @CompanyID AND invoiceStatus = @invoiceStatus`;
+    // 1. Empezamos con la consulta base, que siempre se aplicará.
+    let query = `SELECT * FROM Invoices WHERE CompanyID = @CompanyID AND invoiceStatus = @invoiceStatus`;
 
-        // 2. Añadimos el filtro de fecha SOLO si el estado es 4.
-        //    Usamos parseInt para asegurar que la comparación sea numérica.
-        if (parseInt(invoiceStatus, 10) === 4) {
-            query += ` AND LastModified >= DATEADD(day, -7, GETDATE())`;
-        }
-
-        // 3. Añadimos los filtros opcionales.
-        if (vendor && vendor.trim() !== "") {
-            query += " AND vendor LIKE @vendor";
-            request.input('vendor', sql.VarChar, `%${vendor}%`);
-        }
-        if (invoiceNumber && invoiceNumber.trim() !== "") {
-            query += " AND invoiceNumber LIKE @invoiceNumber";
-            request.input('invoiceNumber', sql.VarChar, `%${invoiceNumber}%`);
-        }
-        if (invoiceDate && invoiceDate.trim() !== "") {
-            query += " AND CAST(invoiceDate AS DATE) = @invoiceDate"; // Usamos CAST para comparar solo la fecha
-            request.input('invoiceDate', sql.Date, invoiceDate);
-        }
-        
-        // --- FIN DE LA LÓGICA CORREGIDA ---
-
-        // Asignar los parámetros que siempre están presentes
-        request.input('invoiceStatus', sql.Int, invoiceStatus);
-        request.input('CompanyID', sql.Int, CompanyID);
-
-        const result = await request.query(query);
-        res.json(result.recordset);
-
-    } catch (error) {
-        console.error("Error al obtener los invoices:", error);
-        res.status(500).json({ error: "Error al obtener los invoices" });
+    // 2. Añadimos el filtro de fecha SOLO si el estado es 4.
+    //    Usamos parseInt para asegurar que la comparación sea numérica.
+    if (parseInt(invoiceStatus, 10) === 4) {
+      query += ` AND LastModified >= DATEADD(day, -7, GETDATE())`;
     }
+
+    // 3. Añadimos los filtros opcionales.
+    if (vendor && vendor.trim() !== "") {
+      query += " AND vendor LIKE @vendor";
+      request.input('vendor', sql.VarChar, `%${vendor}%`);
+    }
+    if (invoiceNumber && invoiceNumber.trim() !== "") {
+      query += " AND invoiceNumber LIKE @invoiceNumber";
+      request.input('invoiceNumber', sql.VarChar, `%${invoiceNumber}%`);
+    }
+    if (invoiceDate && invoiceDate.trim() !== "") {
+      query += " AND CAST(invoiceDate AS DATE) = @invoiceDate"; // Usamos CAST para comparar solo la fecha
+      request.input('invoiceDate', sql.Date, invoiceDate);
+    }
+
+    // --- FIN DE LA LÓGICA CORREGIDA ---
+
+    // Asignar los parámetros que siempre están presentes
+    request.input('invoiceStatus', sql.Int, invoiceStatus);
+    request.input('CompanyID', sql.Int, CompanyID);
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+
+  } catch (error) {
+    console.error("Error al obtener los invoices:", error);
+    res.status(500).json({ error: "Error al obtener los invoices" });
+  }
 });
 
 /*
@@ -1205,17 +1205,21 @@ async function sendInvitationEmail(WorkEmail, token) {
   const inviteLink = `http://localhost:3000/complete-registration?token=${token}`;
 
   const body = `
-    <h3>Has sido invitado a registrarte en AP</h3>
-    <p>Haz clic en el siguiente enlace para completar tu registro:</p>
-    <a href="${inviteLink}">${inviteLink}</a>
-    <p>Este enlace expirará en 5 días.</p>
-  `;
+    <h3 style="font-family: Arial, sans-serif; color: #333;">Welcome to PayGuard!</h3>
+    <p style="font-family: Arial, sans-serif; color: #555;">You've been invited to create an account for our accounts payable system.</p>
+    <p style="font-family: Arial, sans-serif; color: #555;">To get started, please click the link below to complete your registration:</p>
+    <p style="margin: 20px 0;">
+        <a href="${inviteLink}" style="background-color: #5A67D8; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-family: Arial, sans-serif;">Complete Your Registration</a>
+    </p>
+    <p style="font-family: Arial, sans-serif; color: #777; font-size: 12px;">Please note: For your security, this link will expire in 5 days.</p>
+    <p style="font-family: Arial, sans-serif; color: #777; font-size: 12px;">If you did not expect this invitation, you can safely ignore this email.</p>
+`;
 
   try {
     const info = await transporter.sendMail({
-      from: `"AP" <${SMTP_USER}>`,
+      from: `"PayGuard" <${SMTP_USER}>`,
       to: WorkEmail, // destinatario
-      subject: 'Invitación para unirte a AP',
+      subject: "You're invited to join PayGuard!",
       html: body,
       // attachments: [...], // Opcional si necesitas adjuntar archivos
     });
@@ -1259,12 +1263,22 @@ app.post('/requestPasswordReset', async (req, res) => {
       // ...procede a crear el token y enviar el correo como antes.
       const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: '10m' });
       const resetUrl = `http://localhost:3000/reset-password?token=${token}`;
-
+      const body = `
+          <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+              <h3 style="color: #333;">Password Reset Request</h3>
+              <p>We received a request to reset the password for your PayGuard account.</p>
+              <p>If you made this request, please click the button below to set a new password. If you didn't, you can safely ignore this email.</p>
+              <p style="margin: 30px 0;">
+                  <a href="${resetUrl}" style="background-color: #5A67D8; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Your Password</a>
+              </p>
+              <p style="color: #777; font-size: 12px;">For your security, this link is only valid for 1 hour.</p>
+          </div>
+      `;
       await transporter.sendMail({
-        from: `"AP" <${SMTP_USER}>`,
+        from: `"PayGuard" <${SMTP_USER}>`,
         to: email,
-        subject: "Reset AP Password",
-        html: `<p>You requested a password reset. Click <a href="${resetUrl}">here</a> to reset your password.</p>`
+        subject: "Reset Your PayGuard Password",
+        html: body
       });
       console.log(`Reset email sent for existing user: ${email}`);
     } else {
@@ -1511,9 +1525,9 @@ app.post('/analyze-invoice', authMiddleware, async (req, res) => {
 
 // Endpoint para obtener las métricas del dashboard
 app.get('/dashboard-metrics', authMiddleware, async (req, res) => {
-    const CompanyID = req.user.CompanyID;
-    console.log(CompanyID);
-    const query = `
+  const CompanyID = req.user.CompanyID;
+  console.log(CompanyID);
+  const query = `
         SELECT 
             -- Tarjeta 1: Total a Pagar (Total Outstanding)
             (SELECT ISNULL(SUM(CAST(invoiceTotal AS MONEY)), 0) FROM Invoices WHERE invoiceStatus IN (1, 2, 3) AND CompanyID = @CompanyID) AS TotalOutstanding,
@@ -1529,19 +1543,19 @@ app.get('/dashboard-metrics', authMiddleware, async (req, res) => {
             (SELECT COUNT(ID) FROM Invoices WHERE invoiceStatus IN (1, 2, 3) AND TRY_CAST(dueDate AS DATE) < GETDATE() AND CompanyID = @CompanyID) AS OverdueInvoices;
     `;
 
-    try {
-        const pool = await testConnection();
-        const result = await pool.request()
-            .input('CompanyID', sql.Int, CompanyID)
-            .query(query);
+  try {
+    const pool = await testConnection();
+    const result = await pool.request()
+      .input('CompanyID', sql.Int, CompanyID)
+      .query(query);
 
-        const metrics = result.recordset.length > 0 ? result.recordset[0] : null;
-        res.json(metrics);
+    const metrics = result.recordset.length > 0 ? result.recordset[0] : null;
+    res.json(metrics);
 
-    } catch (error) {
-        console.error("Error al obtener las métricas del dashboard:", error);
-        res.status(500).json({ error: "Error interno del servidor al obtener las métricas." });
-    }
+  } catch (error) {
+    console.error("Error al obtener las métricas del dashboard:", error);
+    res.status(500).json({ error: "Error interno del servidor al obtener las métricas." });
+  }
 });
 
 app.get('/invoices-processed-chart', authMiddleware, async (req, res) => {
