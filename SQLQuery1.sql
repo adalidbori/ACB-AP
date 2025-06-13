@@ -126,69 +126,17 @@ INSERT INTO Role (RoleName) VALUES ('Manager');
 INSERT INTO Company (CompanyName) VALUES ('Microsoft');
 
 SELECT 
-                ui.ID,
-                ui.WorkEmail,
-                c.CompanyName,
-                r.RoleName,
-                FORMAT(ui.CreatedAt, 'MM/dd/yyyy') AS CreatedAt,
-                FORMAT(ui.ExpiresAt, 'MM/dd/yyyy') AS ExpiresAt
-            FROM 
-                UserInvitation ui
-            INNER JOIN 
-                Company c ON ui.CompanyID = c.ID
-            INNER JOIN 
-                Role r ON ui.RoleID = r.ID
+            -- Tarjeta 1: Total a Pagar (Total Outstanding)
+            (SELECT ISNULL(SUM(CAST(invoiceTotal AS MONEY)), 0) FROM Invoices WHERE invoiceStatus IN (1, 2, 3) AND CompanyID = 1) AS TotalOutstanding,
 
+            -- Tarjeta 2: Facturas Pendientes (Pending Invoices)
+            (SELECT COUNT(ID) FROM Invoices WHERE invoiceStatus IN (1, 2, 3) AND CompanyID = 1) AS PendingInvoices,
 
+            -- Tarjeta 3: Pagado este Mes (Paid this Month)
+            (SELECT ISNULL(SUM(CAST(invoiceTotal AS MONEY)), 0) FROM Invoices WHERE invoiceStatus = 4 AND MONTH(LastModified) = MONTH(GETDATE()) AND YEAR(LastModified) = YEAR(GETDATE()) AND CompanyID = 1) AS PaidThisMonth,
 
--- Consulta para todas las tarjetas en una sola llamada
-SELECT 
-    -- Tarjeta 1: Total a Pagar (Total Outstanding)
-    -- Suma de los totales de todas las facturas no pagadas (estado 1, 2, o 3)
-    (SELECT SUM(CAST(invoiceTotal AS MONEY)) FROM Invoices WHERE invoiceStatus IN (1, 2, 3)) AS TotalOutstanding,
-
-    -- Tarjeta 2: Facturas Pendientes (Pending Invoices)
-    -- Conteo de todas las facturas no pagadas
-    (SELECT COUNT(ID) FROM Invoices WHERE invoiceStatus IN (1, 2, 3)) AS PendingInvoices,
-
-    -- Tarjeta 3: Pagado este Mes (Paid this Month)
-    -- Suma de los totales de facturas pagadas (estado 4) durante el mes y año actual
-    (SELECT SUM(CAST(invoiceTotal AS MONEY)) FROM Invoices WHERE invoiceStatus = 4 AND MONTH(LastModified) = MONTH(GETDATE()) AND YEAR(LastModified) = YEAR(GETDATE())) AS PaidThisMonth,
-
-    -- Tarjeta 4: Facturas Atrasadas (Overdue Invoices)
-    -- Conteo de facturas no pagadas cuya fecha de vencimiento ya pasó
-    (SELECT COUNT(ID) FROM Invoices WHERE invoiceStatus IN (1, 2, 3) AND CAST(dueDate AS DATE) < GETDATE()) AS OverdueInvoices;
-
-
-
--- Conteo de facturas PAGADAS por mes (del año en curso)
-SELECT 
-    FORMAT(LastModified, 'yyyy-MM') AS PaidMonth,
-    COUNT(ID) AS NumberOfInvoices
-FROM 
-    Invoices
-WHERE 
-    invoiceStatus = 4 or invoiceStatus = 6 -- Filtra solo las facturas pagadas
-    AND YEAR(LastModified) = YEAR(GETDATE()) -- Filtra por el año actual
-GROUP BY 
-    FORMAT(LastModified, 'yyyy-MM')
-ORDER BY 
-    PaidMonth;
-
-
--- Suma de los montos pagados por mes (del año en curso)
-SELECT 
-    FORMAT(LastModified, 'yyyy-MM') AS PaymentMonth,
-    SUM(CAST(invoiceTotal AS MONEY)) AS TotalPaid
-FROM 
-    Invoices
-WHERE 
-    invoiceStatus = 4 or invoiceStatus = 6 -- Filtra solo las facturas pagadas
-    AND YEAR(LastModified) = YEAR(GETDATE()) -- Filtra por el año actual
-GROUP BY 
-    FORMAT(LastModified, 'yyyy-MM')
-ORDER BY 
-    PaymentMonth;
-
+            -- Tarjeta 4: Facturas Atrasadas (Overdue Invoices)
+            -- Corregido: Usamos TRY_CAST para evitar el error de conversión.
+            (SELECT COUNT(ID) FROM Invoices WHERE invoiceStatus IN (1, 2, 3) AND TRY_CAST(dueDate AS DATE) < GETDATE() AND CompanyID = 1) AS OverdueInvoices;
 
 

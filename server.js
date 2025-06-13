@@ -617,46 +617,54 @@ app.get('/getDuplicatedInvoices', authMiddleware, async (req, res) => {
 });
 
 
-// Get Invoices SQL Request
 app.get('/invoices/status/:invoiceStatus', authMiddleware, async (req, res) => {
-  const CompanyID = req.user.CompanyID; // viene del token
+    const CompanyID = req.user.CompanyID;
 
-  try {
-    const { invoiceStatus } = req.params;
-    // Recibimos parámetros opcionales vía query string:
-    const { vendor, invoiceNumber, invoiceDate } = req.query;
+    try {
+        const { invoiceStatus } = req.params;
+        const { vendor, invoiceNumber, invoiceDate } = req.query;
 
-    const pool = await testConnection();
+        const pool = await testConnection();
+        const request = pool.request();
 
-    // Consulta base
-    let query = "SELECT * FROM Invoices WHERE invoiceStatus = @invoiceStatus and CompanyID = @CompanyID";
+        // --- INICIO DE LA LÓGICA CORREGIDA ---
 
-    // Preparar la request y asignar los parámetros
-    const request = pool.request();
-    request.input('invoiceStatus', sql.Int, invoiceStatus);
-    request.input('CompanyID', sql.Int, CompanyID);
+        // 1. Empezamos con la consulta base, que siempre se aplicará.
+        let query = `SELECT * FROM Invoices WHERE CompanyID = @CompanyID AND invoiceStatus = @invoiceStatus`;
 
-    // Agregar filtros si se han proporcionado y asignar comodines en el parámetro
-    if (vendor && vendor.trim() !== "") {
-      query += " AND vendor LIKE @vendor";
-      request.input('vendor', sql.VarChar, `%${vendor}%`);
+        // 2. Añadimos el filtro de fecha SOLO si el estado es 4.
+        //    Usamos parseInt para asegurar que la comparación sea numérica.
+        if (parseInt(invoiceStatus, 10) === 4) {
+            query += ` AND LastModified >= DATEADD(day, -7, GETDATE())`;
+        }
+
+        // 3. Añadimos los filtros opcionales.
+        if (vendor && vendor.trim() !== "") {
+            query += " AND vendor LIKE @vendor";
+            request.input('vendor', sql.VarChar, `%${vendor}%`);
+        }
+        if (invoiceNumber && invoiceNumber.trim() !== "") {
+            query += " AND invoiceNumber LIKE @invoiceNumber";
+            request.input('invoiceNumber', sql.VarChar, `%${invoiceNumber}%`);
+        }
+        if (invoiceDate && invoiceDate.trim() !== "") {
+            query += " AND CAST(invoiceDate AS DATE) = @invoiceDate"; // Usamos CAST para comparar solo la fecha
+            request.input('invoiceDate', sql.Date, invoiceDate);
+        }
+        
+        // --- FIN DE LA LÓGICA CORREGIDA ---
+
+        // Asignar los parámetros que siempre están presentes
+        request.input('invoiceStatus', sql.Int, invoiceStatus);
+        request.input('CompanyID', sql.Int, CompanyID);
+
+        const result = await request.query(query);
+        res.json(result.recordset);
+
+    } catch (error) {
+        console.error("Error al obtener los invoices:", error);
+        res.status(500).json({ error: "Error al obtener los invoices" });
     }
-    if (invoiceNumber && invoiceNumber.trim() !== "") {
-      query += " AND invoiceNumber LIKE @invoiceNumber";
-      request.input('invoiceNumber', sql.VarChar, `%${invoiceNumber}%`);
-    }
-    if (invoiceDate && invoiceDate.trim() !== "") {
-      query += " AND invoiceDate = @invoiceDate";
-      // Se asume que el input date está en formato 'YYYY-MM-DD'
-      request.input('invoiceDate', sql.Date, invoiceDate);
-    }
-
-    const result = await request.query(query);
-    res.json(result.recordset);
-  } catch (error) {
-    console.error("Error al obtener los invoices:", error);
-    res.status(500).json({ error: "Error al obtener los invoices" });
-  }
 });
 
 /*
@@ -1385,7 +1393,7 @@ app.get('/getCurrentUser', authMiddleware, (req, res) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    res.json({ role: decoded.Role });
+    res.json({ role: decoded.Role, CompanyID: decoded.CompanyID });
   } catch (err) {
     return res.status(403).json({ error: 'Invalid token' });
   }
@@ -1503,10 +1511,9 @@ app.post('/analyze-invoice', authMiddleware, async (req, res) => {
 
 // Endpoint para obtener las métricas del dashboard
 app.get('/dashboard-metrics', authMiddleware, async (req, res) => {
-  const CompanyID = req.user.CompanyID;
-
-  // La consulta SQL que proporcionaste, adaptada para usar el CompanyID del usuario
-  const query = `
+    const CompanyID = req.user.CompanyID;
+    console.log(CompanyID);
+    const query = `
         SELECT 
             -- Tarjeta 1: Total a Pagar (Total Outstanding)
             (SELECT ISNULL(SUM(CAST(invoiceTotal AS MONEY)), 0) FROM Invoices WHERE invoiceStatus IN (1, 2, 3) AND CompanyID = @CompanyID) AS TotalOutstanding,
@@ -1518,36 +1525,36 @@ app.get('/dashboard-metrics', authMiddleware, async (req, res) => {
             (SELECT ISNULL(SUM(CAST(invoiceTotal AS MONEY)), 0) FROM Invoices WHERE invoiceStatus = 4 AND MONTH(LastModified) = MONTH(GETDATE()) AND YEAR(LastModified) = YEAR(GETDATE()) AND CompanyID = @CompanyID) AS PaidThisMonth,
 
             -- Tarjeta 4: Facturas Atrasadas (Overdue Invoices)
-            (SELECT COUNT(ID) FROM Invoices WHERE invoiceStatus IN (1, 2, 3) AND CAST(dueDate AS DATE) < GETDATE() AND CompanyID = @CompanyID) AS OverdueInvoices;
+            -- Corregido: Usamos TRY_CAST para evitar el error de conversión.
+            (SELECT COUNT(ID) FROM Invoices WHERE invoiceStatus IN (1, 2, 3) AND TRY_CAST(dueDate AS DATE) < GETDATE() AND CompanyID = @CompanyID) AS OverdueInvoices;
     `;
 
-  try {
-    const pool = await testConnection();
-    const result = await pool.request()
-      .input('CompanyID', sql.Int, CompanyID)
-      .query(query);
+    try {
+        const pool = await testConnection();
+        const result = await pool.request()
+            .input('CompanyID', sql.Int, CompanyID)
+            .query(query);
 
-    // Devolvemos el primer (y único) registro del resultado
-    const metrics = result.recordset.length > 0 ? result.recordset[0] : null;
-    res.json(metrics);
+        const metrics = result.recordset.length > 0 ? result.recordset[0] : null;
+        res.json(metrics);
 
-  } catch (error) {
-    console.error("Error al obtener las métricas del dashboard:", error);
-    res.status(500).json({ error: "Error interno del servidor al obtener las métricas." });
-  }
+    } catch (error) {
+        console.error("Error al obtener las métricas del dashboard:", error);
+        res.status(500).json({ error: "Error interno del servidor al obtener las métricas." });
+    }
 });
 
 app.get('/invoices-processed-chart', authMiddleware, async (req, res) => {
-    const CompanyID = req.user.CompanyID;
-    // Esta consulta cuenta las facturas que se consideran "terminadas" (pagadas o eliminadas)
-    const query = `
+  const CompanyID = req.user.CompanyID;
+  // Esta consulta cuenta las facturas que se consideran "terminadas" (pagadas o eliminadas)
+  const query = `
         SELECT 
             FORMAT(LastModified, 'yyyy-MM') AS PaidMonth,
             COUNT(ID) AS NumberOfInvoices
         FROM 
             Invoices
         WHERE 
-            (invoiceStatus = 4 OR invoiceStatus = 6) -- Se usa paréntesis para la lógica correcta
+            invoiceStatus = 4 -- Se usa paréntesis para la lógica correcta
             AND YEAR(LastModified) = YEAR(GETDATE())
             AND CompanyID = @CompanyID
         GROUP BY 
@@ -1556,30 +1563,30 @@ app.get('/invoices-processed-chart', authMiddleware, async (req, res) => {
             PaidMonth;
     `;
 
-    try {
-        const pool = await testConnection();
-        const result = await pool.request()
-            .input('CompanyID', sql.Int, CompanyID)
-            .query(query);
-        res.json(result.recordset);
-    } catch (error) {
-        console.error("Error al obtener los datos para el gráfico de facturas:", error);
-        res.status(500).json({ error: "Error interno del servidor." });
-    }
+  try {
+    const pool = await testConnection();
+    const result = await pool.request()
+      .input('CompanyID', sql.Int, CompanyID)
+      .query(query);
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error al obtener los datos para el gráfico de facturas:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
 });
 
 // Endpoint para los datos del gráfico de pagos mensuales
 app.get('/monthly-paid-chart', authMiddleware, async (req, res) => {
-    const CompanyID = req.user.CompanyID;
-    // CORRECCIÓN: Esta consulta ahora solo suma las facturas con estado 4 (Paid) para precisión.
-    const query = `
+  const CompanyID = req.user.CompanyID;
+  // CORRECCIÓN: Esta consulta ahora solo suma las facturas con estado 4 (Paid) para precisión.
+  const query = `
         SELECT 
             FORMAT(LastModified, 'yyyy-MM') AS PaymentMonth,
             SUM(CAST(invoiceTotal AS MONEY)) AS TotalPaid
         FROM 
             Invoices
         WHERE 
-            invoiceStatus = 4 
+            invoiceStatus = 4
             AND YEAR(LastModified) = YEAR(GETDATE())
             AND CompanyID = @CompanyID
         GROUP BY 
@@ -1587,17 +1594,17 @@ app.get('/monthly-paid-chart', authMiddleware, async (req, res) => {
         ORDER BY 
             PaymentMonth;
     `;
-    
-    try {
-        const pool = await testConnection();
-        const result = await pool.request()
-            .input('CompanyID', sql.Int, CompanyID)
-            .query(query);
-        res.json(result.recordset);
-    } catch (error) {
-        console.error("Error al obtener los datos para el gráfico de pagos:", error);
-        res.status(500).json({ error: "Error interno del servidor." });
-    }
+
+  try {
+    const pool = await testConnection();
+    const result = await pool.request()
+      .input('CompanyID', sql.Int, CompanyID)
+      .query(query);
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error al obtener los datos para el gráfico de pagos:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
 });
 
 // Servir archivos estáticos (para ver los archivos subidos)
