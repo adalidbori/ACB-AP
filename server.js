@@ -462,7 +462,7 @@ app.post("/insertDocumentIntoDatabase", authMiddleware, async (req, res) => {
       .input('timestampName', sql.NVarChar(255), timestampName)
       .input('fileURL', sql.NVarChar(255), fileURL)
       .input('fileType', sql.NVarChar(50), fileType)
-      .input('vendor', sql.NVarChar(255), '')
+      .input('vendor', sql.NVarChar(255), 'Unknown Vendor')
       .input('invoiceNumber', sql.NVarChar(100), '')            // Valor vacío
       .input('referenceNumber', sql.NVarChar(100), '')     // Valor vacío
       .input('checknumber', sql.NVarChar(50), '')
