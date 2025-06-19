@@ -87,6 +87,10 @@ CREATE TABLE Invoices (
 );
 GO
 
+ALTER TABLE Invoices
+ADD CONSTRAINT DF_Invoices_Vendor DEFAULT 'Unknown Vendor' FOR vendor;
+
+
 
 -- Agregar la columna
 ALTER TABLE Invoices
