@@ -1387,7 +1387,7 @@ app.post('/auth', async (req, res) => {
     // Enviar token y datos básicos del usuario
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true, // Solo con HTTPS. Quita esto si estás en localhost sin HTTPS.
+      secure: false, // Solo con HTTPS. Quita esto si estás en localhost sin HTTPS.
       sameSite: "Strict", // Protege contra CSRF
       maxAge: 3600000, // 1 hora
     });
