@@ -635,7 +635,7 @@ app.get('/invoices/status/:invoiceStatus', authMiddleware, async (req, res) => {
                       N.content  
                   FROM
                       Invoices AS I 
-                  INNER JOIN
+                  LEFT JOIN
                       Notes AS N ON I.ID = N.invoiceID 
                   WHERE
                       I.CompanyID = @CompanyID AND I.invoiceStatus = @invoiceStatus;`;

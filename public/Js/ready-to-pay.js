@@ -40,7 +40,7 @@ async function loadInvoices() {
 
     tableResult = groupByVendors(invoices);
     console.log(tableResult);
-    aux = fillTable(tableResult, expandedVendorsState);
+    fillTable(tableResult, expandedVendorsState);
   } catch (error) {
     console.error("Error al obtener los invoices:", error);
   }
