@@ -144,3 +144,13 @@ SELECT
             (SELECT COUNT(ID) FROM Invoices WHERE invoiceStatus IN (1, 2, 3) AND TRY_CAST(dueDate AS DATE) < GETDATE() AND CompanyID = 1) AS OverdueInvoices;
 
 
+
+SELECT
+    I.*,        -- Selecciona todas las columnas de la tabla Invoices
+    N.content   -- Y específicamente la columna 'content' de la tabla Notes
+FROM
+    Invoices AS I  -- Le damos un alias 'I' a Invoices para escribir menos
+INNER JOIN
+    Notes AS N ON I.ID = N.invoiceID -- Este es el "puente" que une las tablas
+WHERE
+    I.CompanyID = 3 AND I.invoiceStatus = 3;

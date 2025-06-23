@@ -708,7 +708,6 @@ function fillTable(invoiceList) {
   for (const vendor of sortedVendors) {
     const sortedInvoices = invoiceList[vendor].invoices.sort((a, b) => new Date(a.invoiceDate) - new Date(b.invoiceDate));
     const countText = sortedInvoices.length.toString();
-
     // --- Fila de Cabecera del Vendor ---
     const headerRow = document.createElement("tr");
     headerRow.classList.add("vendor-header");
@@ -871,7 +870,6 @@ function fillTable(invoiceList) {
       });
     }
   }
-
   // <<< FIN DE FUNCIONES AUXILIARES DENTRO DE fillTable >>>
 }
 // Nota: Las demás funciones como `updateVendorHeaderTotal`, `actualizarTotalSiNoHayCheckboxMarcado`, etc.,

@@ -1,10 +1,12 @@
 const expandedVendorsState = new Set();
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Añade los listeners a los encabezados ESTÁTICOS de la tabla una vez.
-    initializeTableSorting();
+  let tableResult = {};
+  // 1. Añade los listeners a los encabezados ESTÁTICOS de la tabla una vez.
+  initializeTableSorting();
 
-    // 2. Carga los datos iniciales de la tabla.
-    loadInvoices();
+  // 2. Carga los datos iniciales de la tabla.
+  loadInvoices();
+  exportExcelBtn();
 });
 const tableBody = document.querySelector('tbody');
 
@@ -18,8 +20,9 @@ function clearFilter() {
   loadInvoices();
 }
 
+
 async function loadInvoices() {
-  const token = localStorage.getItem('token');
+
   try {
     const vendor = document.getElementById('filter-vendor').value;
     const invoiceNumber = document.getElementById('filter-invoiceNumber').value;
@@ -34,13 +37,116 @@ async function loadInvoices() {
     });
     const response = await fetch(`/invoices/status/3?${params.toString()}`);
     invoices = await response.json();
-    console.log(invoices);
-    const tableResult = groupByVendors(invoices);
-    fillTable(tableResult, expandedVendorsState);
+
+    tableResult = groupByVendors(invoices);
+    console.log(tableResult);
+    aux = fillTable(tableResult, expandedVendorsState);
   } catch (error) {
     console.error("Error al obtener los invoices:", error);
   }
 }
+
+// CÓDIGO CORREGIDO: Versión más segura para evitar la corrupción de archivos en Excel.
+function exportDataToExcel() {
+  console.log("Iniciando la exportación (versión segura):", tableResult);
+
+  if (!tableResult || Object.keys(tableResult).length === 0) {
+    alert("No hay datos para exportar.");
+    return;
+  }
+
+  // 1. Aplanar los datos con VALIDACIÓN
+  const flatData = [];
+  for (const vendorName in tableResult) {
+    const vendorDataObject = tableResult[vendorName];
+    if (vendorDataObject && Array.isArray(vendorDataObject.invoices)) {
+      vendorDataObject.invoices.forEach(invoice => {
+
+        // --- INICIO DE LA VALIDACIÓN DE DATOS ---
+        const invoiceDateObj = new Date(invoice.invoiceDate);
+        const dueDateObj = new Date(invoice.dueDate);
+
+        const validInvoiceDate = !isNaN(invoiceDateObj) ? invoiceDateObj : null; // Si la fecha es inválida, usa null
+        const validDueDate = !isNaN(dueDateObj) ? dueDateObj : null;       // Si la fecha es inválida, usa null
+        // --- FIN DE LA VALIDACIÓN DE DATOS ---
+
+        flatData.push({
+          "Vendor": vendorName,
+          "Invoice Number": invoice.invoiceNumber,
+          "Reference": invoice.referenceNumber,
+          "File Name": invoice.docName,
+          "Notes": invoice.content,
+          "Total": parseFloat(invoice.invoiceTotal) || 0,
+          "Invoice Date": validInvoiceDate, // Usamos la fecha validada
+          "Due Date": validDueDate         // Usamos la fecha validada
+        });
+      });
+    }
+  }
+
+  // 2. Crear la hoja de cálculo
+  const ws = XLSX.utils.json_to_sheet(flatData);
+
+  // 3. Definir el rango de la tabla
+  const tableRange = `A1:H${flatData.length + 1}`;
+
+  // 4. Añadir la propiedad !table (versión simplificada y segura)
+  // El 'autofilter' se añade automáticamente al crear una tabla, pero podemos dejarlo para asegurar.
+  ws['!autofilter'] = { ref: tableRange };
+  ws['!table'] = {
+    ref: tableRange,
+    name: "InvoicesData",
+    displayName: "InvoicesData",
+    // 'totalsRow' ha sido eliminado para aumentar la compatibilidad
+  };
+
+  // 5. Aplicar formato a las columnas (este bucle es seguro)
+  const dataRange = XLSX.utils.decode_range(ws['!ref']);
+  for (let R = dataRange.s.r + 1; R <= dataRange.e.r; ++R) {
+    // Formato Moneda para Columna F (Total)
+    const cellTotal = ws[XLSX.utils.encode_cell({ c: 5, r: R })];
+    if (cellTotal && typeof cellTotal.v === 'number') {
+      cellTotal.z = '"$"#,##0.00';
+    }
+
+    // Formato Fecha para Columna G (Invoice Date)
+    const cellInvoiceDate = ws[XLSX.utils.encode_cell({ c: 6, r: R })];
+    if (cellInvoiceDate && cellInvoiceDate.v instanceof Date) {
+      cellInvoiceDate.z = 'mm-dd-yyyy';
+    }
+
+    // Formato Fecha para Columna H (Due Date)
+    const cellDueDate = ws[XLSX.utils.encode_cell({ c: 7, r: R })];
+    if (cellDueDate && cellDueDate.v instanceof Date) {
+      cellDueDate.z = 'mm-dd-yyyy';
+    }
+  }
+
+  // 6. Ajustar ancho de columnas
+  ws['!cols'] = [
+    { wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 30 },
+    { wch: 40 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+  ];
+
+  // 7. Crear y descargar el libro de trabajo
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Ready To Pay");
+  XLSX.writeFile(wb, "Invoices_Report.xlsx");
+}
+
+
+// No olvides asegurarte de que tu botón llame a esta función
+function exportExcelBtn() {
+  const exportButton = document.getElementById('exportExcelBtn');
+  if (exportButton) {
+    exportButton.addEventListener('click', (evento) => {
+      evento.preventDefault();
+      // Llama a la función correcta
+      exportDataToExcel();
+    });
+  }
+}
+
 
 //Se creo uno separado porque de ready-to-paid a paid se necesita numero de cheque
 async function updateToPaid(invoiceStatus) {

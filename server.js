@@ -630,7 +630,15 @@ app.get('/invoices/status/:invoiceStatus', authMiddleware, async (req, res) => {
     // --- INICIO DE LA LÓGICA CORREGIDA ---
 
     // 1. Empezamos con la consulta base, que siempre se aplicará.
-    let query = `SELECT * FROM Invoices WHERE CompanyID = @CompanyID AND invoiceStatus = @invoiceStatus`;
+    let query = `SELECT
+                      I.*, 
+                      N.content  
+                  FROM
+                      Invoices AS I 
+                  INNER JOIN
+                      Notes AS N ON I.ID = N.invoiceID 
+                  WHERE
+                      I.CompanyID = @CompanyID AND I.invoiceStatus = @invoiceStatus;`;
 
     // 2. Añadimos el filtro de fecha SOLO si el estado es 4.
     //    Usamos parseInt para asegurar que la comparación sea numérica.
