@@ -728,24 +728,34 @@ function fillTable(invoiceList) {
       tr.dataset.url = invoice.fileURL;
       tr.dataset.timestampName = invoice.timestampName;
 
-      if (expandedVendorsState.has(vendor)) {
-        tr.style.display = '';
-      } else {
+      if (collapsedVendorsState.has(vendor)) {
+        // Si el vendor ESTÁ en la lista de colapsados, OCÚLTALO.
         tr.style.display = 'none';
+      } else {
+        // Si NO está en la lista, MUÉSTRALO.
+        tr.style.display = '';
       }
 
       tr.innerHTML = `
-        <td><input type="checkbox" class="row-checkbox" data-fileurl="${invoice.fileURL}" data-filetype="${invoice.fileType}"></td>
-        <td><a class="dragout" href='#' onclick="openDocument('${invoice.fileURL}')" draggable="true" data-filename="${invoice.docName}" data-filetype="${invoice.fileType}"><div data-field="fileType">${invoice.fileType.includes('pdf') ? '<img src="/Styles/pdf.svg" alt="PDF">' : '<img src="/Styles/image.svg" alt="Imagen">'}</div></a></td>
-        <td><div class="editable-cell" data-field="docName" contenteditable="true" style="${invoice.docName ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.docName)}</div></td>
-        <td><div class="editable-cell" data-field="invoiceNumber" contenteditable="true" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceNumber}</div></td>
-        <td class="hidden-column"><div class="editable-cell" data-field="vendor" contenteditable="true" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${invoice.vendor}</div></td>
-        <td><div class="editable-cell" data-field="referenceNumber" contenteditable="true" style="${invoice.referenceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.referenceNumber}</div></td>
-        <td><div class="editable-cell" data-field="invoiceTotal" contenteditable="true" style="${invoice.invoiceTotal ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceTotal}</div></td>
-        <td><div class="editable-cell" data-field="invoiceDate" contenteditable="true" style="${invoice.invoiceDate ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceDate}</div></td>
-        <td><div class="editable-cell" data-field="dueDate" contenteditable="true" style="${invoice.dueDate ? '' : 'background-color: #f8d7da;'}">${invoice.dueDate}</div></td>
-        <td><div style="text-align: center;"><div class="contenedor-icono"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;" onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'><path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/></svg></div></div></td>
-      `;
+    <td><input type="checkbox" class="row-checkbox" data-fileurl="${invoice.fileURL}" data-filetype="${invoice.fileType}"></td>
+    <td><a class="dragout" href='#' onclick="openDocument('${invoice.fileURL}')" draggable="true" data-filename="${invoice.docName}" data-filetype="${invoice.fileType}"><div data-field="fileType">${invoice.fileType.includes('pdf') ? '<img src="/Styles/pdf.svg" alt="PDF">' : '<img src="/Styles/image.svg" alt="Imagen">'}</div></a></td>
+    
+    <td><div class="editable-cell" title="${invoice.docName}" data-field="docName" contenteditable="true" style="${invoice.docName ? '' : 'background-color: #f8d7da;'}">${invoice.docName}</div></td>
+    
+    <td><div class="editable-cell" title="${invoice.invoiceNumber}" data-field="invoiceNumber" contenteditable="true" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceNumber}</div></td>
+    
+    <td class="hidden-column"><div class="editable-cell" title="${invoice.vendor}" data-field="vendor" contenteditable="true" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${invoice.vendor}</div></td>
+    
+    <td><div class="editable-cell" title="${invoice.referenceNumber}" data-field="referenceNumber" contenteditable="true" style="${invoice.referenceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.referenceNumber}</div></td>
+    
+    <td><div class="editable-cell" title="${invoice.invoiceTotal}" data-field="invoiceTotal" contenteditable="true" style="${invoice.invoiceTotal ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceTotal}</div></td>
+    
+    <td><div class="editable-cell" title="${invoice.invoiceDate}" data-field="invoiceDate" contenteditable="true" style="${invoice.invoiceDate ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceDate}</div></td>
+    
+    <td><div class="editable-cell" title="${invoice.dueDate}" data-field="dueDate" contenteditable="true" style="${invoice.dueDate ? '' : 'background-color: #f8d7da;'}">${invoice.dueDate}</div></td>
+    
+    <td><div style="text-align: center;"><div class="contenedor-icono"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;" onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'><path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/></svg></div></div></td>
+`;
       tableBody.appendChild(tr);
 
       // Listeners específicos para esta fila
@@ -787,8 +797,13 @@ function fillTable(invoiceList) {
         const invoiceRows = document.querySelectorAll(`tr.invoice-row[data-vendor="${currentVendor}"]`);
         const isCurrentlyCollapsed = invoiceRows.length > 0 && invoiceRows[0].style.display === 'none';
         invoiceRows.forEach(row => { row.style.display = isCurrentlyCollapsed ? '' : 'none'; });
-        if (isCurrentlyCollapsed) expandedVendorsState.add(currentVendor);
-        else expandedVendorsState.delete(currentVendor);
+        if (isCurrentlyCollapsed) {
+          // Estaba colapsado, ahora se expande -> QUÍTALO de la lista de colapsados.
+          collapsedVendorsState.delete(currentVendor);
+        } else {
+          // Estaba expandido, ahora se colapsa -> AÑÁDELO a la lista de colapsados.
+          collapsedVendorsState.add(currentVendor);
+        }
       });
     }
 

@@ -45,10 +45,22 @@
 }
 
 .editable-table {
+  table-layout: fixed;
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
 }
+
+.editable-table th:nth-child(1) { width: 5%; } /* Columna docName */
+.editable-table th:nth-child(2) { width: 5%; } /* Columna invoiceNumber */
+.editable-table th:nth-child(3) { width: 15%; } /* Columna docName */
+.editable-table th:nth-child(4) { width: 15%; } /* Columna invoiceNumber */
+.editable-table th:nth-child(6) { width: 20%; } /* Columna referenceNumber */
+.editable-table th:nth-child(7) { width: 10%; } /* Columna docName */
+.editable-table th:nth-child(8) { width: 10%; } /* Columna invoiceNumber */
+.editable-table th:nth-child(9) { width: 15%; } /* Columna referenceNumber */
+.editable-table th:nth-child(10) { width: 5%; } /* Columna referenceNumber */
+/* ... define los anchos para las demás columnas ... */
 
 .editable-table th {
   background-color: #f1f3f5;

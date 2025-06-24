@@ -1,4 +1,4 @@
-const expandedVendorsState = new Set();
+const collapsedVendorsState  = new Set();
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Añade los listeners a los encabezados ESTÁTICOS de la tabla una vez.
     initializeTableSorting();
@@ -38,7 +38,7 @@ async function loadInvoices() {
     invoices = await response.json();
     console.log(invoices);
     const tableResult = groupByVendors(invoices);
-    fillTable(tableResult, expandedVendorsState);
+    fillTable(tableResult, collapsedVendorsState );
   } catch (error) {
     console.error("Error al obtener los invoices:", error);
   }
@@ -47,7 +47,7 @@ function sortTableByColumn(colID, order) {
   console.log(`Ordenando columna ${colID} en modo ${order}`);
   const aux = ordenarLista(invoices, colID, order);
   const tableResult = groupByVendors(aux);
-  fillTable(tableResult, expandedVendorsState);
+  fillTable(tableResult, collapsedVendorsState );
   // Aquí irá la lógica de extracción de filas, comparación y re-inserción
 }
 
