@@ -638,7 +638,7 @@ app.get('/invoices/status/:invoiceStatus', authMiddleware, async (req, res) => {
                   LEFT JOIN
                       Notes AS N ON I.ID = N.invoiceID 
                   WHERE
-                      I.CompanyID = @CompanyID AND I.invoiceStatus = @invoiceStatus;`;
+                      I.CompanyID = @CompanyID AND I.invoiceStatus = @invoiceStatus`;
 
     // 2. Añadimos el filtro de fecha SOLO si el estado es 4.
     //    Usamos parseInt para asegurar que la comparación sea numérica.
