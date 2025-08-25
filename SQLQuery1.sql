@@ -1,4 +1,5 @@
 -- Crear la base de datos
+/*
 CREATE DATABASE accountpayable;
 GO
 
@@ -154,3 +155,31 @@ INNER JOIN
     Notes AS N ON I.ID = N.invoiceID -- Este es el "puente" que une las tablas
 WHERE
     I.CompanyID = 3 AND I.invoiceStatus = 3;
+
+
+	
+
+
+CREATE TABLE InvoiceStatusHistory (
+    -- ID autoincremental para cada registro de historial
+    ID INT IDENTITY(1,1) PRIMARY KEY,
+
+    -- ID de la factura a la que pertenece este registro de historial.
+    -- Se establece una relación (clave foránea) con la tabla de Invoices.
+    InvoiceID INT NOT NULL,
+
+    -- El estado de la factura que se está registrando.
+    -- Corresponde a los valores de tu columna Invoices.invoiceStatus (InProgress, Waiting Approval, etc.).
+    StatusID INT NOT NULL,
+
+    -- La fecha y hora exactas en que se realizó el cambio de estado.
+    -- Se asigna automáticamente la fecha y hora actual al crear un nuevo registro.
+    ChangeTimestamp DATETIME DEFAULT GETDATE(),
+
+    -- Definición de la clave foránea para mantener la integridad de los datos.
+    -- Si una factura se elimina, todos sus registros de historial se eliminarán en cascada.
+    -- Si el ID de una factura se actualiza, también se actualizará aquí.
+    FOREIGN KEY (InvoiceID) REFERENCES Invoices(ID) ON DELETE CASCADE ON UPDATE CASCADE
+);
+GO
+*/
