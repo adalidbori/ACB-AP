@@ -29,6 +29,7 @@ const SMTP_PASS = process.env.SMTP_PASS;
 const EMAIL_TO = process.env.EMAIL_TO;
 const JWT_SECRET = process.env.JWT_SECRET;
 const GEMINI_KEY = process.env.GEMINI_KEY;
+const ROOT_DOMAIN = process.env.ROOT_DOMAIN;
 
 const genAI = new GoogleGenerativeAI(GEMINI_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
@@ -1226,7 +1227,7 @@ app.post('/reset-password', async (req, res) => {
 });
 
 async function sendInvitationEmail(WorkEmail, token) {
-  const inviteLink = `http://localhost:3000/complete-registration?token=${token}`;
+  const inviteLink = `http://${ROOT_DOMAIN}:${port}/complete-registration?token=${token}`;
 
   const body = `
     <h3 style="font-family: Arial, sans-serif; color: #333;">Welcome to PayGuard!</h3>
@@ -1286,7 +1287,7 @@ app.post('/requestPasswordReset', async (req, res) => {
 
       // ...procede a crear el token y enviar el correo como antes.
       const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: '10m' });
-      const resetUrl = `http://localhost:3000/reset-password?token=${token}`;
+      const resetUrl = `http://${ROOT_DOMAIN}:${port}/reset-password?token=${token}`;
       const body = `
           <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
               <h3 style="color: #333;">Password Reset Request</h3>
@@ -1411,7 +1412,7 @@ app.post('/auth', async (req, res) => {
     // Enviar token y datos básicos del usuario
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // Solo con HTTPS. Quita esto si estás en localhost sin HTTPS.
+      secure: true, // Solo con HTTPS. Quita esto si estás en localhost sin HTTPS.
       sameSite: "Strict", // Protege contra CSRF
       maxAge: 3600000, // 1 hora
     });
@@ -1706,5 +1707,5 @@ app.use((req, res, next) => {
 
 // Iniciar el servidor
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Servidor corriendo en http://localhost:${port}`);
+  console.log(`Servidor corriendo en http://${ROOT_DOMAIN}:${port}`);
 });
