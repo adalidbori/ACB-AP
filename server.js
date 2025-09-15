@@ -1227,7 +1227,7 @@ app.post('/reset-password', async (req, res) => {
 });
 
 async function sendInvitationEmail(WorkEmail, token) {
-  const inviteLink = `http://${ROOT_DOMAIN}:${port}/complete-registration?token=${token}`;
+  const inviteLink = `http://${ROOT_DOMAIN}/complete-registration?token=${token}`;
 
   const body = `
     <h3 style="font-family: Arial, sans-serif; color: #333;">Welcome to PayGuard!</h3>
@@ -1287,7 +1287,7 @@ app.post('/requestPasswordReset', async (req, res) => {
 
       // ...procede a crear el token y enviar el correo como antes.
       const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: '10m' });
-      const resetUrl = `http://${ROOT_DOMAIN}:${port}/reset-password?token=${token}`;
+      const resetUrl = `http://${ROOT_DOMAIN}/reset-password?token=${token}`;
       const body = `
           <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
               <h3 style="color: #333;">Password Reset Request</h3>
