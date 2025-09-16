@@ -1414,7 +1414,7 @@ app.post('/auth', async (req, res) => {
       httpOnly: true,
       secure: true, // Solo con HTTPS. Quita esto si estás en localhost sin HTTPS.
       sameSite: "Strict", // Protege contra CSRF
-      maxAge: 3600000, // 1 hora
+      maxAge: 28800000, // 1 hora
     });
 
     res.json({ message: "Login exitoso" });
