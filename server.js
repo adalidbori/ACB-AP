@@ -30,6 +30,7 @@ const EMAIL_TO = process.env.EMAIL_TO;
 const JWT_SECRET = process.env.JWT_SECRET;
 const GEMINI_KEY = process.env.GEMINI_KEY;
 const ROOT_DOMAIN = process.env.ROOT_DOMAIN;
+const DOMAIN_PORT = process.env.DOMAIN_PORT;
 
 const genAI = new GoogleGenerativeAI(GEMINI_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
@@ -83,7 +84,7 @@ const { BlobServiceClient, BlobClient, StorageSharedKeyCredential, BlobSASPermis
 
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = DOMAIN_PORT || 3000;
 
 // Configuración de CORS y parsers
 app.use(cors());
