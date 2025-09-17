@@ -836,12 +836,13 @@ app.put('/editCheckNumber', authMiddleware, async (req, res) => {
       .query(`UPDATE Invoices SET checknumber = @valor, invoiceStatus = 4 WHERE ID IN (${idsParam}) AND CompanyID = @CompanyID`);
 
     // Bucle para insertar en el historial
+    /*
     for (const id of idsArray) {
       await pool.request()
         .input('invoiceID', sql.Int, id)
         .input('statusID', sql.Int, 4)
         .query('INSERT INTO InvoiceStatusHistory (InvoiceID, StatusID) VALUES (@invoiceID, @statusID)');
-    }
+    }*/
 
     // Verificar si existen registros en checks_db
     const checkDbResult = await pool.request()
@@ -915,12 +916,12 @@ app.put('/invoices/update/:invoiceStatus', authMiddleware, async (req, res) => {
       .query(query);
 
     // Bucle para insertar en el historial
-    for (const id of ids) {
+    /*for (const id of ids) {
       await pool.request()
         .input('invoiceID', sql.Int, id)
         .input('statusID', sql.Int, invoiceStatus)
         .query('INSERT INTO InvoiceStatusHistory (InvoiceID, StatusID) VALUES (@invoiceID, @statusID)');
-    }
+    }*/
 
     res.json({ message: "Registros actualizados correctamente" });
   } catch (error) {
