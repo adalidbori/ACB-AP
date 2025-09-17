@@ -182,4 +182,27 @@ CREATE TABLE InvoiceStatusHistory (
     FOREIGN KEY (InvoiceID) REFERENCES Invoices(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 GO
+
+
+CREATE TABLE CompanySettings (
+    -- ID autoincremental para cada registro de configuración.
+    ID INT IDENTITY(1,1) PRIMARY KEY,
+
+    -- ID de la compañía a la que pertenece esta configuración.
+    -- Se establece una relación única para asegurar que cada compañía tenga solo un registro.
+    CompanyID INT NOT NULL UNIQUE,
+
+    -- Datos del servidor SMTP. NVARCHAR para soportar cualquier tipo de caracter.
+    SmtpHost NVARCHAR(255) NOT NULL,
+    SmtpPort INT NOT NULL,
+    SmtpUser NVARCHAR(255) NOT NULL,
+    -- La dirección de correo electrónico a la que se enviarán las notificaciones.
+    EmailTo NVARCHAR(255) NOT NULL,
+
+    -- Timestamps para auditoría.
+    CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
+
+    -- Definición de la clave foránea para mantener la integridad referencial con la tabla de compañías.
+    FOREIGN KEY (CompanyID) REFERENCES Company(ID) ON DELETE CASCADE
+);
 */
