@@ -84,7 +84,7 @@ const { BlobServiceClient, BlobClient, StorageSharedKeyCredential, BlobSASPermis
 
 
 const app = express();
-const port = DOMAIN_PORT;
+const port = process.env.PORT;
 
 // Configuración de CORS y parsers
 app.use(cors());
