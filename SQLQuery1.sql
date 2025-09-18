@@ -205,4 +205,32 @@ CREATE TABLE CompanySettings (
     -- Definición de la clave foránea para mantener la integridad referencial con la tabla de compañías.
     FOREIGN KEY (CompanyID) REFERENCES Company(ID) ON DELETE CASCADE
 );
+
+
+SELECT
+    TRIM(UPPER(vendor)) AS vendor,
+    TRIM(UPPER(invoiceNumber)) AS invoiceNumber,
+    COUNT(*) AS occurrences
+FROM
+    Invoices
+WHERE
+    invoiceStatus IN (1, 2, 3, 4)
+    AND TRIM(invoiceNumber) <> ''
+    AND CompanyID = 1
+    AND NOT (invoiceStatus = 4 and LastModified < DATEADD(day, -7, GETDATE()))
+GROUP BY
+    TRIM(UPPER(vendor)),
+    TRIM(UPPER(invoiceNumber))
+HAVING
+    COUNT(*) > 1;
+
+
+
+
+select * from Invoices where invoiceStatus IN (1, 2, 3, 4) and invoiceNumber = '10649795' and vendor = 'INTERNATIONAL BOND & MARINE BROKERAGE, LTD.' and CompanyID=1 AND NOT (invoiceStatus = 4 and LastModified < DATEADD(day, -7, GETDATE())) 
+
 */
+
+
+
+

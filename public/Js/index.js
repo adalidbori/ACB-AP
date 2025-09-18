@@ -482,7 +482,7 @@ filterHeader.addEventListener('click', function () {
   }
 });
 
-async function getDuplicatedByInvoiceNumber(texto) {
+async function getDuplicatedByInvoiceNumber(invoiceNumber, vendor) {
   const tableBody = document.querySelector("#duplicated-table tbody");
   const modalEl = document.getElementById('duplicatedElementsbyIDModal');
   try {
@@ -491,7 +491,7 @@ async function getDuplicatedByInvoiceNumber(texto) {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ texto })
+      body: JSON.stringify({ invoiceNumber, vendor })
     });
     if (!response.ok) {
       throw new Error('Error en la respuesta: ' + response.status);
@@ -622,26 +622,28 @@ function initializeTableSorting() {
   });
 }
 
-function generateNotificationLinks(invoiceNumbers) {
-  if (invoiceNumbers.length > 0) {
+function generateNotificationLinks(duplicatedInvoices) {
+  if (duplicatedInvoices.length > 0) {
     const linksContainer = document.getElementById('notification-links');
+    linksContainer.innerHTML = ''; // Limpia el contenedor
 
-    // Limpia el contenedor para evitar duplicados si se vuelve a ejecutar
-    linksContainer.innerHTML = '';
-
-    invoiceNumbers.forEach((number, index) => {
+    duplicatedInvoices.forEach((invoice, index) => {
       const link = document.createElement('a');
-      link.href = `#`; // Define el destino real si es necesario
-      link.textContent = number;
+      link.href = `#`;
+      // El texto del enlace sigue siendo solo el número de factura
+      link.textContent = invoice.invoiceNumber;
+
+      // --- CAMBIO CLAVE ---
+      // El event listener ahora tiene acceso al objeto 'invoice' completo.
+      // Pasamos ambos valores a la función.
       link.addEventListener('click', function (event) {
-        event.preventDefault(); // Prevenir la acción por defecto del enlace
-        getDuplicatedByInvoiceNumber(this.textContent); // Llama a la función pasando el textContent
+        event.preventDefault();
+        getDuplicatedByInvoiceNumber(invoice.invoiceNumber, invoice.vendor);
       });
 
       linksContainer.appendChild(link);
 
-      // Agrega una coma y espacio después de cada enlace (menos el último)
-      if (index < invoiceNumbers.length - 1) {
+      if (index < duplicatedInvoices.length - 1) {
         linksContainer.appendChild(document.createTextNode(', '));
       }
     });
@@ -658,9 +660,7 @@ async function getDuplicatedInvoices() {
     }
 
     const data = await response.json();
-    const invoiceNumbers = data.map(item => item.invoiceNumber);
-    console.log(invoiceNumbers);
-    generateNotificationLinks(invoiceNumbers);
+    generateNotificationLinks(data);
   } catch (error) {
     console.error('Error fetching duplicated invoices:', error);
   }

@@ -582,19 +582,33 @@ app.get('/companies', authMiddleware, authorizeRole(1), async (req, res) => {
 });
 
 //Get Duplicated Invoices by InvoiceNumber
+//Get Duplicated Invoices by InvoiceNumber
 app.post('/getDuplicatedByInvoiceNumber', authMiddleware, async (req, res) => {
   const CompanyID = req.user.CompanyID; // viene del token
   try {
-    const { texto } = req.body;
+    // --- CAMBIO 1: Recibe 'invoiceNumber' y 'vendor' del body ---
+    const { invoiceNumber, vendor } = req.body;
+
     const pool = await testConnection();
     const result = await pool.request()
-      .input('ID', sql.NVarChar(100), texto)
+      // --- CAMBIO 2: Define los inputs con los nombres correctos ---
+      .input('InvoiceNumber', sql.NVarChar(100), invoiceNumber)
+      .input('Vendor', sql.NVarChar(255), vendor) // <-- Se añadió el input para el vendor
       .input('CompanyID', sql.Int, CompanyID)
-      .query("SELECT * FROM Invoices WHERE invoiceNumber = @ID and invoiceStatus != 5 and invoiceStatus != 6 and CompanyID = @CompanyID"); // Si el status de es archivada (status 5)
+      .query(`SELECT *
+                    FROM Invoices
+                    WHERE
+                        invoiceStatus IN (1, 2, 3, 4)
+                        AND invoiceNumber = @InvoiceNumber
+                        AND vendor = @Vendor
+                        AND CompanyID = @CompanyID
+                        AND NOT (invoiceStatus = 4 AND LastModified >= DATEADD(day, -7, GETDATE()));`);
+
     res.json(result.recordset);
+
   } catch (error) {
-    console.error("Error al obtener las notas:", error);
-    res.status(500).json({ error: "Error al obtener las notas" });
+    console.error("Error al obtener las facturas:", error);
+    res.status(500).json({ error: "Error al obtener las facturas" });
   }
 });
 
@@ -605,12 +619,24 @@ app.get('/getDuplicatedInvoices', authMiddleware, async (req, res) => {
     const result = await pool.request()
       .input('CompanyID', sql.Int, CompanyID)
       .query(`
-        SELECT invoiceNumber, COUNT(*) AS occurrences
-        FROM Invoices
-        WHERE invoiceStatus IN (1, 2, 3, 4) AND invoiceNumber <> '' AND CompanyID = @CompanyID
-        GROUP BY invoiceNumber
-        HAVING COUNT(*) > 1;
+        SELECT
+            TRIM(UPPER(vendor)) AS vendor,
+            TRIM(UPPER(invoiceNumber)) AS invoiceNumber,
+            COUNT(*) AS occurrences
+        FROM
+            Invoices
+        WHERE
+            invoiceStatus IN (1, 2, 3, 4)
+            AND TRIM(invoiceNumber) <> ''
+            AND CompanyID = @CompanyID
+            AND NOT (invoiceStatus = 4 and LastModified < DATEADD(day, -7, GETDATE()))
+        GROUP BY
+            TRIM(UPPER(vendor)),
+            TRIM(UPPER(invoiceNumber))
+        HAVING
+            COUNT(*) > 1;
       `);
+    console.log(result);
     res.json(result.recordset);
   } catch (error) {
     console.error("Error al obtener los invoices:", error);
