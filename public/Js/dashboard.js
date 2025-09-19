@@ -1,5 +1,6 @@
 let paymentsChart;
 let invoicesChart;
+let topVendorsChartInstance = null;
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Añade los listeners a los encabezados ESTÁTICOS de la tabla una vez.
     showSettingIcon();
@@ -7,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeCharts(); // Inicializa los gráficos vacíos
     loadPaymentsChartData(); // Carga datos reales para el gráfico de pagos
     loadInvoicesChartData(); // Carga datos reales para el gráfico de facturas
+    loadProcessingChart();
+    loadTopVendorsChart();
 
     // Lógica para los iconos de ayuda
     const spendHelpIcon = document.getElementById('spend-help-icon');
@@ -193,7 +196,161 @@ async function showSettingIcon() {
     }
 }
 
+
+async function loadProcessingChart() {
+    try {
+        const response = await fetch('/avg-processing-chart');
+        if (!response.ok) throw new Error('Error al obtener datos del promedio');
+        const dataFromApi = await response.json();
+
+        // Meses base (enero a diciembre)
+        const labels = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+
+        // Crear arreglo de 12 posiciones con null (sin datos)
+        const chartData = Array(12).fill(null);
+
+        // Llenar los datos según la API
+        dataFromApi.forEach(item => {
+            const monthIndex = parseInt(item.PaidMonth.split('-')[1], 10) - 1;
+            chartData[monthIndex] = item.AvgProcessingDays;
+        });
+
+        // Crear o actualizar gráfico
+        const ctx = document.getElementById('processingChart').getContext('2d');
+        if (window.processingChartInstance) {
+            window.processingChartInstance.data.datasets[0].data = chartData;
+            window.processingChartInstance.update();
+        } else {
+            window.processingChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Promedio días de procesamiento',
+                        data: chartData,
+                        backgroundColor: 'rgba(99, 102, 241, 0.6)',   // Indigo-500
+                        borderColor: 'rgba(99, 102, 241, 1)',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: (evt, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const month = labels[index];
+                            const monthKey = `${new Date().getFullYear()}-${String(index + 1).padStart(2, '0')}`;
+                            console.log("Clicked Month:", monthKey);
+                            // Aquí luego llamaremos a la API de drill-down
+                            alert(`Click on ${month} (${monthKey})`);
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${Math.round(ctx.raw ?? 0)} days`
+                            }
+                        },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                        },
+                        x: {
+                            ticks: { maxRotation: 0, minRotation: 0 }
+                        }
+                    }
+                }
+            });
+        }
+
+    } catch (error) {
+        console.error("Error cargando gráfico de promedio:", error);
+    }
+}
+
+async function loadTopVendorsChart() {
+    try {
+        const response = await fetch('/top-vendors-chart'); // Llama a tu nuevo endpoint
+        if (!response.ok) {
+            throw new Error('Error al obtener los datos de los proveedores');
+        }
+        const dataFromApi = await response.json();
+
+        // 1. Procesa los datos para que Chart.js los entienda
+        const vendorLabels = dataFromApi.map(item => item.vendor);
+        const vendorData = dataFromApi.map(item => item.TotalSpend);
+
+        const ctx = document.getElementById('topVendorsChart').getContext('2d');
+
+        // 2. IMPORTANTE: Destruye el gráfico anterior si ya existe
+        // Esto evita el error "Canvas is already in use" si recargas los datos.
+        if (topVendorsChartInstance) {
+            topVendorsChartInstance.destroy();
+        }
+
+        // 3. Crea el nuevo gráfico con los datos reales
+        topVendorsChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: vendorLabels,
+                datasets: [{
+                    label: 'Spend',
+                    data: vendorData,
+                    backgroundColor: [
+                        'rgba(99, 102, 241, 0.8)', 'rgba(59, 130, 246, 0.8)',
+                        'rgba(34, 197, 94, 0.8)', 'rgba(234, 179, 8, 0.8)',
+                        'rgba(239, 68, 68, 0.8)'
+                    ],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { boxWidth: 20, padding: 20 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) { label += ': '; }
+                                const formatter = new Intl.NumberFormat('en-US', {
+                                    style: 'currency', currency: 'USD', minimumFractionDigits: 0
+                                });
+                                label += formatter.format(context.parsed);
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error("Error al cargar el gráfico de proveedores:", error);
+    }
+}
+
+
+
 document.getElementById("openSettings").addEventListener("click", function () {
     const targetUrl = "/user-management";
     window.location.href = targetUrl;
 });
+
+
+
+
+

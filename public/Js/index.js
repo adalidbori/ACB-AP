@@ -700,6 +700,7 @@ function getInvoiceStatusText(status) {
 }
 
 function fillTable(invoiceList) {
+  console.log(invoiceList);
   // Limpiamos el cuerpo de la tabla antes de redibujar
   tableBody.innerHTML = "";
 
@@ -713,7 +714,7 @@ function fillTable(invoiceList) {
     headerRow.classList.add("vendor-header");
     headerRow.dataset.vendor = vendor;
     headerRow.innerHTML = `
-      <td colspan="9" style="background:#f0f0f0;">
+      <td colspan="10" style="background:#f0f0f0;">
           <input type="checkbox" class="vendor-checkbox" data-vendor="${vendor}" style="margin-right: 10px; cursor: pointer;">
           <strong style="cursor: pointer;">${vendor}</strong> <span style="color: red; font-weight: normal;">(${countText})</span>
       </td>`;
@@ -754,8 +755,26 @@ function fillTable(invoiceList) {
     
     <td><div class="editable-cell" title="${invoice.dueDate}" data-field="dueDate" contenteditable="true" style="${invoice.dueDate ? '' : 'background-color: #f8d7da;'}">${invoice.dueDate}</div></td>
     
-    <td><div style="text-align: center;"><div class="contenedor-icono"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;" onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'><path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/></svg></div></div></td>
-`;
+    <td>
+    <div 
+      title="${invoice.Timestamp}" 
+      data-field="Timestamp" 
+      contenteditable="false" 
+      style="display: flex; align-items: center; gap: 6px; ${invoice.Timestamp ? '' : 'background-color: #f8d7da;'}">
+      
+      <span>${formatTimestamp(invoice.Timestamp)}</span>
+      
+      <!-- Punto dinámico -->
+      <span class="dot" data-timestamp="${invoice.Timestamp}"></span>
+    </div>
+    </td>
+
+
+
+      <td><div style="text-align: center;"><div class="contenedor-icono"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;" onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'><path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/></svg></div></div></td>
+    `;
+
+
       tableBody.appendChild(tr);
 
       // Listeners específicos para esta fila
@@ -783,6 +802,29 @@ function fillTable(invoiceList) {
     `;
     tableBody.appendChild(totalRow);
   }
+
+  //Punto de notificación/alerta de la columna Created At
+  document.querySelectorAll('.dot').forEach(dot => {
+    const ts = dot.getAttribute('data-timestamp');
+    if (!ts) return;
+
+    const timestampDate = new Date(ts);
+    const now = new Date();
+
+    const diffTime = now - timestampDate; // en ms
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+    // Limpia clases previas
+    dot.classList.remove('yellow', 'red');
+
+    if (diffDays > 7) {
+      dot.classList.add('red');
+    } else if (diffDays > 3) {
+      dot.classList.add('yellow');
+    } else {
+      dot.remove(); // o dot.style.display = "none";
+    }
+  });
 
   // <<< INICIO DE FUNCIONES AUXILIARES DENTRO DE fillTable >>>
   // Ahora estas funciones tienen acceso a 'invoiceList'
@@ -1042,4 +1084,23 @@ function logoutUser() {
     })
     .catch(error => console.error("Error:", error));
 
+}
+
+
+function formatTimestamp(timestamp) {
+  // Si el timestamp está vacío o es nulo, devuelve un string vacío
+  if (!timestamp) {
+    return "";
+  }
+
+  const fecha = new Date(timestamp);
+
+  // Opciones para un formato más limpio (solo fecha)
+  const opciones = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  };
+
+  return fecha.toLocaleDateString('en-US', opciones); // Devuelve algo como "09/18/2025"
 }

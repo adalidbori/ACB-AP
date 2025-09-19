@@ -46,7 +46,7 @@ function fillTableLocal(invoiceList) {
     headerRow.classList.add("vendor-header");
     headerRow.dataset.vendor = vendor;
     headerRow.innerHTML = `
-      <td colspan="9" style="background:#f0f0f0;">
+      <td colspan="10" style="background:#f0f0f0;">
         <input type="checkbox" class="vendor-checkbox" data-vendor="${vendor}" style="margin-right: 10px; cursor: pointer;">
         <strong style="cursor: pointer;">${vendor}</strong>
       </td>`;
@@ -115,7 +115,7 @@ function fillTableLocal(invoiceList) {
               </div>
             </a>
           </td>
-          <td><div data-field="docName" style="${invoice.docName ? '' : 'background-color: #f8d7da;'}">${limitCellText(invoice.docName)}</div></td>
+          
           <td><div data-field="invoiceNumber" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceNumber}</div></td>
           <td class="hidden-column"><div data-field="vendor" contenteditable="true" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${invoice.vendor}</div></td>
           <td>
@@ -123,6 +123,30 @@ function fillTableLocal(invoiceList) {
           <td><div data-field="invoiceTotal" style="${invoice.invoiceTotal ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceTotal}</div></td>
           <td><div data-field="invoiceDate" style="${invoice.invoiceDate ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceDate}</div></td>
           <td><div data-field="checknumber" style="${invoice.checknumber ? '' : 'background-color: #f8d7da;'}">${invoice.checknumber}</div></td>
+
+          <td>
+            <div 
+              data-field="LastModified" 
+              style="display: flex; align-items: center; gap: 6px; ${invoice.Timestamp ? '' : 'background-color: #f8d7da;'}">
+              
+              <span>${formatTimestamp(invoice.Timestamp)}</span>
+              
+              <!-- Punto dinámico -->
+              <span class="dot" data-timestamp="${invoice.Timestamp}"></span>
+            </div>
+          </td>
+
+          <td>
+            <div 
+              data-field="LastModified" 
+              style="display: flex; align-items: center; gap: 6px; ${invoice.LastModified ? '' : 'background-color: #f8d7da;'}">
+              
+              <span>${formatTimestamp(invoice.LastModified)}</span>
+              
+              <!-- Punto dinámico -->
+              <span class="dot" data-timestamp="${invoice.LastModified}"></span>
+            </div>
+          </td>
           <td>
             <div style="text-align: center;">
               <div class="contenedor-icono">

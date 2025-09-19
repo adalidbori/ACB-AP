@@ -1674,6 +1674,73 @@ app.get('/monthly-paid-chart', authMiddleware, async (req, res) => {
   }
 });
 
+
+// 1. Promedio mensual del tiempo de procesamiento
+app.get('/avg-processing-chart', authMiddleware, async (req, res) => {
+  const CompanyID = req.user.CompanyID;
+
+  const query = `
+        SELECT 
+            FORMAT(LastModified, 'yyyy-MM') AS PaidMonth,
+            AVG(DATEDIFF(day, Timestamp, LastModified)) AS AvgProcessingDays
+        FROM Invoices
+        WHERE 
+            invoiceStatus = 4
+            AND YEAR(LastModified) = YEAR(GETDATE())
+            AND CompanyID = @CompanyID
+        GROUP BY FORMAT(LastModified, 'yyyy-MM')
+        ORDER BY PaidMonth;
+  `;
+
+  try {
+    const pool = await testConnection();
+    const result = await pool.request()
+      .input('CompanyID', sql.Int, CompanyID)
+      .query(query);
+
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error obteniendo Avg Processing mensual:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+});
+
+
+//Top 5 vendors by spend last 3 months
+app.get('/top-vendors-chart', authMiddleware, async (req, res) => {
+    // Obtenemos el CompanyID del usuario que está logueado
+    const { CompanyID } = req.user;
+
+    const query = `
+        SELECT TOP 5
+            vendor,
+            SUM(CAST(invoiceTotal AS DECIMAL(18, 2))) AS TotalSpend
+        FROM
+            Invoices
+        WHERE
+            invoiceStatus = 4
+            AND CompanyID = @CompanyID
+            AND LastModified >= DATEADD(month, -3, GETDATE())
+        GROUP BY
+            vendor
+        ORDER BY
+            TotalSpend DESC;
+    `;
+
+    try {
+        const pool = await testConnection();
+        const result = await pool.request()
+            .input('CompanyID', sql.Int, CompanyID) // Pasamos el CompanyID de forma segura
+            .query(query);
+
+        // Enviamos los resultados como JSON
+        res.json(result.recordset);
+    } catch (error) {
+        console.error("Error obteniendo el top 5 de proveedores:", error);
+        res.status(500).json({ error: "Error interno del servidor." });
+    }
+});
+
 // Servir archivos estáticos (para ver los archivos subidos)
 app.use("/uploads", authMiddleware, express.static(uploadDir));
 

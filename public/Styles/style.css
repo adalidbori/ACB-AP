@@ -51,16 +51,25 @@
   border-spacing: 0;
 }
 
-.editable-table th:nth-child(1) { width: 5%; } /* Columna docName */
-.editable-table th:nth-child(2) { width: 5%; } /* Columna invoiceNumber */
-.editable-table th:nth-child(3) { width: 15%; } /* Columna docName */
-.editable-table th:nth-child(4) { width: 15%; } /* Columna invoiceNumber */
-.editable-table th:nth-child(6) { width: 20%; } /* Columna referenceNumber */
-.editable-table th:nth-child(7) { width: 10%; } /* Columna docName */
-.editable-table th:nth-child(8) { width: 10%; } /* Columna invoiceNumber */
-.editable-table th:nth-child(9) { width: 15%; } /* Columna referenceNumber */
-.editable-table th:nth-child(10) { width: 5%; } /* Columna referenceNumber */
-/* ... define los anchos para las demás columnas ... */
+#editable-table th:nth-child(1) { width: 30px; } /* Columna docName */
+
+#editable-table th:nth-child(2) { width: 30px; } /* Columna invoiceNumber */
+
+#editable-table th:nth-child(3) { width: 150px; } /* Columna docName */
+
+#editable-table th:nth-child(4) { width: 130px; } /* Columna invoiceNumber */
+
+#editable-table th:nth-child(6) { width: 230px; } /* Columna referenceNumber */
+
+#editable-table th:nth-child(7) { width: 100px; } /* Columna docName */
+
+#editable-table th:nth-child(8) { width: 100px; } /* Columna invoiceNumber */
+
+#editable-table th:nth-child(9) { width: 150px; } /* Columna referenceNumber */
+
+#editable-table th:nth-child(10) { width:140px; } /* Columna referenceNumber */
+
+#editable-table th:nth-child(11) { width:60px; } /* Columna referenceNumber */
 
 .editable-table th {
   background-color: #f1f3f5;
@@ -243,7 +252,9 @@ td {
         body {
             height: 100%;
         }
-
+        html{
+          overflow-y: scroll;
+        }
         body {
             background-color: var(--light-gray);
             font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -495,6 +506,23 @@ td {
         }
 
 
+
+.dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 1.5s infinite;
+}
+
+.dot.yellow { background-color: gold; }   /* Entre 3 y 7 días */
+.dot.red { background-color: red; }       /* Más de 7 días */
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
 
 
 

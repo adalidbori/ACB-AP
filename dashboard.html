@@ -6,16 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PayGuard</title>
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" type="image/png" href="/Styles/favicon.png">
-    <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -38,7 +34,6 @@
 <body class="bg-slate-100 text-slate-800">
 
     <div class="flex h-screen">
-        <!-- Barra lateral (Sidebar) -->
         <aside class="w-64 bg-white shadow-md flex flex-col">
             <div class="header-logo">
                 <h1>
@@ -72,11 +67,8 @@
             </div>
         </aside>
 
-        <!-- Contenido principal -->
         <main class="flex-1 p-8 overflow-y-auto">
-            <!-- Tarjetas de métricas -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <!-- Tarjeta 1: Total a Pagar -->
                 <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
                     <div class="flex items-center">
                         <div class="p-3 bg-red-100 rounded-full flex-shrink-0">
@@ -88,7 +80,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- Tarjeta 2: Facturas Pendientes -->
                 <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
                     <div class="flex items-center">
                         <div class="p-3 bg-blue-100 rounded-full flex-shrink-0">
@@ -100,7 +91,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- Tarjeta 3: Pagado este Mes -->
                 <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
                     <div class="flex items-center">
                         <div class="p-3 bg-green-100 rounded-full flex-shrink-0">
@@ -112,7 +102,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- Tarjeta 4: Facturas Atrasadas -->
                 <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
                     <div class="flex items-center">
                         <div class="p-3 bg-yellow-100 rounded-full flex-shrink-0">
@@ -126,9 +115,7 @@
                 </div>
             </div>
 
-            <!-- Contenido principal: Gráficos -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Columna del gráfico de barras -->
                 <div class="bg-white p-6 rounded-lg shadow">
                     <div class="flex items-center gap-2 mb-4">
                         <h3 class="text-lg font-semibold">Monthly Spend</h3>
@@ -143,7 +130,6 @@
                     </div>
                 </div>
 
-                <!-- Columna del gráfico de área -->
                 <div class="bg-white p-6 rounded-lg shadow">
                     <div class="flex items-center gap-2 mb-4">
                         <h3 class="text-lg font-semibold">Monthly Volume</h3>
@@ -158,10 +144,41 @@
                     </div>
                 </div>
             </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex items-center gap-2 mb-4">
+                        <h3 class="text-lg font-semibold">Avg Processing Time</h3>
+                        <i id="processing-help-icon"
+                            class="bi bi-info-circle-fill text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"></i>
+                    </div>
+                    <p id="processing-help-text" class="hidden text-sm text-slate-600 bg-slate-50 p-3 rounded-lg mb-4">
+                        Click the bar to drill down and see processing time by stage.
+                    </p>
+                    <div class="h-80">
+                        <canvas id="processingChart"></canvas>
+                    </div>
+                </div>
+
+
+                <div class="bg-white p-6 rounded-lg shadow">
+
+                    <div class="flex items-baseline gap-2 mb-4">
+                        <h3 class="text-lg font-semibold">Top 5 Vendors by Spend</h3>
+                        <p class="text-sm text-slate-500">(Last 3 months)</p>
+                    </div>
+
+                    <div class="h-80 relative">
+                        <canvas id="topVendorsChart"></canvas>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
     <script src="/Js/dashboard.js"></script>
+
+
 </body>
 
 </html>

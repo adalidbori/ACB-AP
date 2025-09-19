@@ -82,6 +82,7 @@ async function insertRecord(docName, timestampName, fileType, fileURL, chatGPTDa
     throw error;
   }
 }
+
 // Función para subir el archivo, extraer el texto y llamar a ChatGPT
 async function uploadFile(file) {
   const formData = new FormData();
@@ -306,7 +307,7 @@ async function loadInvoices() {
     });
     const response = await fetch(`/invoices/status/1?${params.toString()}`);
     invoices = await response.json();
-    console.log(invoices);
+    //console.log(invoices);
     const tableResult = groupByVendors(invoices);
     fillTable(tableResult, collapsedVendorsState );
   } catch (error) {

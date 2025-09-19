@@ -230,7 +230,3 @@ HAVING
 select * from Invoices where invoiceStatus IN (1, 2, 3, 4) and invoiceNumber = '10649795' and vendor = 'INTERNATIONAL BOND & MARINE BROKERAGE, LTD.' and CompanyID=1 AND NOT (invoiceStatus = 4 and LastModified < DATEADD(day, -7, GETDATE())) 
 
 */
-
-
-
-
