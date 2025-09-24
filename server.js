@@ -84,7 +84,7 @@ const { BlobServiceClient, BlobClient, StorageSharedKeyCredential, BlobSASPermis
 
 
 const app = express();
-const port = process.env.PORT;
+const port = 3000;
 
 // Configuración de CORS y parsers
 app.use(cors());
@@ -959,30 +959,53 @@ app.delete('/invoices', authMiddleware, async (req, res) => {
 });
 
 app.put('/invoices/update/:invoiceStatus', authMiddleware, async (req, res) => {
-  const CompanyID = req.user.CompanyID;
+  // Obtener el ID del usuario y de la compañía desde el token
+  const { CompanyID, UserID } = req.user;
+
   try {
     const { invoiceStatus } = req.params;
     const { ids } = req.body;
+
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ error: 'No se proporcionaron IDs válidos' });
     }
 
     const pool = await testConnection();
+
+    // --- PASO 1: Actualizar el estado en la tabla principal de Invoices ---
+    // (Esta parte actualiza todas las facturas a la vez para mayor eficiencia)
     const idsList = ids.map(id => Number(id)).join(',');
-    const query = `UPDATE Invoices SET invoiceStatus = @invoiceStatus WHERE ID IN (${idsList}) AND CompanyID = @CompanyID`;
+    const query = `UPDATE Invoices SET invoiceStatus = @invoiceStatus, LastModified = GETDATE() WHERE ID IN (${idsList}) AND CompanyID = @CompanyID`;
 
     await pool.request()
       .input('invoiceStatus', sql.Int, invoiceStatus)
       .input('CompanyID', sql.Int, CompanyID)
       .query(query);
 
-    // Bucle para insertar en el historial
-    /*for (const id of ids) {
+    // --- PASO 2: Registrar cada cambio en la tabla de historial ---
+    // (Iteramos sobre cada ID para registrar su transición de estado individualmente)
+    const newStatusId = parseInt(invoiceStatus, 10);
+
+    for (const id of ids) {
+      // 2a. Cerrar el estado anterior: Actualiza la entrada activa actual poniendo una ExitDate
       await pool.request()
-        .input('invoiceID', sql.Int, id)
-        .input('statusID', sql.Int, invoiceStatus)
-        .query('INSERT INTO InvoiceStatusHistory (InvoiceID, StatusID) VALUES (@invoiceID, @statusID)');
-    }*/
+        .input('InvoiceID', sql.Int, id)
+        .query(`
+          UPDATE InvoiceStatusHistory 
+          SET ExitDate = GETDATE() 
+          WHERE InvoiceID = @InvoiceID AND ExitDate IS NULL
+        `);
+
+      // 2b. Registrar el nuevo estado: Inserta una nueva fila para el nuevo estado
+      await pool.request()
+        .input('InvoiceID', sql.Int, id)
+        .input('StatusID', sql.Int, newStatusId)
+        .input('UserID', sql.Int, UserID)
+        .query(`
+          INSERT INTO InvoiceStatusHistory (InvoiceID, StatusID, UserID) 
+          VALUES (@InvoiceID, @StatusID, @UserID)
+        `);
+    }
 
     res.json({ message: "Registros actualizados correctamente" });
   } catch (error) {

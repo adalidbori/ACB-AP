@@ -92,8 +92,7 @@
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item" href="#" onclick="downloadSelectedFiles()"><i
                                                 class="bi bi-download me-2"></i>Download</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="editVendor()"><i
-                                                class="bi bi-pencil-square me-2"></i>Edit Vendor</a></li>
+                                    
                                     <li><a class="dropdown-item" href="#" onclick="sendEmailToTruvis()"><i
                                                 class="bi bi-arrow-repeat me-2"></i>Resubmit</a></li>
                                     <li>
@@ -210,29 +209,6 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-primary modal-save-button" id="saveNotesButton">Save
                         notes</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Edición de Vendor -->
-    <div class="modal fade" id="editModalId" tabindex="-1" aria-labelledby="exampleModalLabel">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Edit Vendor</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="vendorForm">
-                        <div class="mb-3">
-                            <input type="text" class="form-control" id="vendor-input" placeholder="Vendor name here...">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary modal-save-button" id="saveVendorButton">Save</button>
                 </div>
             </div>
         </div>
