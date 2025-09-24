@@ -231,5 +231,17 @@ select * from Invoices where invoiceStatus IN (1, 2, 3, 4) and invoiceNumber = '
 
 */
 
+-- Actualiza el registro activo para marcar su fecha de salida
+UPDATE InvoiceStatusHistory
+SET 
+    ExitDate = GETDATE()
+WHERE
+    InvoiceID = @InvoiceID 
+    AND ExitDate IS NULL;
 
 
+
+-- Inserta el nuevo registro con el nuevo estado y el ID del usuario
+INSERT INTO InvoiceStatusHistory (InvoiceID, StatusID, UserID)
+VALUES 
+    (@InvoiceID, @NewStatusID, @UserID);

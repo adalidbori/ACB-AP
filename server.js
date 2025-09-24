@@ -84,7 +84,7 @@ const { BlobServiceClient, BlobClient, StorageSharedKeyCredential, BlobSASPermis
 
 
 const app = express();
-const port = process.env.PORT;
+const port = 3000;
 
 // Configuración de CORS y parsers
 app.use(cors());
@@ -417,11 +417,14 @@ app.post("/chatgpt", async (req, res) => {
 
 // Insert SQL Request
 app.post("/insert", authMiddleware, async (req, res) => {
-  const CompanyID = req.user.CompanyID; // viene del token
+  // <<< OBTENER EL UserID DEL TOKEN >>>
+  const { CompanyID, UserID } = req.user; // Asumiendo que el ID del usuario se llama 'ID' en el token
+
   try {
     const pool = await testConnection();
     const { docName, timestampName, vendor, referenceNumber, invoiceNumber, invoiceStatus, vendorAddress, invoiceDate, dueDate, fileURL, fileType, invoiceTotal } = req.body;
 
+    // --- PASO 1: Insertar la factura en la tabla principal ---
     const result = await pool.request()
       .input('docName', sql.NVarChar(255), docName)
       .input('timestampName', sql.NVarChar(255), timestampName)
@@ -444,8 +447,23 @@ app.post("/insert", authMiddleware, async (req, res) => {
         VALUES 
           (@docName, @timestampName, @vendor, @referenceNumber, @invoiceNumber, @invoiceStatus, @vendorAddress, @invoiceDate, @dueDate, @fileURL, @fileType, @invoiceTotal, @checknumber, @CompanyID)
       `);
+    
+    // <<< CAPTURAR EL ID DE LA FACTURA RECIÉN CREADA >>>
+    const newInvoiceId = result.recordset[0].insertedId;
+    console.log(`ID de la factura insertada${newInvoiceId}`);
+    // --- PASO 2: Insertar el primer estado en el historial ---
+    await pool.request()
+      .input('InvoiceID', sql.Int, newInvoiceId)
+      // Asumiendo que '1' es el ID para el estado 'InProgress'
+      .input('StatusID', sql.Int, 1) 
+      .input('UserID', sql.Int, UserID)
+      .query(`
+        INSERT INTO InvoiceStatusHistory (InvoiceID, StatusID, UserID)
+        VALUES (@InvoiceID, @StatusID, @UserID)
+      `);
 
-    res.json({ message: "Registro insertado exitosamente", invoiceId: result.recordset[0].insertedId });
+    res.json({ message: "Registro insertado exitosamente", invoiceId: newInvoiceId });
+
   } catch (error) {
     console.error("Error al insertar registro:", error);
     res.status(500).json({ error: "Error al insertar registro" });
@@ -454,33 +472,50 @@ app.post("/insert", authMiddleware, async (req, res) => {
 
 // Insert SQL Request
 app.post("/insertDocumentIntoDatabase", authMiddleware, async (req, res) => {
-  const CompanyID = req.user.CompanyID; // viene del token
+  // <<< OBTENER UserID Y CompanyID DEL TOKEN >>>
+  const { CompanyID, UserID } = req.user; 
+
   try {
     const pool = await testConnection();
     const { docName, timestampName, fileURL, fileType } = req.body;
 
+    // --- PASO 1: Insertar el documento/factura en la tabla principal ---
     const result = await pool.request()
       .input('docName', sql.NVarChar(255), docName)
       .input('timestampName', sql.NVarChar(255), timestampName)
       .input('fileURL', sql.NVarChar(255), fileURL)
       .input('fileType', sql.NVarChar(50), fileType)
       .input('vendor', sql.NVarChar(255), 'Unknown Vendor')
-      .input('invoiceNumber', sql.NVarChar(100), '')            // Valor vacío
+      .input('invoiceNumber', sql.NVarChar(100), '')          // Valor vacío
       .input('referenceNumber', sql.NVarChar(100), '')     // Valor vacío
       .input('checknumber', sql.NVarChar(50), '')
-      .input('invoiceTotal', sql.NVarChar(50), '')         // Valor vacío
-      .input('invoiceDate', sql.NVarChar(50), '')          // Valor vacío
+      .input('invoiceTotal', sql.NVarChar(50), '')           // Valor vacío
+      .input('invoiceDate', sql.NVarChar(50), '')            // Valor vacío
       .input('dueDate', sql.NVarChar(50), '')              // Valor vacío
       .input('CompanyID', sql.Int, CompanyID)
       .query(`
-      INSERT INTO Invoices 
-        (docName, timestampName, invoiceStatus, fileURL, fileType, vendor, referenceNumber, invoiceTotal, invoiceDate, dueDate, invoiceNumber, checknumber, CompanyID)
-      OUTPUT INSERTED.ID
-      VALUES 
-        (@docName, @timestampName, 1, @fileURL, @fileType, @vendor, @referenceNumber, @invoiceTotal, @invoiceDate, @dueDate, @invoiceNumber, @checknumber, @CompanyID)
-  `);
+        INSERT INTO Invoices 
+          (docName, timestampName, invoiceStatus, fileURL, fileType, vendor, referenceNumber, invoiceTotal, invoiceDate, dueDate, invoiceNumber, checknumber, CompanyID)
+        OUTPUT INSERTED.ID -- Devuelve el ID de la fila insertada
+        VALUES 
+          (@docName, @timestampName, 1, @fileURL, @fileType, @vendor, @referenceNumber, @invoiceTotal, @invoiceDate, @dueDate, @invoiceNumber, @checknumber, @CompanyID)
+      `);
 
-    res.json({ message: "Registro insertado exitosamente", ID: result.recordset[0].ID });
+    // <<< CAPTURAR EL ID DE LA FACTURA RECIÉN CREADA >>>
+    const newInvoiceId = result.recordset[0].ID;
+
+    // --- PASO 2: Insertar el primer estado ('InProgress') en el historial ---
+    await pool.request()
+      .input('InvoiceID', sql.Int, newInvoiceId)
+      .input('StatusID', sql.Int, 1) // El estado inicial es 1 (InProgress)
+      .input('UserID', sql.Int, UserID)
+      .query(`
+        INSERT INTO InvoiceStatusHistory (InvoiceID, StatusID, UserID)
+        VALUES (@InvoiceID, @StatusID, @UserID)
+      `);
+
+    res.json({ message: "Registro insertado exitosamente", ID: newInvoiceId });
+
   } catch (error) {
     console.error("Error al insertar registro:", error);
     res.status(500).json({ error: "Error al insertar registro" });

@@ -85,7 +85,6 @@ function initializeCharts() {
                 borderColor: 'rgba(90, 103, 216, 1)',
                 borderWidth: 1,
                 borderRadius: 8,
-                barThickness: 20,
             }]
         },
         options: {

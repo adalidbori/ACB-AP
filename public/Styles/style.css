@@ -57,9 +57,9 @@
 
 #editable-table th:nth-child(3) { width:60px; } /* Columna referenceNumber */
 
-#editable-table th:nth-child(4) { width: 150px; } /* Columna docName */
+#editable-table th:nth-child(4) { width: 120px; } /* Columna docName */
 
-#editable-table th:nth-child(6) { width: 130px; } /* Columna invoiceNumber */
+#editable-table th:nth-child(5) { width: 160px; } /* Columna invoiceNumber */
 
 #editable-table th:nth-child(7) { width: 230px; } /* Columna referenceNumber */
 
