@@ -109,13 +109,22 @@ function fillTableLocal(invoiceList) {
               data-filetype="${invoice.fileType}">
               <div data-field="fileType">
                 ${invoice.fileType === 'application/pdf'
-          ? '<img src="/Styles/pdf.svg" alt="Icono PDF">'
-          : '<img src="/Styles/image.svg" alt="Icono imagen">'
-        }
+                  ? '<img src="/Styles/pdf.svg" alt="Icono PDF">'
+                  : '<img src="/Styles/image.svg" alt="Icono imagen">'
+                }
               </div>
             </a>
           </td>
-          
+          <td>
+            <div style="text-align: center;">
+              <div class="contenedor-icono">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;" onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'>
+                  <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
+                </svg>
+
+              </div>
+            </div>
+          </td>
           <td><div data-field="invoiceNumber" style="${invoice.invoiceNumber ? '' : 'background-color: #f8d7da;'}">${invoice.invoiceNumber}</div></td>
           <td class="hidden-column"><div data-field="vendor" contenteditable="true" style="${invoice.vendor ? '' : 'background-color: #f8d7da;'}">${invoice.vendor}</div></td>
           <td>
@@ -147,16 +156,7 @@ function fillTableLocal(invoiceList) {
               <span class="dot" data-timestamp="${invoice.LastModified}"></span>
             </div>
           </td>
-          <td>
-            <div style="text-align: center;">
-              <div class="contenedor-icono">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;" onclick='showNotesModal("${invoice.ID}", "${invoice.invoiceNumber}")'>
-                  <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
-                </svg>
-
-              </div>
-            </div>
-          </td>
+          
         `;
 
 

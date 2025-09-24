@@ -70,6 +70,7 @@ function updateCardValue(elementId, value) {
 }
 
 // Función para inicializar los gráficos sin datos de ejemplo
+// Función para inicializar los gráficos sin datos de ejemplo
 function initializeCharts() {
     // Lógica para el gráfico de barras (Pagos por Mes)
     const paymentsCtx = document.getElementById('paymentsChart').getContext('2d');
@@ -80,11 +81,22 @@ function initializeCharts() {
             datasets: [{
                 label: 'Amount Paid ($)',
                 data: [], // Inicia vacío
-                backgroundColor: 'rgba(90, 103, 216, 0.6)', borderColor: 'rgba(90, 103, 216, 1)',
-                borderWidth: 1, borderRadius: 8, barThickness: 20,
+                backgroundColor: 'rgba(90, 103, 216, 0.6)',
+                borderColor: 'rgba(90, 103, 216, 1)',
+                borderWidth: 1,
+                borderRadius: 8,
+                barThickness: 20,
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, /* ... */ }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { // <-- AÑADE ESTO
+                legend: {
+                    display: false // Esto oculta la leyenda "Amount Paid ($)"
+                }
+            }
+        }
     });
 
     // Lógica para el gráfico de área (Facturas Procesadas)
@@ -100,15 +112,29 @@ function initializeCharts() {
             datasets: [{
                 label: 'Invoices',
                 data: [], // Inicia vacío
-                fill: true, backgroundColor: gradient, borderColor: '#5A67D8',
-                borderWidth: 2, tension: 0.4, pointRadius: 3, pointHoverRadius: 6,
+                fill: true,
+                backgroundColor: gradient,
+                borderColor: '#5A67D8',
+                borderWidth: 2,
+                tension: 0.4,
+                pointRadius: 3,
+                pointHoverRadius: 6,
                 pointBackgroundColor: '#5A67D8',
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true } },
-            // ... resto de tus opciones
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: { // <-- AÑADE ESTO
+                legend: {
+                    display: false // Esto oculta la leyenda "Invoices"
+                }
+            }
         }
     });
 }
