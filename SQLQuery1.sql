@@ -229,7 +229,36 @@ HAVING
 
 select * from Invoices where invoiceStatus IN (1, 2, 3, 4) and invoiceNumber = '10649795' and vendor = 'INTERNATIONAL BOND & MARINE BROKERAGE, LTD.' and CompanyID=1 AND NOT (invoiceStatus = 4 and LastModified < DATEADD(day, -7, GETDATE())) 
 
-*/
+
+
+
+CREATE TABLE InvoiceStatusHistory (
+    HistoryID INT IDENTITY(1,1) PRIMARY KEY,
+    InvoiceID INT NOT NULL,
+
+    -- ID del estado de la factura (ej: 1 = InProgress)
+    StatusID INT NOT NULL,
+
+    -- **NUEVA COLUMNA:** ID del usuario que realizó el cambio
+    UserID INT NOT NULL,
+
+    EntryDate DATETIME NOT NULL DEFAULT GETDATE(),
+    ExitDate DATETIME NULL,
+
+    -- Conexión a la tabla Invoices
+    CONSTRAINT FK_History_Invoices FOREIGN KEY (InvoiceID)
+    REFERENCES Invoices(ID)
+    ON DELETE CASCADE,
+
+    -- Conexión a tu tabla InvoiceStatus
+    CONSTRAINT FK_History_InvoiceStatus FOREIGN KEY (StatusID)
+    REFERENCES InvoiceStatus(ID),
+
+    -- **NUEVA CONEXIÓN:** Conexión a la tabla de Usuarios
+    -- (Asumiendo que tienes una tabla 'Users' con una clave primaria 'ID')
+    CONSTRAINT FK_History_Users FOREIGN KEY (UserID)
+    REFERENCES UserTable(ID)
+);
 
 -- Actualiza el registro activo para marcar su fecha de salida
 UPDATE InvoiceStatusHistory
@@ -245,3 +274,7 @@ WHERE
 INSERT INTO InvoiceStatusHistory (InvoiceID, StatusID, UserID)
 VALUES 
     (@InvoiceID, @NewStatusID, @UserID);
+
+
+*/
+    
