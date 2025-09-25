@@ -262,7 +262,7 @@ async function loadDrillDownData(monthKey) {
 
         // Actualizamos la UI para mostrar que estamos en la vista de detalle
         isDrillDownView = true;
-        document.getElementById('chart-title').innerText = `Detalle de etapas para ${monthLabel}`;
+        document.getElementById('chart-title').innerText = `Stage Details for ${monthLabel}`;
         document.getElementById('back-to-overview-btn').classList.remove('hidden');
 
     } catch (error) {
@@ -292,12 +292,12 @@ async function loadProcessingChart() {
             data: chartData,
             label: 'Average processing days'
         };
-        
+
         const ctx = document.getElementById('processingChart').getContext('2d');
         if (window.processingChartInstance) {
             window.processingChartInstance.destroy();
         }
-        
+
         window.processingChartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -319,17 +319,33 @@ async function loadProcessingChart() {
                         const index = elements[0].index;
                         const year = new Date().getFullYear(); // Asumimos el año actual
                         const monthKey = `${year}-${String(index + 1).padStart(2, '0')}`;
-                        
+
                         // Llamamos a la función que busca los datos del detalle
                         loadDrillDownData(monthKey);
                     }
                 },
                 plugins: {
-                    tooltip: { callbacks: { label: ctx => `${ctx.raw ? ctx.raw.toFixed(2) : 0} days` }},
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                // Obtener el valor numérico, o 0 si no existe
+                                const value = context.raw || 0;
+
+                                // Comprobar si estamos en la vista de detalle
+                                if (isDrillDownView) {
+                                    // Si es la vista de detalle, mostrar con dos decimales
+                                    return `${value.toFixed(2)} days`;
+                                } else {
+                                    // Si es la vista general, redondear al número entero más cercano
+                                    return `${Math.round(value)} days`;
+                                }
+                            }
+                        }
+                    },
                     legend: { display: false }
                 },
                 scales: {
-                    y: { beginAtZero: true, title: { display: true, text: 'Days' } },
+                    y: {},
                     x: {}
                 }
             }
@@ -340,23 +356,23 @@ async function loadProcessingChart() {
 }
 
 // --- Lógica para el botón de "Volver" en la grafica de Avg Processing Time---
-    document.getElementById('back-to-overview-btn').addEventListener('click', () => {
-        // Si no estamos en la vista de detalle, no hacer nada
-        if (!isDrillDownView) return;
+document.getElementById('back-to-overview-btn').addEventListener('click', () => {
+    // Si no estamos en la vista de detalle, no hacer nada
+    if (!isDrillDownView) return;
 
-        const chart = window.processingChartInstance;
+    const chart = window.processingChartInstance;
 
-        // Restauramos el gráfico con los datos originales que guardamos
-        chart.data.labels = originalChartData.labels;
-        chart.data.datasets[0].data = originalChartData.data;
-        chart.data.datasets[0].label = originalChartData.label;
-        chart.update();
+    // Restauramos el gráfico con los datos originales que guardamos
+    chart.data.labels = originalChartData.labels;
+    chart.data.datasets[0].data = originalChartData.data;
+    chart.data.datasets[0].label = originalChartData.label;
+    chart.update();
 
-        // Restauramos el estado y la UI
-        isDrillDownView = false;
-        document.getElementById('chart-title').innerText = 'Avg Processing Time';
-        document.getElementById('back-to-overview-btn').classList.add('hidden');
-    });
+    // Restauramos el estado y la UI
+    isDrillDownView = false;
+    document.getElementById('chart-title').innerText = 'Avg Processing Time';
+    document.getElementById('back-to-overview-btn').classList.add('hidden');
+});
 
 
 async function loadTopVendorsChart() {
@@ -407,7 +423,7 @@ async function loadTopVendorsChart() {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 let label = context.label || '';
                                 if (label) { label += ': '; }
                                 const formatter = new Intl.NumberFormat('en-US', {
