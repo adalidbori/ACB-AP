@@ -104,7 +104,8 @@ async function showDocument(url, fileType) {
     if (fileType === "image/png" || fileType === "image/jpeg") {
       viewerContent.innerHTML = `<img src="${sasUrl}" alt="Documento" style="max-width:100%; height:auto;">`;
     } else {
-      viewerContent.innerHTML = `<iframe src="${sasUrl}" style="width:100%; height:600px;" frameborder="0"></iframe>`;
+      // Código corregido
+      viewerContent.innerHTML = `<iframe src="${sasUrl}" style="width:100%; height:100%;" frameborder="0"></iframe>`;
     }
   }
 
