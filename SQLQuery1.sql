@@ -276,23 +276,35 @@ VALUES
     (@InvoiceID, @NewStatusID, @UserID);
 
 
-*/
+
     
--- Usamos una Expresión de Tabla Común (CTE) para mantener la consulta limpia
+
+-- Declaras la variable para el CompanyID, además de la que ya tienes para el mes.
+DECLARE @CompanyID INT = 1; -- Ejemplo: Pones aquí el ID de la compañía que quieres filtrar.
+DECLARE @YearMonth VARCHAR(7) = '2025-09';
+
+-- Usamos una Expresión de Tabla Común (CTE)
 WITH Durations AS (
-    -- Primero, calculamos la duración en segundos de cada estadía completa en un estado
+    -- Calculamos la duración en segundos de cada estadía
     SELECT
-        StatusID,
-        DATEDIFF(SECOND, EntryDate, ExitDate) AS DurationInSeconds
+        ish.StatusID,
+        DATEDIFF(SECOND, ish.EntryDate, ish.ExitDate) AS DurationInSeconds
     FROM
-        InvoiceStatusHistory
+        InvoiceStatusHistory ish
+    -- <<--- INICIO DE LA MODIFICACIÓN --->>
+    -- Unimos con la tabla de facturas para poder acceder al CompanyID
+    JOIN
+        Invoices inv ON ish.InvoiceID = inv.ID -- Asegúrate que los nombres de tablas y columnas (Invoices, InvoiceID, ID) sean correctos
+    -- <<--- FIN DE LA MODIFICACIÓN --->>
     WHERE
-        -- **CAMBIO IMPORTANTE:** Filtramos para que solo incluya los registros
-        -- cuya fecha de salida (ExitDate) corresponde al mes y año especificados.
-        ExitDate IS NOT NULL 
-        AND FORMAT(ExitDate, 'yyyy-MM') = @YearMonth
+        -- **NUEVO FILTRO:** Añadimos la condición para filtrar por compañía
+        inv.CompanyID = @CompanyID
+        
+        -- Y mantenemos los filtros que ya tenías
+        AND ish.ExitDate IS NOT NULL 
+        AND FORMAT(ish.ExitDate, 'yyyy-MM') = @YearMonth
 )
--- Ahora, agrupamos por estado y calculamos el promedio de las duraciones
+-- El resto de la consulta no necesita cambios
 SELECT
     s.invoiceStatusName,
     CAST(AVG(CAST(d.DurationInSeconds AS BIGINT)) AS BIGINT) AS AverageTimeInSeconds
@@ -303,4 +315,7 @@ JOIN
 GROUP BY
     s.invoiceStatusName, s.ID
 ORDER BY
-    s.ID; -- Ordenamos por el ID del estado para un flujo lógico
+    s.ID;
+
+    */
+ 
