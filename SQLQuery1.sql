@@ -278,3 +278,29 @@ VALUES
 
 */
     
+-- Usamos una Expresión de Tabla Común (CTE) para mantener la consulta limpia
+WITH Durations AS (
+    -- Primero, calculamos la duración en segundos de cada estadía completa en un estado
+    SELECT
+        StatusID,
+        DATEDIFF(SECOND, EntryDate, ExitDate) AS DurationInSeconds
+    FROM
+        InvoiceStatusHistory
+    WHERE
+        -- **CAMBIO IMPORTANTE:** Filtramos para que solo incluya los registros
+        -- cuya fecha de salida (ExitDate) corresponde al mes y año especificados.
+        ExitDate IS NOT NULL 
+        AND FORMAT(ExitDate, 'yyyy-MM') = @YearMonth
+)
+-- Ahora, agrupamos por estado y calculamos el promedio de las duraciones
+SELECT
+    s.invoiceStatusName,
+    CAST(AVG(CAST(d.DurationInSeconds AS BIGINT)) AS BIGINT) AS AverageTimeInSeconds
+FROM
+    Durations d
+JOIN
+    InvoiceStatus s ON d.StatusID = s.ID
+GROUP BY
+    s.invoiceStatusName, s.ID
+ORDER BY
+    s.ID; -- Ordenamos por el ID del estado para un flujo lógico

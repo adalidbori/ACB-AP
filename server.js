@@ -875,7 +875,7 @@ app.put('/editCheckNumberOnPaid', authMiddleware, async (req, res) => {
 
 // Edit Status to Paid and add check number
 app.put('/editCheckNumber', authMiddleware, async (req, res) => {
-  const CompanyID = req.user.CompanyID;
+  const { CompanyID, UserID } = req.user;
   try {
     const { idsToEdit, valor } = req.body;
 
@@ -896,6 +896,28 @@ app.put('/editCheckNumber', authMiddleware, async (req, res) => {
       .input('CompanyID', sql.Int, CompanyID)
       .query(`UPDATE Invoices SET checknumber = @valor, invoiceStatus = 4 WHERE ID IN (${idsParam}) AND CompanyID = @CompanyID`);
 
+
+      // --- PASO 2: Registrar el cambio de estado en el historial para cada factura ---
+    for (const id of idsArray) {
+      // 2a. Cerrar el estado anterior en el historial
+      await pool.request()
+        .input('InvoiceID', sql.Int, id)
+        .query(`
+          UPDATE InvoiceStatusHistory 
+          SET ExitDate = GETDATE() 
+          WHERE InvoiceID = @InvoiceID AND ExitDate IS NULL
+        `);
+      
+      // 2b. Registrar el nuevo estado 'Paid' (ID 4) en el historial
+      await pool.request()
+        .input('InvoiceID', sql.Int, id)
+        .input('StatusID', sql.Int, 4) // El estado 'Paid' es 4
+        .input('UserID', sql.Int, UserID)
+        .query(`
+          INSERT INTO InvoiceStatusHistory (InvoiceID, StatusID, UserID) 
+          VALUES (@InvoiceID, @StatusID, @UserID)
+        `);
+    }
     // Bucle para insertar en el historial
     /*
     for (const id of idsArray) {
@@ -1761,6 +1783,61 @@ app.get('/avg-processing-chart', authMiddleware, async (req, res) => {
     console.error("Error obteniendo Avg Processing mensual:", error);
     res.status(500).json({ error: "Error interno del servidor." });
   }
+});
+
+
+//Endpoint para obtener el AVG processing time en cada stage de la factura
+app.get('/processing-stages-chart', authMiddleware, async (req, res) => {
+    const CompanyID = req.user.CompanyID;
+    const { month } = req.query; // Recibimos el mes como query param, ej: "?month=2025-09"
+
+    // Validación básica del formato del mes
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+        return res.status(400).json({ error: "Formato de mes inválido. Se esperaba YYYY-MM." });
+    }
+
+    const query = `
+        WITH Durations AS (
+            -- Calculamos la duración en segundos de cada estadía
+            SELECT
+                ish.StatusID,
+                DATEDIFF(SECOND, ish.EntryDate, ish.ExitDate) AS DurationInSeconds
+            FROM
+                InvoiceStatusHistory ish
+            JOIN
+                Invoices inv ON ish.InvoiceID = inv.ID
+            WHERE
+                inv.CompanyID = @CompanyID
+                AND ish.ExitDate IS NOT NULL 
+                AND FORMAT(ish.ExitDate, 'yyyy-MM') = @YearMonth
+        )
+        -- Agrupamos y calculamos el promedio en DÍAS
+        SELECT
+            s.invoiceStatusName,
+            -- Convertimos los segundos a días con dos decimales
+            CAST(AVG(CAST(d.DurationInSeconds AS BIGINT)) / 86400.0 AS DECIMAL(10, 2)) AS AverageTimeInDays
+        FROM
+            Durations d
+        JOIN
+            InvoiceStatus s ON d.StatusID = s.ID
+        GROUP BY
+            s.invoiceStatusName, s.ID
+        ORDER BY
+            s.ID; -- Ordenamos por ID para mantener un orden consistente (In Progress -> Paid)
+    `;
+
+    try {
+        const pool = await testConnection();
+        const result = await pool.request()
+            .input('CompanyID', sql.Int, CompanyID)
+            .input('YearMonth', sql.VarChar, month) // Pasamos el mes como parámetro a la consulta
+            .query(query);
+
+        res.json(result.recordset);
+    } catch (error) {
+        console.error("Error obteniendo detalle de procesamiento por etapa:", error);
+        res.status(500).json({ error: "Error interno del servidor." });
+    }
 });
 
 

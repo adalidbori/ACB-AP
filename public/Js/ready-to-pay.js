@@ -251,7 +251,7 @@ async function updateToPaid(invoiceStatus) {
     const texto = document.getElementById('checknumberInput');
     const ultimoCheque = await getCheckNumber(); // Obtener el último número de cheque
     if (ultimoCheque === null) {
-      alert("Error al obtener el último número de cheque");
+      alert("Error getting the check number!");
       texto.value = ''; // Limpia el campo en caso de error
     } else {
       texto.value = ultimoCheque; // Asigna el número incrementado al input

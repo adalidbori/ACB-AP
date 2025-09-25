@@ -147,14 +147,12 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
                 <div class="bg-white p-6 rounded-lg shadow">
-                    <div class="flex items-center gap-2 mb-4">
-                        <h3 class="text-lg font-semibold">Avg Processing Time</h3>
-                        <i id="processing-help-icon"
-                            class="bi bi-info-circle-fill text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"></i>
+                    <div class="flex items-center justify-between gap-2 mb-4">
+                        <h3 id="chart-title" class="text-lg font-semibold">Avg Processing Time</h3>
+                        <button id="back-to-overview-btn" class="hidden text-sm text-indigo-600 hover:text-indigo-800 font-semibold">
+                            &larr; Back to monthly view
+                        </button>
                     </div>
-                    <p id="processing-help-text" class="hidden text-sm text-slate-600 bg-slate-50 p-3 rounded-lg mb-4">
-                        Click the bar to drill down and see processing time by stage.
-                    </p>
                     <div class="h-80">
                         <canvas id="processingChart"></canvas>
                     </div>

@@ -222,83 +222,142 @@ async function showSettingIcon() {
 }
 
 
+// --- Variables para gestionar el estado del gráfico y guardar datos ---
+let isDrillDownView = false;
+let originalChartData = {}; // Para guardar los datos originales de los meses
+
+// --- Función para cargar los datos de detalle (Drill-Down) ---
+async function loadDrillDownData(monthKey) {
+    try {
+        // Hacemos la llamada al nuevo endpoint del backend
+        const response = await fetch(`/processing-stages-chart?month=${monthKey}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error al obtener datos detallados: ${errorText}`);
+        }
+        const stageDataFromApi = await response.json();
+
+        // Nombres de las etapas en el orden esperado
+        const STAGE_LABELS = ['In Progress', 'Waiting Approval', 'Ready to pay'];
+        const chartDataForStages = Array(4).fill(null);
+
+        // Mapeamos los datos recibidos al array que usará el gráfico
+        stageDataFromApi.forEach(item => {
+            const index = STAGE_LABELS.indexOf(item.invoiceStatusName);
+            if (index !== -1) {
+                // El backend ya devuelve el valor en días, así que lo usamos directamente
+                chartDataForStages[index] = item.AverageTimeInDays;
+            }
+        });
+
+        const chart = window.processingChartInstance;
+        const monthIndex = parseInt(monthKey.split('-')[1], 10) - 1;
+        const monthLabel = originalChartData.labels[monthIndex];
+
+        // Actualizamos el gráfico con los nuevos datos de las etapas
+        chart.data.labels = STAGE_LABELS;
+        chart.data.datasets[0].data = chartDataForStages;
+        chart.data.datasets[0].label = `Días promedio para ${monthLabel}`;
+        chart.update();
+
+        // Actualizamos la UI para mostrar que estamos en la vista de detalle
+        isDrillDownView = true;
+        document.getElementById('chart-title').innerText = `Detalle de etapas para ${monthLabel}`;
+        document.getElementById('back-to-overview-btn').classList.remove('hidden');
+
+    } catch (error) {
+        console.error("Error en la función loadDrillDownData:", error);
+        alert("No se pudieron cargar los datos detallados para este mes.");
+    }
+}
+
+// --- Tu función modificada ---
 async function loadProcessingChart() {
     try {
         const response = await fetch('/avg-processing-chart');
         if (!response.ok) throw new Error('Error al obtener datos del promedio');
         const dataFromApi = await response.json();
 
-        // Meses base (enero a diciembre)
-        const labels = [
-            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-        ];
-
-        // Crear arreglo de 12 posiciones con null (sin datos)
+        const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const chartData = Array(12).fill(null);
 
-        // Llenar los datos según la API
         dataFromApi.forEach(item => {
             const monthIndex = parseInt(item.PaidMonth.split('-')[1], 10) - 1;
             chartData[monthIndex] = item.AvgProcessingDays;
         });
 
-        // Crear o actualizar gráfico
+        // Guardamos los datos originales para poder volver a esta vista
+        originalChartData = {
+            labels: labels,
+            data: chartData,
+            label: 'Average processing days'
+        };
+        
         const ctx = document.getElementById('processingChart').getContext('2d');
         if (window.processingChartInstance) {
-            window.processingChartInstance.data.datasets[0].data = chartData;
-            window.processingChartInstance.update();
-        } else {
-            window.processingChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Promedio días de procesamiento',
-                        data: chartData,
-                        backgroundColor: 'rgba(99, 102, 241, 0.6)',   // Indigo-500
-                        borderColor: 'rgba(99, 102, 241, 1)',
-                        borderWidth: 1,
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    onClick: (evt, elements) => {
-                        if (elements.length > 0) {
-                            const index = elements[0].index;
-                            const month = labels[index];
-                            const monthKey = `${new Date().getFullYear()}-${String(index + 1).padStart(2, '0')}`;
-                            console.log("Clicked Month:", monthKey);
-                            // Aquí luego llamaremos a la API de drill-down
-                            alert(`Click on ${month} (${monthKey})`);
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: ctx => `${Math.round(ctx.raw ?? 0)} days`
-                            }
-                        },
-                        legend: { display: false }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                        },
-                        x: {
-                            ticks: { maxRotation: 0, minRotation: 0 }
-                        }
-                    }
-                }
-            });
+            window.processingChartInstance.destroy();
         }
-
+        
+        window.processingChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: originalChartData.labels,
+                datasets: [{
+                    label: originalChartData.label,
+                    data: originalChartData.data,
+                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                    borderColor: 'rgba(99, 102, 241, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                onClick: (evt, elements) => {
+                    if (elements.length > 0 && !isDrillDownView) {
+                        const index = elements[0].index;
+                        const year = new Date().getFullYear(); // Asumimos el año actual
+                        const monthKey = `${year}-${String(index + 1).padStart(2, '0')}`;
+                        
+                        // Llamamos a la función que busca los datos del detalle
+                        loadDrillDownData(monthKey);
+                    }
+                },
+                plugins: {
+                    tooltip: { callbacks: { label: ctx => `${ctx.raw ? ctx.raw.toFixed(2) : 0} days` }},
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Days' } },
+                    x: {}
+                }
+            }
+        });
     } catch (error) {
         console.error("Error cargando gráfico de promedio:", error);
     }
 }
+
+// --- Lógica para el botón de "Volver" en la grafica de Avg Processing Time---
+    document.getElementById('back-to-overview-btn').addEventListener('click', () => {
+        // Si no estamos en la vista de detalle, no hacer nada
+        if (!isDrillDownView) return;
+
+        const chart = window.processingChartInstance;
+
+        // Restauramos el gráfico con los datos originales que guardamos
+        chart.data.labels = originalChartData.labels;
+        chart.data.datasets[0].data = originalChartData.data;
+        chart.data.datasets[0].label = originalChartData.label;
+        chart.update();
+
+        // Restauramos el estado y la UI
+        isDrillDownView = false;
+        document.getElementById('chart-title').innerText = 'Avg Processing Time';
+        document.getElementById('back-to-overview-btn').classList.add('hidden');
+    });
+
 
 async function loadTopVendorsChart() {
     try {
