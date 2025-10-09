@@ -38,6 +38,12 @@
                     <i class="fas fa-envelope-open-text me-2"></i>Invitations
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="email-settings-tab" data-bs-toggle="tab" data-bs-target="#email-settings"
+                    type="button" role="tab">
+                    <i class="fas fa-cogs me-2"></i>Email Settings
+                </button>
+            </li>
         </ul>
 
 
@@ -147,6 +153,102 @@
                                     <!-- Invitations will be populated here by JavaScript -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="email-settings" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-envelope-cog me-2"></i>Email Server Configuration
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs" id="emailSettingsSubTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="list-settings-tab" data-bs-toggle="tab"
+                                    data-bs-target="#list-settings-pane" type="button" role="tab">
+                                    <i class="fas fa-list me-2"></i>Configured Companies
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="add-settings-tab" data-bs-toggle="tab"
+                                    data-bs-target="#add-settings-pane" type="button" role="tab">
+                                    <i class="fas fa-plus me-2"></i>Add / Edit Settings
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content pt-3" id="emailSettingsSubTabsContent">
+                            <div class="tab-pane fade show active" id="list-settings-pane" role="tabpanel">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Company</th>
+                                                <th>SMTP Host</th>
+                                                <th>SMTP Port</th>
+                                                <th>SMTP User</th>
+                                                <th>Default Recipient</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="emailSettingsTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane fade" id="add-settings-pane" role="tabpanel">
+                                <form id="emailSettingsForm">
+                                    <div class="mb-3">
+                                        <label for="emailCompanyId" class="form-label">Company *</label>
+                                        <select class="form-select" id="emailCompanyId" name="companyId" required>
+                                            <option value="">Select a company</option>
+                                        </select>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-8 mb-3">
+                                            <label for="smtpHost" class="form-label">SMTP Host *</label>
+                                            <input type="text" class="form-control" id="smtpHost" name="smtpHost"
+                                                placeholder="smtp.office365.com" required />
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="smtpPort" class="form-label">SMTP Port *</label>
+                                            <input type="number" class="form-control" id="smtpPort" name="smtpPort"
+                                                placeholder="587" required />
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="smtpUser" class="form-label">SMTP User (From Email) *</label>
+                                        <input type="email" class="form-control" id="smtpUser" name="smtpUser"
+                                            placeholder="user@company.com" required />
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="smtpPassword" class="form-label">SMTP Password</label>
+                                            <input type="password" class="form-control" id="smtpPassword"
+                                                placeholder="Dejar en blanco para no cambiar" />
+                                            <small class="form-text text-muted">La contraseña se guardará de forma
+                                                segura en Azure.</small>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="confirmSmtpPassword" class="form-label">Confirm Password</label>
+                                            <input type="password" class="form-control" id="confirmSmtpPassword"
+                                                placeholder="Confirmar nueva contraseña" />
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="emailTo" class="form-label">Default Recipient (Email To) *</label>
+                                        <input type="email" class="form-control" id="emailTo" name="emailTo"
+                                            placeholder="recipient@company.com" required />
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        Save Settings
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>

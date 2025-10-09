@@ -11,6 +11,8 @@
   "description": "",
   "dependencies": {
     "@azure-rest/ai-vision-image-analysis": "^1.0.0-beta.3",
+    "@azure/identity": "^4.13.0",
+    "@azure/keyvault-secrets": "^4.10.0",
     "@azure/storage-blob": "^12.26.0",
     "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^3.0.2",

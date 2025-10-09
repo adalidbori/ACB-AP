@@ -10,6 +10,9 @@ CREATE TABLE Company (
     CreatedAt DATETIME DEFAULT GETDATE()
 );
 
+
+
+
 -- Crear tabla Role
 CREATE TABLE Role (
     ID INT IDENTITY(1,1) PRIMARY KEY,
@@ -317,5 +320,27 @@ GROUP BY
 ORDER BY
     s.ID;
 
-    */
- 
+   
+
+CREATE TABLE EmailSettings (
+    ID INT IDENTITY(1,1) PRIMARY KEY,        -- Clave primaria autoincremental
+    SMTP_HOST VARCHAR(255) NOT NULL,         -- Servidor SMTP
+    SMTP_PORT INT NOT NULL,                  -- Puerto SMTP
+    SMTP_USER VARCHAR(255) NOT NULL,         -- Usuario SMTP
+    EMAIL_TO VARCHAR(255) NOT NULL,          -- Destinatario del correo
+    CompanyID INT NOT NULL,                  -- Relación con la tabla Company
+    [Timestamp] DATETIME DEFAULT GETDATE(),  -- Fecha y hora de creación
+
+    CONSTRAINT FK_EmailSettings_Company 
+        FOREIGN KEY (CompanyID) REFERENCES Company(ID)  -- Clave foránea
+);
+
+ALTER TABLE Company
+ADD BaseFee DECIMAL(10, 2) NOT NULL DEFAULT 299.00,
+    CostPerInvoice DECIMAL(10, 2) NOT NULL DEFAULT 0.22;
+GO
+
+  */
+
+
+

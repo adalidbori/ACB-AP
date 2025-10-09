@@ -43,13 +43,20 @@
                 </h1>
             </div>
             <nav class="flex-grow p-4">
-                <a href="#" class="flex items-center p-3 my-2 text-slate-700 bg-indigo-100 rounded-lg font-bold">
+                <a href="/dashboard"
+                    class="flex items-center p-3 my-2 text-slate-700 bg-indigo-100 rounded-lg font-bold">
                     <i class="bi bi-grid-1x2-fill mr-3"></i>
                     Dashboard
                 </a>
                 <a href="/" class="flex items-center p-3 my-2 text-slate-600 hover:bg-slate-200 rounded-lg">
                     <i class="bi bi-file-earmark-text-fill mr-3"></i>
                     Manage Invoices
+                </a>
+                <a id="billing-link" href="/billing"
+                    class="flex items-center p-3 my-2 text-slate-600 hover:bg-slate-200 rounded-lg"
+                    style="display: none;">
+                    <i class="bi bi-wallet-fill mr-3"></i>
+                    Billing
                 </a>
                 <a id="openSettings" href="#"
                     class="flex items-center p-3 my-2 text-slate-600 hover:bg-slate-200 rounded-lg"
@@ -149,7 +156,8 @@
                 <div class="bg-white p-6 rounded-lg shadow">
                     <div class="flex items-center justify-between gap-2 mb-4">
                         <h3 id="chart-title" class="text-lg font-semibold">Avg Processing Time</h3>
-                        <button id="back-to-overview-btn" class="hidden text-sm text-indigo-600 hover:text-indigo-800 font-semibold">
+                        <button id="back-to-overview-btn"
+                            class="hidden text-sm text-indigo-600 hover:text-indigo-800 font-semibold">
                             &larr; Back to monthly view
                         </button>
                     </div>
@@ -175,7 +183,13 @@
     </div>
 
     <script src="/Js/dashboard.js"></script>
-
+    <script>
+        // Función de logout (si no la tienes en un archivo global)
+        function logoutUser() {
+            fetch('/logout', { method: 'POST' })
+                .then(() => window.location.href = '/login');
+        }
+    </script>
 
 </body>
 

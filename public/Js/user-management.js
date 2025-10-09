@@ -228,6 +228,113 @@ function populateInvitationsTable(invitations) {
     });
 }
 
+async function cargarCompaniasEnEmailTab() {
+    const select = document.getElementById('emailCompanyId');
+    // Previene que se recarguen las opciones si ya existen
+    if (select.options.length > 1) return;
+
+    try {
+        const response = await fetch(`/companies`);
+        const companies = await response.json();
+
+        select.innerHTML = '<option value="">Selecciona una compañía</option>';
+        companies.forEach(company => {
+            const option = document.createElement('option');
+            option.value = company.ID;
+            option.textContent = company.CompanyName;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error al cargar compañías:', error);
+    }
+}
+
+// Listener para el formulario de Email Settings
+// Reemplaza tu listener existente por este
+document.getElementById('emailSettingsForm').addEventListener('submit', async function (event) {
+    event.preventDefault();
+
+    const companyId = document.getElementById('emailCompanyId').value;
+    if (!companyId) {
+        alert('Por favor, selecciona una compañía.');
+        return;
+    }
+
+    // --- VALIDACIÓN DE CONTRASEÑAS ---
+    const password = document.getElementById('smtpPassword').value;
+    const confirmPassword = document.getElementById('confirmSmtpPassword').value;
+
+    if (password !== confirmPassword) {
+        alert('Las contraseñas no coinciden. Por favor, inténtalo de nuevo.');
+        return; // Detiene el envío del formulario
+    }
+
+    // Recolectamos los datos del formulario, incluyendo la contraseña
+    const data = {
+        CompanyID: parseInt(companyId),
+        SMTP_HOST: document.getElementById('smtpHost').value,
+        SMTP_PORT: parseInt(document.getElementById('smtpPort').value),
+        SMTP_USER: document.getElementById('smtpUser').value,
+        EMAIL_TO: document.getElementById('emailTo').value,
+        SMTP_PASSWORD: password // Enviamos la contraseña
+    };
+
+    // Enviamos los datos al servidor
+    try {
+        const response = await fetch('/saveEmailSettings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(result.message);
+            document.getElementById('emailSettingsForm').reset();
+        } else {
+            // Mostramos un error más específico si viene del servidor
+            alert('Error: ' + (result.error || 'No se pudo guardar la configuración.'));
+        }
+    } catch (error) {
+        console.error('Error de red:', error);
+        alert('Error de red: No se pudo guardar la configuración.');
+    }
+});
+
+async function renderEmailSettingsList() {
+    const tableBody = document.getElementById('emailSettingsTableBody');
+    tableBody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>'; // Mensaje de carga
+
+    try {
+        const response = await fetch('/getAllEmailSettings');
+        const settingsList = await response.json();
+
+        tableBody.innerHTML = ''; // Limpiar la tabla
+
+        if (settingsList.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No companies have been configured yet.</td></tr>';
+            return;
+        }
+
+        settingsList.forEach(setting => {
+            const row = `
+                <tr>
+                    <td>${setting.CompanyName}</td>
+                    <td>${setting.SMTP_HOST}</td>
+                    <td>${setting.SMTP_PORT}</td>
+                    <td>${setting.SMTP_USER}</td>
+                    <td>${setting.EMAIL_TO}</td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML('beforeend', row);
+        });
+    } catch (error) {
+        console.error('Error rendering email settings list:', error);
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading settings.</td></tr>';
+    }
+}
+
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function () {
@@ -245,4 +352,21 @@ document.addEventListener('DOMContentLoaded', function () {
         cargarCompanias();
     });
 
+    const mainEmailSettingsTab = document.getElementById('email-settings-tab');
+    if (mainEmailSettingsTab) {
+        // Cuando el tab principal de Email Settings se muestra, carga la lista.
+        mainEmailSettingsTab.addEventListener('shown.bs.tab', function () {
+            renderEmailSettingsList();
+        });
+    }
+
+    const addSettingsSubTab = document.getElementById('add-settings-tab');
+    if (addSettingsSubTab) {
+        // Cuando el sub-tab de "Agregar" se muestra, carga las compañías en el dropdown.
+        addSettingsSubTab.addEventListener('shown.bs.tab', function () {
+            cargarCompaniasEnEmailTab(); // Reutilizamos la función que ya tenías.
+        });
+    }
+
 });
+

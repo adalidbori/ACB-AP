@@ -11,7 +11,9 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const cookieParser = require("cookie-parser");
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-
+// =========== NUEVOS IMPORTS PARA AZURE KEY VAULT ===========
+const { SecretClient } = require("@azure/keyvault-secrets");
+const { DefaultAzureCredential } = require("@azure/identity");
 
 
 require("dotenv").config();
@@ -31,6 +33,10 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const GEMINI_KEY = process.env.GEMINI_KEY;
 const ROOT_DOMAIN = process.env.ROOT_DOMAIN;
 const DOMAIN_PORT = process.env.DOMAIN_PORT;
+const KEY_VAULT_URI = process.env.KEY_VAULT_URI;
+const AZURE_CLIENT_ID = process.env.AZURE_CLIENT_ID;
+const AZURE_CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET;
+const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID;
 
 const genAI = new GoogleGenerativeAI(GEMINI_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
@@ -81,7 +87,10 @@ transporter.verify()
 //const { StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } = require("@azure/storage-blob");
 const { BlobServiceClient, BlobClient, StorageSharedKeyCredential, BlobSASPermissions, generateBlobSASQueryParameters } = require('@azure/storage-blob');
 
+const credential = new DefaultAzureCredential();
+const keyVaultUri = KEY_VAULT_URI;
 
+const secretClient = new SecretClient(keyVaultUri, credential);
 
 const app = express();
 const port = process.env.PORT;
@@ -447,7 +456,7 @@ app.post("/insert", authMiddleware, async (req, res) => {
         VALUES 
           (@docName, @timestampName, @vendor, @referenceNumber, @invoiceNumber, @invoiceStatus, @vendorAddress, @invoiceDate, @dueDate, @fileURL, @fileType, @invoiceTotal, @checknumber, @CompanyID)
       `);
-    
+
     // <<< CAPTURAR EL ID DE LA FACTURA RECIÉN CREADA >>>
     const newInvoiceId = result.recordset[0].insertedId;
     console.log(`ID de la factura insertada${newInvoiceId}`);
@@ -455,7 +464,7 @@ app.post("/insert", authMiddleware, async (req, res) => {
     await pool.request()
       .input('InvoiceID', sql.Int, newInvoiceId)
       // Asumiendo que '1' es el ID para el estado 'InProgress'
-      .input('StatusID', sql.Int, 1) 
+      .input('StatusID', sql.Int, 1)
       .input('UserID', sql.Int, UserID)
       .query(`
         INSERT INTO InvoiceStatusHistory (InvoiceID, StatusID, UserID)
@@ -473,7 +482,7 @@ app.post("/insert", authMiddleware, async (req, res) => {
 // Insert SQL Request
 app.post("/insertDocumentIntoDatabase", authMiddleware, async (req, res) => {
   // <<< OBTENER UserID Y CompanyID DEL TOKEN >>>
-  const { CompanyID, UserID } = req.user; 
+  const { CompanyID, UserID } = req.user;
 
   try {
     const pool = await testConnection();
@@ -897,7 +906,7 @@ app.put('/editCheckNumber', authMiddleware, async (req, res) => {
       .query(`UPDATE Invoices SET checknumber = @valor, invoiceStatus = 4 WHERE ID IN (${idsParam}) AND CompanyID = @CompanyID`);
 
 
-      // --- PASO 2: Registrar el cambio de estado en el historial para cada factura ---
+    // --- PASO 2: Registrar el cambio de estado en el historial para cada factura ---
     for (const id of idsArray) {
       // 2a. Cerrar el estado anterior en el historial
       await pool.request()
@@ -907,7 +916,7 @@ app.put('/editCheckNumber', authMiddleware, async (req, res) => {
           SET ExitDate = GETDATE() 
           WHERE InvoiceID = @InvoiceID AND ExitDate IS NULL
         `);
-      
+
       // 2b. Registrar el nuevo estado 'Paid' (ID 4) en el historial
       await pool.request()
         .input('InvoiceID', sql.Int, id)
@@ -1100,26 +1109,93 @@ app.put('/invoiceFirstUpdate', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/send-email', async (req, res) => {
-  const { subject, invoices } = req.body;
-  const to = EMAIL_TO;
-  const attachments = invoices.map(({ url, docName }) => ({
-    filename: docName,  // nombre con que aparecerá el adjunto
-    path: generateSasUrlForBlob(url)           // la URL o ruta al archivo
-  }));
+// server.js
+
+// ... (tu código existente y el transporter global se quedan como están) ...
+
+// REEMPLAZA TU RUTA /send-email EXISTENTE CON ESTA NUEVA VERSIÓN DINÁMICA
+app.post('/send-email', authMiddleware, async (req, res) => {
+  // 1. OBTENER EL CompanyID DEL USUARIO AUTENTICADO
+  // El middleware 'authMiddleware' nos da acceso a req.user
+  const { CompanyID } = req.user;
+  if (!CompanyID) {
+    return res.status(401).json({ ok: false, error: "No se pudo identificar la compañía del usuario." });
+  }
+
   try {
-    const info = await transporter.sendMail({
-      from: `"AP" <${SMTP_USER}>`,
-      to,         // puede ser un string o lista de correos
-      subject,    // asunto
+    // --- 2. OBTENER LA CONFIGURACIÓN SMTP DESDE LA BASE DE DATOS ---
+    console.log(`Buscando configuración de email para CompanyID: ${CompanyID}`);
+    const pool = await testConnection();
+    const settingsResult = await pool.request()
+      .input('CompanyID', sql.Int, CompanyID)
+      .query('SELECT * FROM EmailSettings WHERE CompanyID = @CompanyID');
+
+    if (settingsResult.recordset.length === 0) {
+      return res.status(404).json({
+        ok: false,
+        error: "No se encontró configuración de SMTP para esta compañía."
+      });
+    }
+    const settings = settingsResult.recordset[0];
+
+    // --- 3. OBTENER LA CONTRASEÑA DESDE AZURE KEY VAULT ---
+    const secretName = `${CompanyID}-PASSWORD`;
+    console.log(`Obteniendo secreto '${secretName}' desde Key Vault.`);
+
+    const secret = await secretClient.getSecret(secretName);
+    const smtpPassword = secret.value;
+
+    if (!smtpPassword) {
+      return res.status(404).json({
+        ok: false,
+        error: "No se encontró la contraseña de SMTP en el almacén de claves."
+      });
+    }
+
+    // --- 4. CREAR UN TRANSPORTER DINÁMICO Y LOCAL ---
+    // Este 'transporter' solo existe dentro de esta función
+    const dynamicTransporter = nodemailer.createTransport({
+      host: settings.SMTP_HOST,
+      port: Number(settings.SMTP_PORT),
+      secure: Number(settings.SMTP_PORT) === 465, // `secure` es true solo para el puerto 465
+      auth: {
+        user: settings.SMTP_USER, // Usuario desde la BD
+        pass: smtpPassword,       // Contraseña desde Key Vault
+      },
+      tls: {
+        ciphers: 'TLSv1.2'
+      }
+    });
+
+    // --- 5. PREPARAR Y ENVIAR EL CORREO ---
+    const { subject, invoices } = req.body;
+
+    const attachments = invoices.map(({ url, docName }) => ({
+      filename: docName,
+      path: generateSasUrlForBlob(url)
+    }));
+
+    console.log(`Enviando correo desde: ${settings.SMTP_USER} hacia: ${settings.EMAIL_TO}`);
+
+    // Usamos el transporter dinámico para enviar el correo
+    const info = await dynamicTransporter.sendMail({
+      from: `"AP" <${settings.SMTP_USER}>`, // El 'from' es el usuario SMTP
+      to: settings.EMAIL_TO,                // El destinatario por defecto desde la BD
+      subject,
       attachments
     });
 
     console.log('Mensaje enviado: %s', info.messageId);
     res.json({ ok: true, messageId: info.messageId });
+
   } catch (error) {
-    console.error('Error al enviar correo:', error);
-    res.status(500).json({ ok: false, error: error.message });
+    console.error('Error al enviar correo dinámico:', error);
+
+    if (error.code === 'SecretNotFound') {
+      return res.status(404).json({ ok: false, error: `El secreto para la compañía ${CompanyID} no fue encontrado en Azure Key Vault.` });
+    }
+
+    res.status(500).json({ ok: false, error: "Error interno del servidor al enviar el correo." });
   }
 });
 
@@ -1444,7 +1520,7 @@ function authMiddleware(req, res, next) {
   }
 }
 
-function authorizeRole(requiredRole) {
+function authorizeRole(...allowedRoles) { // Usamos '...' para aceptar múltiples argumentos (ej. 1, 3)
   return (req, res, next) => {
     const token = req.cookies.token;
     if (!token) {
@@ -1453,17 +1529,20 @@ function authorizeRole(requiredRole) {
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
-      if (decoded.Role !== requiredRole) {
+      
+      // La nueva lógica: Comprueba si el rol del usuario está INCLUIDO en la lista de roles permitidos
+      if (!allowedRoles.includes(decoded.Role)) {
         return res.status(403).send("Access denied!");
       }
 
-      req.user = decoded; // Opcional: guardar datos del usuario en req
+      req.user = decoded;
       next();
     } catch (error) {
       return res.status(401).send("Invalid token!");
     }
   };
 }
+
 
 function verifyInvitationToken(req, res, next) {
   const { Token } = req.body;
@@ -1788,15 +1867,15 @@ app.get('/avg-processing-chart', authMiddleware, async (req, res) => {
 
 //Endpoint para obtener el AVG processing time en cada stage de la factura
 app.get('/processing-stages-chart', authMiddleware, async (req, res) => {
-    const CompanyID = req.user.CompanyID;
-    const { month } = req.query; // Recibimos el mes como query param, ej: "?month=2025-09"
+  const CompanyID = req.user.CompanyID;
+  const { month } = req.query; // Recibimos el mes como query param, ej: "?month=2025-09"
 
-    // Validación básica del formato del mes
-    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-        return res.status(400).json({ error: "Formato de mes inválido. Se esperaba YYYY-MM." });
-    }
+  // Validación básica del formato del mes
+  if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+    return res.status(400).json({ error: "Formato de mes inválido. Se esperaba YYYY-MM." });
+  }
 
-    const query = `
+  const query = `
         WITH Durations AS (
             -- Calculamos la duración en segundos de cada estadía
             SELECT
@@ -1826,27 +1905,27 @@ app.get('/processing-stages-chart', authMiddleware, async (req, res) => {
             s.ID; -- Ordenamos por ID para mantener un orden consistente (In Progress -> Paid)
     `;
 
-    try {
-        const pool = await testConnection();
-        const result = await pool.request()
-            .input('CompanyID', sql.Int, CompanyID)
-            .input('YearMonth', sql.VarChar, month) // Pasamos el mes como parámetro a la consulta
-            .query(query);
+  try {
+    const pool = await testConnection();
+    const result = await pool.request()
+      .input('CompanyID', sql.Int, CompanyID)
+      .input('YearMonth', sql.VarChar, month) // Pasamos el mes como parámetro a la consulta
+      .query(query);
 
-        res.json(result.recordset);
-    } catch (error) {
-        console.error("Error obteniendo detalle de procesamiento por etapa:", error);
-        res.status(500).json({ error: "Error interno del servidor." });
-    }
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error obteniendo detalle de procesamiento por etapa:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
 });
 
 
 //Top 5 vendors by spend last 3 months
 app.get('/top-vendors-chart', authMiddleware, async (req, res) => {
-    // Obtenemos el CompanyID del usuario que está logueado
-    const { CompanyID } = req.user;
+  // Obtenemos el CompanyID del usuario que está logueado
+  const { CompanyID } = req.user;
 
-    const query = `
+  const query = `
         SELECT TOP 5
             vendor,
             SUM(CAST(invoiceTotal AS DECIMAL(18, 2))) AS TotalSpend
@@ -1862,16 +1941,167 @@ app.get('/top-vendors-chart', authMiddleware, async (req, res) => {
             TotalSpend DESC;
     `;
 
+  try {
+    const pool = await testConnection();
+    const result = await pool.request()
+      .input('CompanyID', sql.Int, CompanyID) // Pasamos el CompanyID de forma segura
+      .query(query);
+
+    // Enviamos los resultados como JSON
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error obteniendo el top 5 de proveedores:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+});
+
+
+// Endpoint para GUARDAR (INSERTAR O ACTUALIZAR) la configuración de email
+app.post('/saveEmailSettings', authMiddleware, authorizeRole(1), async (req, res) => {
+  try {
+    // ... (el resto del código que obtiene los datos y guarda en la BD es correcto)
+    const { CompanyID, SMTP_HOST, SMTP_PORT, SMTP_USER, EMAIL_TO, SMTP_PASSWORD } = req.body;
+
+    if (!CompanyID || !SMTP_HOST || !SMTP_PORT || !SMTP_USER || !EMAIL_TO) {
+      return res.status(400).json({ error: 'Todos los campos, excepto la contraseña, son obligatorios.' });
+    }
+
+    // --- 1. GUARDAR DATOS EN LA BASE DE DATOS (Esto ya funciona bien) ---
+    const pool = await testConnection();
+    const query = `
+            MERGE INTO EmailSettings AS target
+            USING (SELECT @CompanyID AS CompanyID) AS source ON (target.CompanyID = source.CompanyID)
+            WHEN MATCHED THEN
+                UPDATE SET SMTP_HOST = @SMTP_HOST, SMTP_PORT = @SMTP_PORT, SMTP_USER = @SMTP_USER, EMAIL_TO = @EMAIL_TO, [Timestamp] = GETDATE()
+            WHEN NOT MATCHED THEN
+                INSERT (SMTP_HOST, SMTP_PORT, SMTP_USER, EMAIL_TO, CompanyID)
+                VALUES (@SMTP_HOST, @SMTP_PORT, @SMTP_USER, @EMAIL_TO, @CompanyID);
+        `;
+    await pool.request()
+      .input('CompanyID', sql.Int, CompanyID)
+      .input('SMTP_HOST', sql.VarChar(255), SMTP_HOST)
+      .input('SMTP_PORT', sql.Int, SMTP_PORT)
+      .input('SMTP_USER', sql.VarChar(255), SMTP_USER)
+      .input('EMAIL_TO', sql.VarChar(255), EMAIL_TO)
+      .query(query);
+
+    // --- 2. GUARDAR CONTRASEÑA EN AZURE KEY VAULT ---
+    if (SMTP_PASSWORD) {
+      const secretName = `${CompanyID}-PASSWORD`;
+      console.log(`Guardando secreto en Key Vault con el nombre: ${secretName}`);
+
+      // ===========  AQUÍ ESTÁ EL CAMBIO IMPORTANTE ===========
+      // Usamos la instancia `secretClient` (con 's' minúscula) que creamos arriba.
+      await secretClient.setSecret(secretName, SMTP_PASSWORD);
+    }
+
+    res.status(200).json({ message: 'Configuración de email guardada correctamente.' });
+
+  } catch (error) {
+    console.error("Error al guardar la configuración:", error);
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ error: `Error con Azure Key Vault: ${error.message}` });
+    }
+    res.status(500).json({ error: "Error interno al guardar la configuración." });
+  }
+});
+
+// GET All Email Settings for the list view
+app.get('/getAllEmailSettings', authMiddleware, authorizeRole(1), async (req, res) => {
     try {
         const pool = await testConnection();
-        const result = await pool.request()
-            .input('CompanyID', sql.Int, CompanyID) // Pasamos el CompanyID de forma segura
-            .query(query);
+        // Unimos EmailSettings con Company para obtener el nombre de la compañía
+        const result = await pool.request().query(`
+            SELECT es.SMTP_HOST, es.SMTP_PORT, es.SMTP_USER, es.EMAIL_TO, c.CompanyName
+            FROM EmailSettings AS es
+            JOIN Company AS c ON es.CompanyID = c.ID
+            ORDER BY c.CompanyName;
+        `);
 
-        // Enviamos los resultados como JSON
         res.json(result.recordset);
+
     } catch (error) {
-        console.error("Error obteniendo el top 5 de proveedores:", error);
+        console.error("Error getting all Email Settings:", error);
+        res.status(500).json({ error: "Error getting all Email Settings" });
+    }
+});
+
+
+// server.js
+
+app.get('/getBillingData', authMiddleware, async (req, res) => {
+    const { CompanyID } = req.user;
+
+    try {
+        const pool = await testConnection();
+
+        // --- 1. OBTENER LOS PRECIOS ESPECÍFICOS DE LA COMPAÑÍA ---
+        const priceResult = await pool.request()
+            .input('CompanyID', sql.Int, CompanyID)
+            .query('SELECT BaseFee, CostPerInvoice FROM Company WHERE ID = @CompanyID');
+
+        if (priceResult.recordset.length === 0) {
+            return res.status(404).json({ error: "No se encontró la compañía." });
+        }
+        
+        // Guardamos los precios dinámicos en variables
+        const { BaseFee, CostPerInvoice } = priceResult.recordset[0];
+
+        // --- 2. OBTENER EL CONTEO DE FACTURAS (como antes) ---
+        const invoiceCountResult = await pool.request()
+            .input('CompanyID', sql.Int, CompanyID)
+            .query(`
+                SELECT
+                    YEAR(Timestamp) AS BillYear,
+                    MONTH(Timestamp) AS BillMonth,
+                    COUNT(ID) AS InvoiceCount
+                FROM Invoices
+                WHERE CompanyID = @CompanyID AND Timestamp >= DATEADD(month, -12, GETDATE())
+                GROUP BY YEAR(Timestamp), MONTH(Timestamp)
+                ORDER BY BillYear DESC, BillMonth DESC;
+            `);
+        
+        // --- 3. CALCULAR LOS TOTALES USANDO LOS PRECIOS DINÁMICOS ---
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+
+        let currentBilling = {
+            monthName: new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(now),
+            invoiceCount: 0,
+            baseFee: BaseFee, // Usamos el valor de la BD
+            variableCost: 0,
+            total: BaseFee      // Usamos el valor de la BD
+        };
+        
+        const billingHistory = [];
+
+        invoiceCountResult.recordset.forEach(row => {
+            // Usamos los precios dinámicos para el cálculo
+            const variableCost = row.InvoiceCount * CostPerInvoice;
+            const total = BaseFee + variableCost;
+            const monthDate = new Date(row.BillYear, row.BillMonth - 1);
+            const monthName = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(monthDate);
+
+            const billData = {
+                monthName: monthName,
+                invoiceCount: row.InvoiceCount,
+                baseFee: BaseFee,
+                variableCost: variableCost,
+                total: total
+            };
+
+            if (row.BillYear === currentYear && row.BillMonth === currentMonth) {
+                currentBilling = billData;
+            } else {
+                billingHistory.push(billData);
+            }
+        });
+
+        res.json({ currentBilling, billingHistory });
+
+    } catch (error) {
+        console.error("Error al obtener los datos de facturación:", error);
         res.status(500).json({ error: "Error interno del servidor." });
     }
 });
@@ -1928,6 +2158,10 @@ app.get("/paid", authMiddleware, (req, res) => {
 
 app.get("/user-management", authMiddleware, authorizeRole(1), (req, res) => {
   res.sendFile(path.join(__dirname, "user-management.html"));
+});
+
+app.get('/billing', authMiddleware, authorizeRole(1, 3), (req, res) => {
+    res.sendFile(path.join(__dirname, "billing.html"));
 });
 
 // Middleware para manejar 404

@@ -3,7 +3,7 @@ let invoicesChart;
 let topVendorsChartInstance = null;
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Añade los listeners a los encabezados ESTÁTICOS de la tabla una vez.
-    showSettingIcon();
+    updateMenuVisibilityByRole();
     getCardsMetrics();
     initializeCharts(); // Inicializa los gráficos vacíos
     loadPaymentsChartData(); // Carga datos reales para el gráfico de pagos
@@ -198,26 +198,32 @@ function logoutUser() {
 
 }
 
-async function showSettingIcon() {
+async function updateMenuVisibilityByRole() {
     try {
         const res = await fetch('/getCurrentUser', {
             method: 'GET',
-            credentials: 'include', // Importante para enviar la cookie
+            credentials: 'include',
         });
 
         if (!res.ok) throw new Error('Unauthorized');
 
         const data = await res.json();
+        const userRole = data.role;
 
-        if (data.role === 1) {
-            const settingsBtn = document.getElementById('openSettings');
-            if (settingsBtn) settingsBtn.style.display = 'inline-block';
-        }
-    } catch (err) {
-        console.error('Error verifying role:', err);
-        // Por seguridad, ocultar también si hay error
+        // Lógica para el enlace de Settings (rol 1)
         const settingsBtn = document.getElementById('openSettings');
-        if (settingsBtn) settingsBtn.style.display = 'none';
+        if (settingsBtn && userRole === 1) {
+            settingsBtn.style.display = 'flex';
+        }
+
+        // Nueva lógica para el enlace de Billing (roles 1 y 3)
+        const billingLink = document.getElementById('billing-link');
+        if (billingLink && (userRole === 1 || userRole === 3)) {
+            billingLink.style.display = 'flex';
+        }
+
+    } catch (err) {
+        console.error('Error verifying role for menu visibility:', err);
     }
 }
 
