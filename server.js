@@ -93,7 +93,7 @@ const keyVaultUri = KEY_VAULT_URI;
 const secretClient = new SecretClient(keyVaultUri, credential);
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT;
 
 // Configuración de CORS y parsers
 app.use(cors());
