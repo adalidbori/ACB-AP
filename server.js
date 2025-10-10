@@ -93,7 +93,7 @@ const keyVaultUri = KEY_VAULT_URI;
 const secretClient = new SecretClient(keyVaultUri, credential);
 
 const app = express();
-const port = process.env.PORT;
+const port = 3000;
 
 // Configuración de CORS y parsers
 app.use(cors());
@@ -1591,7 +1591,7 @@ app.post('/auth', async (req, res) => {
 
     // Generar el JWT con userId y CompanyID
     const token = jwt.sign(
-      { UserID: user.ID, CompanyID: user.CompanyID, Role: user.RoleID },
+      { UserID: user.ID, CompanyID: user.CompanyID, Role: user.RoleID, WorkEmail: user.WorkEmail, FirstName: user.FirstName},
       JWT_SECRET,
       { expiresIn: '8h' }
     );
@@ -1619,7 +1619,7 @@ app.get('/getCurrentUser', authMiddleware, (req, res) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    res.json({ role: decoded.Role, CompanyID: decoded.CompanyID });
+    res.json({ role: decoded.Role, CompanyID: decoded.CompanyID, name: decoded.FirstName, email: decoded.WorkEmail });
   } catch (err) {
     return res.status(403).json({ error: 'Invalid token' });
   }

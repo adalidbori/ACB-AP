@@ -11,6 +11,24 @@ document.addEventListener('DOMContentLoaded', () => {
     loadProcessingChart();
     loadTopVendorsChart();
 
+    // --- CÓDIGO NUEVO PARA EL MENÚ DE USUARIO ---
+    const userMenuButton = document.getElementById('user-menu-button');
+    const userMenu = document.getElementById('user-menu');
+
+    // Muestra u oculta el menú al hacer clic en el botón
+    userMenuButton.addEventListener('click', (event) => {
+        event.stopPropagation(); // Evita que el clic se propague al 'document'
+        userMenu.classList.toggle('hidden');
+    });
+
+    // Oculta el menú si se hace clic en cualquier otro lugar de la página
+    document.addEventListener('click', (event) => {
+        if (!userMenu.classList.contains('hidden') && !userMenuButton.contains(event.target)) {
+            userMenu.classList.add('hidden');
+        }
+    });
+    // --- FIN DEL CÓDIGO NUEVO ---
+
     // Lógica para los iconos de ayuda
     const spendHelpIcon = document.getElementById('spend-help-icon');
     const spendHelpText = document.getElementById('spend-help-text');
@@ -208,22 +226,55 @@ async function updateMenuVisibilityByRole() {
         if (!res.ok) throw new Error('Unauthorized');
 
         const data = await res.json();
+
+        console.log(`Data del usuario ${data.email}`)
+
+        // AÑADIDO PARA DEPURACIÓN: Muestra el objeto exacto en la consola
+        console.log("Datos recibidos del servidor:", data);
+
+        // ¡CORRECCIÓN CLAVE! Usamos data.role (minúscula) porque así lo envía el servidor.
         const userRole = data.role;
 
-        // Lógica para el enlace de Settings (rol 1)
+        // --- LÓGICA PARA POPULAR LA INFO DEL USUARIO ---
+        const userName = data.name || 'Usuario';
+        const userEmail = data.email || 'correo@ejemplo.com';
+        console.log(data.name);
+        const getInitials = (name) => {
+            if (!name) return '--'; // Controlar si el nombre es nulo o undefined
+            const names = name.split(' ');
+            if (names.length > 1 && names[1]) {
+                return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+            }
+            if (name.length > 1) {
+                return name.substring(0, 2).toUpperCase();
+            }
+            return name.toUpperCase();
+        };
+
+        const initials = getInitials(userName);
+
+        document.getElementById('user-initials').textContent = initials;
+        document.getElementById('user-name-sidebar').textContent = userName;
+        document.getElementById('user-name-dropdown').textContent = userName;
+        document.getElementById('user-email-dropdown').textContent = userEmail;
+
+        // El resto de tu lógica de visibilidad debería funcionar ahora correctamente
         const settingsBtn = document.getElementById('openSettings');
+        console.log(`Role del usuario: ${userRole}`);
         if (settingsBtn && userRole === 1) {
             settingsBtn.style.display = 'flex';
         }
 
-        // Nueva lógica para el enlace de Billing (roles 1 y 3)
         const billingLink = document.getElementById('billing-link');
         if (billingLink && (userRole === 1 || userRole === 3)) {
             billingLink.style.display = 'flex';
         }
 
     } catch (err) {
-        console.error('Error verifying role for menu visibility:', err);
+        // AÑADIDO PARA DEPURACIÓN: Muestra si la función falló
+        console.error('Error detallado en updateMenuVisibilityByRole:', err);
+        document.getElementById('user-name-sidebar').textContent = 'Error';
+        document.getElementById('user-initials').textContent = 'X';
     }
 }
 

@@ -2,6 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchAndRenderBilling();
+    updateMenuVisibilityByRole();
 });
 
 async function fetchAndRenderBilling() {
@@ -48,11 +49,40 @@ function renderBillingHistory(history) {
             <tr class="hover:bg-slate-50">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${record.monthName}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">${record.invoiceCount}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-right">${formatCurrency(record.variableCost)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-right">${formatCurrency(record.baseFee)}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-right">${formatCurrency(record.variableCost)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900 text-right">${formatCurrency(record.total)}</td>
             </tr>
         `;
         tableBody.insertAdjacentHTML('beforeend', row);
     });
+}
+
+async function updateMenuVisibilityByRole() {
+    try {
+        const res = await fetch('/getCurrentUser', {
+            method: 'GET',
+            credentials: 'include',
+        });
+
+        if (!res.ok) throw new Error('Unauthorized');
+
+        const data = await res.json();
+        const userRole = data.role;
+
+        // Lógica para el enlace de Settings (rol 1)
+        const settingsBtn = document.getElementById('openSettings');
+        if (settingsBtn && userRole === 1) {
+            settingsBtn.style.display = 'flex';
+        }
+
+        // Nueva lógica para el enlace de Billing (roles 1 y 3)
+        const billingLink = document.getElementById('billing-link');
+        if (billingLink && (userRole === 1 || userRole === 3)) {
+            billingLink.style.display = 'flex';
+        }
+
+    } catch (err) {
+        console.error('Error verifying role for menu visibility:', err);
+    }
 }

@@ -66,12 +66,41 @@
                 </a>
             </nav>
             <div class="p-4 border-t border-slate-200">
-                <a href="#" onclick="logoutUser()"
-                    class="flex items-center p-3 my-2 text-slate-600 hover:bg-slate-200 rounded-lg">
-                    <i class="bi bi-box-arrow-left mr-3"></i>
-                    Log Out
-                </a>
+                <div class="relative">
+                    <button id="user-menu-button"
+                        class="flex items-center space-x-3 w-full p-2 text-left rounded-lg hover:bg-slate-200 focus:outline-none">
+                        <div
+                            class="relative inline-flex items-center justify-center w-10 h-10 overflow-hidden bg-pink-500 rounded-lg shadow">
+                            <span id="user-initials" class="font-bold text-white text-md">--</span>
+                            <span
+                                class="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-white"></span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p id="user-name-sidebar" class="text-slate-800 font-semibold text-sm truncate">Cargando...
+                            </p>
+                        </div>
+                    </button>
+
+                    <div id="user-menu"
+                        class="hidden absolute bottom-full mb-2 w-60 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                        <div class="py-1">
+                            <div class="px-4 py-3">
+                                <p id="user-name-dropdown" class="text-sm font-semibold text-gray-900 truncate">Nombre
+                                    de Usuario</p>
+                                <p id="user-email-dropdown" class="text-sm text-gray-500 truncate">correo@ejemplo.com
+                                </p>
+                            </div>
+                            <div class="border-t border-gray-200"></div>
+                            <a href="#" onclick="logoutUser()"
+                                class="flex items-center w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-100">
+                                <i class="bi bi-box-arrow-left mr-3"></i>
+                                Log Out
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
+
         </aside>
 
         <main class="flex-1 p-8 overflow-y-auto">
