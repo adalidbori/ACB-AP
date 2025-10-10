@@ -236,8 +236,8 @@ async function updateMenuVisibilityByRole() {
         const userRole = data.role;
 
         // --- LÓGICA PARA POPULAR LA INFO DEL USUARIO ---
-        const userName = data.name || 'Usuario';
-        const userEmail = data.email || 'correo@ejemplo.com';
+        const userName = data.name || '';
+        const userEmail = data.email || '';
         console.log(data.name);
         const getInitials = (name) => {
             if (!name) return '--'; // Controlar si el nombre es nulo o undefined
